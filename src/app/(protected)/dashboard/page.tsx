@@ -58,19 +58,21 @@ export default async function DashboardPage() {
             </thead>
             <tbody>
               {typedCases.map(c => (
-                <tr
-                  key={c.id}
-                  onClick={() => { window.location.href = `/casos/${c.id}` }}
-                  className="cursor-pointer"
-                >
-                  <td className="font-medium text-navy">{c.title}</td>
+                <tr key={c.id}>
+                  <td className="font-medium text-navy">
+                    <Link href={`/casos/${c.id}`} className="no-underline text-navy hover:text-teal transition-colors block">
+                      {c.title}
+                    </Link>
+                  </td>
                   <td className="text-slate-light">{c.category}</td>
                   <td className="text-slate-light whitespace-nowrap">
                     {new Date(c.created_at).toLocaleDateString('pt-BR')}
                   </td>
                   <td><StatusBadge status={c.status} /></td>
                   <td className="text-right">
-                    <ChevronRight className="w-4 h-4 text-slate-light inline" />
+                    <Link href={`/casos/${c.id}`} className="no-underline">
+                      <ChevronRight className="w-4 h-4 text-slate-light inline hover:text-teal transition-colors" />
+                    </Link>
                   </td>
                 </tr>
               ))}
