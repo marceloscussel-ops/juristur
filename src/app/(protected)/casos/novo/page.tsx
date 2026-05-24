@@ -6,12 +6,10 @@ import { CASE_CATEGORIES } from '@/types'
 import { Upload, X, FileText, Loader2, AlertCircle } from 'lucide-react'
 
 const MAX_FILES = 5
-const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024
 const ALLOWED_TYPES = [
   'application/pdf',
-  'image/jpeg',
-  'image/png',
-  'image/webp',
+  'image/jpeg', 'image/png', 'image/webp',
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ]
@@ -30,62 +28,30 @@ export default function NovoCasoPage() {
     const selected = Array.from(e.target.files ?? [])
     const valid: File[] = []
     const errors: string[] = []
-
     for (const file of selected) {
-      if (!ALLOWED_TYPES.includes(file.type)) {
-        errors.push(`${file.name}: tipo não suportado`)
-        continue
-      }
-      if (file.size > MAX_FILE_SIZE) {
-        errors.push(`${file.name}: arquivo maior que 10MB`)
-        continue
-      }
+      if (!ALLOWED_TYPES.includes(file.type)) { errors.push(`${file.name}: tipo não suportado`); continue }
+      if (file.size > MAX_FILE_SIZE) { errors.push(`${file.name}: arquivo maior que 10MB`); continue }
       valid.push(file)
     }
-
-    if (errors.length > 0) {
-      setError(errors.join('; '))
-    }
-
-    setFiles(prev => {
-      const combined = [...prev, ...valid]
-      return combined.slice(0, MAX_FILES)
-    })
-
+    if (errors.length) setError(errors.join('; '))
+    setFiles(prev => [...prev, ...valid].slice(0, MAX_FILES))
     if (fileInputRef.current) fileInputRef.current.value = ''
-  }
-
-  function removeFile(index: number) {
-    setFiles(prev => prev.filter((_, i) => i !== index))
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
-
-    if (!category) {
-      setError('Selecione a categoria do caso.')
-      return
-    }
-
+    if (!category) { setError('Selecione a categoria do caso.'); return }
     setLoading(true)
-
     const formData = new FormData()
     formData.append('title', title)
     formData.append('description', description)
     formData.append('category', category)
     files.forEach(f => formData.append('files', f))
-
     try {
       const res = await fetch('/api/cases', { method: 'POST', body: formData })
       const data = await res.json()
-
-      if (!res.ok) {
-        setError(data.error || 'Erro ao abrir caso. Tente novamente.')
-        setLoading(false)
-        return
-      }
-
+      if (!res.ok) { setError(data.error || 'Erro ao abrir caso.'); setLoading(false); return }
       router.push(`/casos/${data.caseId}`)
     } catch {
       setError('Erro de conexão. Verifique sua internet e tente novamente.')
@@ -94,103 +60,67 @@ export default function NovoCasoPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto animate-fade-in">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Abrir novo caso</h1>
-        <p className="text-gray-500 mt-1">Descreva a situação jurídica para receber análise da IA</p>
+        <p className="j-overline">Assessoria jurídica</p>
+        <h1 className="j-h1 mt-0.5">Abrir novo caso</h1>
+        <p className="j-caption mt-1">Descreva a situação para receber análise da IA</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="card space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="j-card space-y-5">
+          {/* Título */}
           <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-              Título do caso <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="title"
-              type="text"
-              required
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-              className="input-field"
-              placeholder="Ex: Cliente solicita reembolso de pacote cancelado"
-              maxLength={150}
-            />
+            <label className="j-label" htmlFor="title">Título do caso <span className="text-danger">*</span></label>
+            <input id="title" type="text" required value={title} onChange={e => setTitle(e.target.value)} className="j-input" placeholder="Ex: Cliente solicita reembolso de pacote cancelado" maxLength={150} />
           </div>
 
+          {/* Categoria */}
           <div>
-            <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
-              Categoria <span className="text-red-500">*</span>
-            </label>
-            <select
-              id="category"
-              value={category}
-              onChange={e => setCategory(e.target.value)}
-              className="input-field bg-white"
+            <label className="j-label" htmlFor="category">Categoria <span className="text-danger">*</span></label>
+            <select id="category" value={category} onChange={e => setCategory(e.target.value)}
+              className="j-input appearance-none bg-no-repeat bg-white"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234A5568' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+                backgroundPosition: 'right 12px center',
+                paddingRight: '36px',
+              }}
             >
               <option value="">Selecione a categoria...</option>
-              {CASE_CATEGORIES.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
+              {CASE_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
             </select>
           </div>
 
+          {/* Descrição */}
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-              Descrição do problema <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              id="description"
-              required
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              rows={7}
-              className="input-field resize-none"
-              placeholder="Descreva detalhadamente a situação: o que aconteceu, quando, quem está envolvido, qual o valor em disputa, e qualquer informação relevante..."
-            />
-            <p className="text-xs text-gray-400 mt-1 text-right">{description.length} caracteres</p>
+            <label className="j-label" htmlFor="description">Descrição do problema <span className="text-danger">*</span></label>
+            <textarea id="description" required value={description} onChange={e => setDescription(e.target.value)} rows={7} className="j-input j-textarea"
+              placeholder="Descreva detalhadamente a situação: o que aconteceu, quando, quem está envolvido, qual o valor em disputa..." />
+            <p className="j-hint text-right">{description.length} caracteres</p>
           </div>
         </div>
 
-        <div className="card">
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            Documentos anexos <span className="text-gray-400 font-normal">(opcional — até {MAX_FILES} arquivos, 10MB cada)</span>
+        {/* Arquivos */}
+        <div className="j-card">
+          <label className="j-label mb-3 block">
+            Documentos anexos <span className="text-slate-light font-normal">(opcional — até {MAX_FILES} arquivos, 10MB cada)</span>
           </label>
-
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={files.length >= MAX_FILES}
-            className="w-full border-2 border-dashed border-gray-300 hover:border-blue-400 rounded-xl p-6 text-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          <button type="button" onClick={() => fileInputRef.current?.click()} disabled={files.length >= MAX_FILES}
+            className="w-full border-2 border-dashed border-[rgba(15,30,56,0.18)] hover:border-teal rounded-lg p-6 text-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-            <p className="text-sm text-gray-600">Clique para selecionar arquivos</p>
-            <p className="text-xs text-gray-400 mt-1">PDF, Word, imagens (JPG, PNG, WEBP)</p>
+            <Upload className="w-7 h-7 text-slate-light mx-auto mb-2" />
+            <p className="j-body">Clique para selecionar arquivos</p>
+            <p className="j-caption mt-0.5">PDF, Word, imagens (JPG, PNG, WEBP)</p>
           </button>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp"
-            onChange={handleFileChange}
-            className="hidden"
-          />
-
+          <input ref={fileInputRef} type="file" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp" onChange={handleFileChange} className="hidden" />
           {files.length > 0 && (
             <ul className="mt-3 space-y-2">
               {files.map((file, i) => (
-                <li key={i} className="flex items-center gap-3 bg-gray-50 rounded-lg px-3 py-2">
-                  <FileText className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                  <span className="text-sm text-gray-700 truncate flex-1">{file.name}</span>
-                  <span className="text-xs text-gray-400 flex-shrink-0">
-                    {(file.size / 1024).toFixed(0)} KB
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => removeFile(i)}
-                    className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
-                  >
+                <li key={i} className="flex items-center gap-3 bg-surface rounded-md px-3 py-2">
+                  <FileText className="w-4 h-4 text-teal flex-shrink-0" />
+                  <span className="j-body truncate flex-1">{file.name}</span>
+                  <span className="j-caption flex-shrink-0">{(file.size / 1024).toFixed(0)} KB</span>
+                  <button type="button" onClick={() => setFiles(prev => prev.filter((_, idx) => idx !== i))} className="text-slate-light hover:text-danger transition-colors flex-shrink-0">
                     <X className="w-4 h-4" />
                   </button>
                 </li>
@@ -199,41 +129,29 @@ export default function NovoCasoPage() {
           )}
         </div>
 
+        {/* Erro */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <div className="j-alert j-alert-danger">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-px" />
             {error}
           </div>
         )}
 
+        {/* Loading */}
         {loading && (
-          <div className="bg-blue-50 border border-blue-200 text-blue-700 text-sm rounded-lg px-4 py-4 flex items-center gap-3">
-            <Loader2 className="w-5 h-5 animate-spin flex-shrink-0" />
+          <div className="j-alert j-alert-info">
+            <Loader2 className="w-4 h-4 animate-spin shrink-0" />
             <div>
-              <p className="font-medium">Analisando seu caso...</p>
-              <p className="text-blue-600 text-xs mt-0.5">Isso pode levar alguns segundos. Por favor, aguarde.</p>
+              <div className="font-semibold mb-0.5">Analisando seu caso...</div>
+              Isso pode levar alguns segundos. Por favor, aguarde.
             </div>
           </div>
         )}
 
         <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            disabled={loading}
-            className="btn-secondary flex-1"
-          >
-            Cancelar
-          </button>
-          <button type="submit" disabled={loading} className="btn-primary flex-1 flex items-center justify-center gap-2">
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Analisando...
-              </>
-            ) : (
-              'Enviar para análise'
-            )}
+          <button type="button" onClick={() => router.back()} disabled={loading} className="btn btn-outline flex-1">Cancelar</button>
+          <button type="submit" disabled={loading} className="btn btn-primary flex-1 justify-center">
+            {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Analisando...</> : 'Enviar para análise'}
           </button>
         </div>
       </form>

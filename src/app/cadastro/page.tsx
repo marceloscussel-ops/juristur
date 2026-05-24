@@ -23,147 +23,87 @@ export default function CadastroPage() {
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = e.target
-    if (name === 'cnpj') {
-      setForm(prev => ({ ...prev, cnpj: formatCNPJ(value) }))
-    } else {
-      setForm(prev => ({ ...prev, [name]: value }))
-    }
+    setForm(prev => ({
+      ...prev,
+      [name]: name === 'cnpj' ? formatCNPJ(value) : value,
+    }))
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
-    setLoading(true)
-
     if (form.password.length < 6) {
       setError('A senha deve ter pelo menos 6 caracteres.')
-      setLoading(false)
       return
     }
-
+    setLoading(true)
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...form, cnpj: form.cnpj.replace(/\D/g, '') }),
     })
-
     const data = await res.json()
-
     if (!res.ok) {
       setError(data.error || 'Erro ao cadastrar. Tente novamente.')
       setLoading(false)
       return
     }
-
     router.push('/login?cadastro=ok')
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-surface flex flex-col items-center justify-center px-4 py-10">
+      <div className="w-full max-w-[400px]">
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 text-blue-700 font-bold text-2xl">
-            <Scale className="w-7 h-7" />
-            JurisTur
+          <Link href="/" className="inline-flex items-center gap-2 no-underline">
+            <Scale className="w-5 h-5 text-gold" />
+            <span className="font-display text-[22px] text-navy">JurisTur</span>
           </Link>
-          <h1 className="mt-4 text-2xl font-bold text-gray-900">Cadastro da agência</h1>
-          <p className="text-gray-500 mt-1">Crie sua conta e comece a usar</p>
+          <h1 className="j-h1 mt-5 mb-1">Cadastro da agência</h1>
+          <p className="j-caption">Crie sua conta e comece a usar</p>
         </div>
 
-        <div className="card">
+        <div className="j-card animate-fade-in">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                Nome da agência
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                required
-                value={form.name}
-                onChange={handleChange}
-                className="input-field"
-                placeholder="Viagens Exemplo Turismo Ltda"
-              />
+              <label className="j-label" htmlFor="name">Nome da agência</label>
+              <input id="name" name="name" type="text" required value={form.name} onChange={handleChange} className="j-input" placeholder="Viagens Exemplo Turismo Ltda" />
             </div>
-
             <div>
-              <label htmlFor="cnpj" className="block text-sm font-medium text-gray-700 mb-1">
-                CNPJ
-              </label>
-              <input
-                id="cnpj"
-                name="cnpj"
-                type="text"
-                required
-                value={form.cnpj}
-                onChange={handleChange}
-                className="input-field"
-                placeholder="00.000.000/0001-00"
-              />
+              <label className="j-label" htmlFor="cnpj">CNPJ</label>
+              <input id="cnpj" name="cnpj" type="text" required value={form.cnpj} onChange={handleChange} className="j-input font-mono" placeholder="00.000.000/0001-00" />
             </div>
-
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                E-mail
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={form.email}
-                onChange={handleChange}
-                className="input-field"
-                placeholder="contato@agencia.com"
-              />
+              <label className="j-label" htmlFor="email">E-mail</label>
+              <input id="email" name="email" type="email" autoComplete="email" required value={form.email} onChange={handleChange} className="j-input" placeholder="contato@agencia.com" />
             </div>
-
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Senha
-              </label>
+              <label className="j-label" htmlFor="password">Senha</label>
               <div className="relative">
                 <input
-                  id="password"
-                  name="password"
+                  id="password" name="password"
                   type={showPassword ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  required
-                  value={form.password}
-                  onChange={handleChange}
-                  className="input-field pr-10"
-                  placeholder="Mínimo 6 caracteres"
+                  autoComplete="new-password" required
+                  value={form.password} onChange={handleChange}
+                  className="j-input pr-10" placeholder="Mínimo 6 caracteres"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-light hover:text-navy transition-colors">
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
 
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
-                {error}
-              </div>
-            )}
+            {error && <div className="j-alert j-alert-danger text-[13px]">{error}</div>}
 
-            <button type="submit" disabled={loading} className="btn-primary w-full mt-2">
+            <button type="submit" disabled={loading} className="btn btn-primary w-full mt-1">
               {loading ? 'Criando conta...' : 'Criar conta'}
             </button>
           </form>
         </div>
 
-        <p className="text-center text-sm text-gray-500 mt-6">
+        <p className="text-center j-caption mt-5">
           Já tem conta?{' '}
-          <Link href="/login" className="text-blue-700 hover:underline font-medium">
-            Entrar
-          </Link>
+          <Link href="/login" className="text-teal hover:underline font-medium">Entrar</Link>
         </p>
       </div>
     </div>
