@@ -4,10 +4,11 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Scale, LogOut, Menu, X, PlusCircle } from 'lucide-react'
+import { Scale, LogOut, Menu, X, PlusCircle, UserCircle } from 'lucide-react'
 
 const navItems = [
   { href: '/dashboard', label: 'Meus Casos' },
+  { href: '/perfil',    label: 'Perfil'      },
 ]
 
 export default function Navbar() {
@@ -46,12 +47,16 @@ export default function Navbar() {
 
       {/* Ações desktop */}
       <div className="hidden sm:flex items-center gap-2">
-        <Link
-          href="/casos/novo"
-          className="btn btn-gold btn-sm no-underline"
-        >
+        <Link href="/casos/novo" className="btn btn-gold btn-sm no-underline">
           <PlusCircle className="w-3.5 h-3.5" />
           Novo caso
+        </Link>
+        <Link
+          href="/perfil"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-white/60 hover:text-white text-[13px] transition-colors rounded"
+          title="Perfil"
+        >
+          <UserCircle className="w-4 h-4" />
         </Link>
         <button
           onClick={handleLogout}

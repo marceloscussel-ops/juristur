@@ -2,3 +2,34 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ── Estilos de impressão (Exportar PDF) ── */
+@media print {
+  /* Oculta tudo exceto a área de impressão */
+  body > * { display: none !important; }
+  .print-area { display: block !important; }
+
+  /* Remove elementos de navegação */
+  nav, .print\:hidden { display: none !important; }
+
+  /* Ajustes de página */
+  @page {
+    margin: 2cm;
+    size: A4;
+  }
+
+  body {
+    font-size: 12pt;
+    color: #000;
+    background: #fff;
+  }
+
+  /* Garante que cards apareçam corretamente */
+  .j-card, .j-card-teal {
+    border: 1px solid #ccc;
+    box-shadow: none;
+    break-inside: avoid;
+  }
+
+  a { text-decoration: none; color: inherit; }
+}

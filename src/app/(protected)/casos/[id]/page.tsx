@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import StatusBadge from '@/components/StatusBadge'
 import Disclaimer from '@/components/Disclaimer'
 import MarkdownRenderer from '@/components/MarkdownRenderer'
+import PrintButton from '@/components/PrintButton'
 import { Case } from '@/types'
 import { ArrowLeft, MessageCircle, Paperclip, Clock } from 'lucide-react'
 
@@ -32,10 +33,13 @@ export default async function CasoPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="max-w-3xl mx-auto animate-fade-in">
-      <Link href="/dashboard" className="inline-flex items-center gap-1.5 j-caption text-teal hover:text-navy transition-colors mb-6 no-underline">
-        <ArrowLeft className="w-3.5 h-3.5" />
-        Voltar para meus casos
-      </Link>
+      <div className="flex items-center justify-between mb-6 print:hidden">
+        <Link href="/dashboard" className="inline-flex items-center gap-1.5 j-caption text-teal hover:text-navy transition-colors no-underline">
+          <ArrowLeft className="w-3.5 h-3.5" />
+          Voltar para meus casos
+        </Link>
+        {analysis && <PrintButton />}
+      </div>
 
       {/* Card do caso */}
       <div className="j-card mb-4">
