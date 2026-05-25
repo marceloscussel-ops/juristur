@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { analyzeCase } from '@/lib/claude'
 import { extractTextFromFile } from '@/lib/extract-text'
+import { findSimilarCases, formatSimilarCases } from '@/lib/ai/rag'
 
 // Timeout de 60s no Vercel (máximo do plano Hobby)
 export const maxDuration = 60
@@ -117,12 +118,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 3. Análise da IA
+    // 3. Análise da IA (com RAG quando disponível)
     try {
+      // Busca casos similares na base de conhecimento (falha silenciosa)
+      const similarCases    = await findSimilarCases(description)
+      const similarCasesCtx = formatSimilarCases(similarCases)
+
       const result = await analyzeCase(
         description,
         category,
-        filesContent.join('\n\n---\n\n')
+        filesContent.join('\n\n---\n\n'),
+        similarCasesCtx
       )
 
       await supabase.from('case_analyses').insert({
