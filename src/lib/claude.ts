@@ -1,8 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk'
 
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-})
+// Não inicializar o cliente no nível do módulo — se ANTHROPIC_API_KEY não estiver
+// configurada no ambiente (ex: Vercel), o SDK jogaria uma exceção aqui e derrubaria
+// toda a rota de API. O cliente é criado de forma lazy dentro da função.
 
 const SYSTEM_PROMPT = `Você é um assistente jurídico especializado em direito do turismo brasileiro, com profundo conhecimento em:
 
@@ -45,6 +45,13 @@ export async function analyzeCase(
   category: string,
   filesContent: string
 ): Promise<string> {
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) {
+    throw new Error('ANTHROPIC_API_KEY não configurada. Configure a variável de ambiente no Vercel.')
+  }
+
+  const client = new Anthropic({ apiKey })
+
   const userMessage = `
 **Categoria do caso:** ${category}
 
