@@ -1,6 +1,7 @@
 'use client'
 
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 export default function MarkdownRenderer({ content }: { content: string }) {
   return (
@@ -11,8 +12,10 @@ export default function MarkdownRenderer({ content }: { content: string }) {
       prose-p:leading-relaxed prose-p:my-2
       prose-ul:my-2 prose-li:my-0.5
       prose-strong:text-gray-900
-      prose-hr:border-gray-200 prose-hr:my-6">
-      <ReactMarkdown>{content}</ReactMarkdown>
+      prose-hr:border-gray-200 prose-hr:my-6
+      prose-table:w-full prose-th:text-left prose-th:font-semibold prose-th:text-gray-700
+      prose-td:align-top prose-td:text-sm">
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
     </div>
   )
 }
