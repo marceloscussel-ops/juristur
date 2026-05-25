@@ -1,76 +1,85 @@
 import Anthropic from '@anthropic-ai/sdk'
 
-// Não inicializar o cliente no nível do módulo — se ANTHROPIC_API_KEY não estiver
-// configurada no ambiente (ex: Vercel), o SDK jogaria uma exceção aqui e derrubaria
-// toda a rota de API. O cliente é criado de forma lazy dentro da função.
+// Cliente criado de forma lazy dentro da função para evitar crash de módulo
+// caso ANTHROPIC_API_KEY não esteja configurada no ambiente.
 
-const SYSTEM_PROMPT = `Você é um assistente jurídico especializado em direito do turismo brasileiro, com profundo conhecimento em:
+const SYSTEM_PROMPT = `Você é um assistente jurídico especializado em direito do turismo brasileiro,
+operando em parceria com um escritório de advocacia devidamente registrado na OAB.
 
-- Código de Defesa do Consumidor (Lei nº 8.078/1990)
-- Lei Geral do Turismo (Lei nº 11.771/2008)
-- Resolução ANAC sobre transporte aéreo
-- Código Civil Brasileiro
-- Legislação trabalhista (CLT)
-- Jurisprudência dos Tribunais de Justiça brasileiros em casos de turismo
+Seu papel é fornecer INFORMAÇÃO JURÍDICA — não consultoria jurídica —
+com base na legislação brasileira vigente, jurisprudência dos tribunais
+superiores (STJ, STF) e normas específicas do setor de turismo.
 
-Sua função é analisar casos jurídicos apresentados por agências de turismo brasileiras e fornecer orientação jurídica preliminar.
+LEGISLAÇÃO PRINCIPAL DE REFERÊNCIA:
+- Lei 11.771/2008 (Política Nacional de Turismo)
+- Código de Defesa do Consumidor — CDC (Lei 8.078/1990)
+- Código Civil Brasileiro (Lei 10.406/2002)
+- Resolução ANAC vigente (transporte aéreo)
+- Lei 13.709/2018 (LGPD)
+- Código de Ética e Disciplina da OAB
 
-Estruture sua resposta SEMPRE no seguinte formato:
+ESTRUTURA OBRIGATÓRIA DA RESPOSTA:
 
-## Análise do Caso
+## 1. Resumo do Problema
+Descreva brevemente o que foi relatado.
 
-[Resumo do problema identificado e enquadramento jurídico]
+## 2. Enquadramento Jurídico
+Indique quais leis e artigos se aplicam ao caso.
 
-## Fundamento Legal
+## 3. Direitos e Obrigações
+Explique os direitos da agência e suas obrigações legais na situação.
 
-[Cite as leis, artigos e jurisprudências aplicáveis ao caso]
+## 4. Riscos Identificados
+Aponte os principais riscos jurídicos presentes.
 
-## Riscos e Exposição
+## 5. Caminhos Possíveis
+Sugira as alternativas disponíveis (negociação extrajudicial, Procon,
+Juizado Especial Cível, ação judicial) com avaliação objetiva de cada uma.
 
-[Avalie os riscos jurídicos para a agência: alto, médio ou baixo risco, com justificativa]
+## 6. Próximos Passos Recomendados
+Liste ações concretas e imediatas que a agência pode tomar.
 
-## Orientações Práticas
+REGRAS OBRIGATÓRIAS:
+- Nunca afirme categoricamente o resultado de um processo judicial
+- Nunca substitua a orientação de um advogado
+- Use linguagem clara, acessível, sem excesso de jargão jurídico
+- Se o caso estiver fora do escopo de turismo, informe e redirecione
+- Sempre finalize com o disclaimer padrão abaixo
 
-[Liste ações concretas que a agência pode tomar, em ordem de prioridade]
+DISCLAIMER OBRIGATÓRIO (ao final de toda resposta):
+"⚠️ Este conteúdo tem caráter exclusivamente informativo e não constitui consultoria jurídica. Para orientação personalizada e representação legal, consulte um advogado habilitado. Nossa plataforma conta com advogados especializados disponíveis para atendimento."`
 
-## Possíveis Desfechos
-
-[Descreva os cenários mais prováveis e como cada um pode se resolver]
-
----
-**AVISO IMPORTANTE:** Esta análise tem caráter meramente informativo e não substitui a consulta com um advogado habilitado. Para decisões jurídicas, procure sempre assessoria especializada.`
+export interface AnalysisResult {
+  text: string
+  tokensUsed: number
+}
 
 export async function analyzeCase(
   description: string,
   category: string,
-  filesContent: string
-): Promise<string> {
+  filesContent: string,
+  similarCases: string = ''
+): Promise<AnalysisResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
-    throw new Error('ANTHROPIC_API_KEY não configurada. Configure a variável de ambiente no Vercel.')
+    throw new Error('ANTHROPIC_API_KEY não configurada.')
   }
 
   const client = new Anthropic({ apiKey })
 
-  const userMessage = `
-**Categoria do caso:** ${category}
+  const userMessage = `${similarCases ? `CASOS SIMILARES JÁ ANALISADOS (use como referência):\n\n${similarCases}\n\n---\n\n` : ''}NOVO CASO A ANALISAR:
 
-**Descrição do problema:**
-${description}
+Categoria: ${category}
+Descrição do problema: ${description}
+${filesContent ? `\nDocumentos anexados:\n${filesContent}` : ''}
 
-${filesContent ? `**Conteúdo dos documentos anexados:**\n${filesContent}` : ''}
-`
+Por favor, analise este caso seguindo a estrutura definida.`
 
   const message = await client.messages.create({
-    model: 'claude-sonnet-4-6',
+    model: 'claude-sonnet-4-20250514',
     max_tokens: 2048,
     system: SYSTEM_PROMPT,
-    messages: [
-      {
-        role: 'user',
-        content: userMessage,
-      },
-    ],
+    messages: [{ role: 'user', content: userMessage }],
   })
 
   const textContent = message.content.find(block => block.type === 'text')
@@ -78,5 +87,8 @@ ${filesContent ? `**Conteúdo dos documentos anexados:**\n${filesContent}` : ''}
     throw new Error('Resposta inválida da IA')
   }
 
-  return textContent.text
+  return {
+    text: textContent.text,
+    tokensUsed: message.usage.input_tokens + message.usage.output_tokens,
+  }
 }

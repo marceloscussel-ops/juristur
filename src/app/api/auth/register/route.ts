@@ -3,9 +3,9 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, cnpj, email, password } = await request.json()
+    const { name, cnpj, email, phone, password } = await request.json()
 
-    if (!name || !cnpj || !email || !password) {
+    if (!name || !cnpj || !email || !phone || !password) {
       return NextResponse.json({ error: 'Todos os campos são obrigatórios.' }, { status: 400 })
     }
 
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       email,
       password,
       options: {
-        data: { name, cnpj },
+        data: { name, cnpj, phone },
       },
     })
 
@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
       name,
       cnpj,
       email,
+      phone,
     })
 
     if (agencyError) {

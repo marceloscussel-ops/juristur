@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { analyzeCase } from '@/lib/claude'
 import { extractTextFromFile } from '@/lib/extract-text'
 
-// Aumenta o timeout da função para 60s no Vercel (máximo do plano Hobby)
+// Timeout de 60s no Vercel (máximo do plano Hobby)
 export const maxDuration = 60
 
 export async function GET() {
@@ -40,20 +40,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
     }
 
-    const formData = await request.formData()
-    const title = formData.get('title') as string
+    const formData    = await request.formData()
+    const title       = formData.get('title') as string | null
     const description = formData.get('description') as string
-    const category = formData.get('category') as string
-    const files = (formData.getAll('files') as File[]).filter(f => f.size > 0)
+    const category    = formData.get('category') as string
+    const files       = (formData.getAll('files') as File[]).filter(f => f.size > 0)
 
-    if (!title || !description || !category) {
+    if (!description || !category) {
       return NextResponse.json({ error: 'Preencha todos os campos obrigatórios.' }, { status: 400 })
     }
 
     // 1. Criar o caso
     const { data: caseData, error: caseError } = await supabase
       .from('cases')
-      .insert({ agency_id: user.id, title, description, category, status: 'em_analise' })
+      .insert({
+        agency_id:   user.id,
+        title:       title || null,
+        description,
+        category,
+        status:      'em_analise',
+        origin:      'web',
+      })
       .select()
       .single()
 
@@ -64,13 +71,18 @@ export async function POST(request: NextRequest) {
 
     // 2. Upload de arquivos
     const filesContent: string[] = []
-    const uploadedFiles: Array<{ file_url: string; file_name: string; file_type: string }> = []
+    const uploadedFiles: Array<{
+      file_url: string
+      file_name: string
+      file_type: string
+      extracted_text: string
+    }> = []
 
     for (const file of files.slice(0, 5)) {
       try {
         const arrayBuffer = await file.arrayBuffer()
-        const buffer = Buffer.from(arrayBuffer)
-        const filePath = `${user.id}/${caseData.id}/${Date.now()}-${file.name}`
+        const buffer      = Buffer.from(arrayBuffer)
+        const filePath    = `${user.id}/${caseData.id}/${Date.now()}-${file.name}`
 
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('case-files')
@@ -83,10 +95,16 @@ export async function POST(request: NextRequest) {
 
         if (uploadData) {
           const { data: urlData } = supabase.storage.from('case-files').getPublicUrl(filePath)
-          uploadedFiles.push({ file_url: urlData.publicUrl, file_name: file.name, file_type: file.type })
+          const extracted = await extractTextFromFile(buffer, file.type, file.name)
 
-          const text = await extractTextFromFile(buffer, file.type, file.name)
-          if (text) filesContent.push(`[Arquivo: ${file.name}]\n${text}`)
+          uploadedFiles.push({
+            file_url:       urlData.publicUrl,
+            file_name:      file.name,
+            file_type:      file.type,
+            extracted_text: extracted,
+          })
+
+          if (extracted) filesContent.push(`[Arquivo: ${file.name}]\n${extracted}`)
         }
       } catch (fileErr) {
         console.error('[cases POST] file processing error:', fileErr)
@@ -101,18 +119,22 @@ export async function POST(request: NextRequest) {
 
     // 3. Análise da IA
     try {
-      const aiResponse = await analyzeCase(description, category, filesContent.join('\n\n---\n\n'))
+      const result = await analyzeCase(
+        description,
+        category,
+        filesContent.join('\n\n---\n\n')
+      )
 
       await supabase.from('case_analyses').insert({
-        case_id: caseData.id,
-        ai_response: aiResponse,
+        case_id:     caseData.id,
+        ai_response: result.text,
+        tokens_used: result.tokensUsed,
       })
 
       await supabase.from('cases').update({ status: 'concluido' }).eq('id', caseData.id)
     } catch (aiErr) {
       console.error('[cases POST] AI analysis error:', aiErr)
-      // Caso foi criado com sucesso — usuário pode tentar reabrir depois
-      // Status fica em 'em_analise'
+      // Caso criado com sucesso — status fica em 'em_analise'
     }
 
     return NextResponse.json({ caseId: caseData.id }, { status: 201 })

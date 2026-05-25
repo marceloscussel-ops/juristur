@@ -14,8 +14,17 @@ function formatCNPJ(value: string) {
     .replace(/(\d{4})(\d)/, '$1-$2')
 }
 
+function formatPhone(value: string) {
+  // Mantém apenas dígitos, limita a 13 (DDI 55 + 11 dígitos)
+  const digits = value.replace(/\D/g, '').slice(0, 13)
+  if (digits.length <= 2)  return `+${digits}`
+  if (digits.length <= 4)  return `+${digits.slice(0,2)} (${digits.slice(2)}`
+  if (digits.length <= 9)  return `+${digits.slice(0,2)} (${digits.slice(2,4)}) ${digits.slice(4)}`
+  return `+${digits.slice(0,2)} (${digits.slice(2,4)}) ${digits.slice(4,9)}-${digits.slice(9)}`
+}
+
 export default function CadastroPage() {
-  const [form, setForm] = useState({ name: '', cnpj: '', email: '', password: '' })
+  const [form, setForm] = useState({ name: '', cnpj: '', email: '', phone: '', password: '' })
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -25,7 +34,9 @@ export default function CadastroPage() {
     const { name, value } = e.target
     setForm(prev => ({
       ...prev,
-      [name]: name === 'cnpj' ? formatCNPJ(value) : value,
+      [name]: name === 'cnpj'  ? formatCNPJ(value)
+             : name === 'phone' ? formatPhone(value)
+             : value,
     }))
   }
 
@@ -36,11 +47,23 @@ export default function CadastroPage() {
       setError('A senha deve ter pelo menos 6 caracteres.')
       return
     }
+    // Extrai só os dígitos do telefone para salvar (formato DDI sem +)
+    const phoneDigits = form.phone.replace(/\D/g, '')
+    if (phoneDigits.length < 12) {
+      setError('Informe o WhatsApp com DDI e DDD. Ex: +55 (51) 99999-9999')
+      return
+    }
     setLoading(true)
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, cnpj: form.cnpj.replace(/\D/g, '') }),
+      body: JSON.stringify({
+        name:     form.name,
+        cnpj:     form.cnpj.replace(/\D/g, ''),
+        email:    form.email,
+        phone:    phoneDigits,
+        password: form.password,
+      }),
     })
     const data = await res.json()
     if (!res.ok) {
@@ -67,16 +90,35 @@ export default function CadastroPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="j-label" htmlFor="name">Nome da agência</label>
-              <input id="name" name="name" type="text" required value={form.name} onChange={handleChange} className="j-input" placeholder="Viagens Exemplo Turismo Ltda" />
+              <input id="name" name="name" type="text" required value={form.name}
+                onChange={handleChange} className="j-input"
+                placeholder="Viagens Exemplo Turismo Ltda" />
             </div>
+
             <div>
               <label className="j-label" htmlFor="cnpj">CNPJ</label>
-              <input id="cnpj" name="cnpj" type="text" required value={form.cnpj} onChange={handleChange} className="j-input font-mono" placeholder="00.000.000/0001-00" />
+              <input id="cnpj" name="cnpj" type="text" required value={form.cnpj}
+                onChange={handleChange} className="j-input font-mono"
+                placeholder="00.000.000/0001-00" />
             </div>
+
             <div>
               <label className="j-label" htmlFor="email">E-mail</label>
-              <input id="email" name="email" type="email" autoComplete="email" required value={form.email} onChange={handleChange} className="j-input" placeholder="contato@agencia.com" />
+              <input id="email" name="email" type="email" autoComplete="email" required
+                value={form.email} onChange={handleChange} className="j-input"
+                placeholder="contato@agencia.com" />
             </div>
+
+            <div>
+              <label className="j-label" htmlFor="phone">
+                WhatsApp <span className="text-danger">*</span>
+              </label>
+              <input id="phone" name="phone" type="tel" required value={form.phone}
+                onChange={handleChange} className="j-input"
+                placeholder="+55 (51) 99999-9999" />
+              <p className="j-hint">Mesmo número usado no WhatsApp, com DDI e DDD</p>
+            </div>
+
             <div>
               <label className="j-label" htmlFor="password">Senha</label>
               <div className="relative">
@@ -87,7 +129,8 @@ export default function CadastroPage() {
                   value={form.password} onChange={handleChange}
                   className="j-input pr-10" placeholder="Mínimo 6 caracteres"
                 />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-light hover:text-navy transition-colors">
+                <button type="button" onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-light hover:text-navy transition-colors">
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
