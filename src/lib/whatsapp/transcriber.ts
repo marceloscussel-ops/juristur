@@ -3,7 +3,6 @@
  */
 
 import OpenAI from 'openai'
-import { Readable } from 'stream'
 
 export async function transcribeAudio(audioUrl: string): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY
