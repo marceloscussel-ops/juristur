@@ -86,6 +86,34 @@ CREATE POLICY "case_analyses_own" ON case_analyses
   );
 
 -- ============================================================
+-- Trigger: criar registro em agencies automaticamente ao cadastrar
+-- Garante que nenhum usuário fique "orphan" (auth sem agencies)
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.agencies (id, name, cnpj, email)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'name', 'Agência sem nome'),
+    COALESCE(NEW.raw_user_meta_data->>'cnpj', '00.000.000/0000-00'),
+    NEW.email
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- ============================================================
 -- Storage bucket
 -- ============================================================
 
