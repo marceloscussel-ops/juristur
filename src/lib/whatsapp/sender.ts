@@ -11,9 +11,13 @@ const BASE_URL = () => {
 }
 
 async function zapiPost(path: string, body: unknown) {
+  const clientToken = process.env.ZAPI_CLIENT_TOKEN ?? ''
   const res = await fetch(`${BASE_URL()}${path}`, {
     method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Client-Token':  clientToken,
+    },
     body:    JSON.stringify(body),
   })
   if (!res.ok) {
