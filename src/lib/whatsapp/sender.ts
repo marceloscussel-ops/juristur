@@ -13,6 +13,7 @@ const BASE_URL = () => {
 async function zapiPost(path: string, body: unknown) {
   // Remove BOM e caracteres não-ASCII que corrompem o header HTTP
   const clientToken = (process.env.ZAPI_CLIENT_TOKEN ?? '').replace(/[^\x20-\x7E]/g, '').trim()
+  console.log(`[Z-API] client-token length=${clientToken.length} first5=${clientToken.slice(0,5)}`)
   const res = await fetch(`${BASE_URL()}${path}`, {
     method:  'POST',
     headers: {
