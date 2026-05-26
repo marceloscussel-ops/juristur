@@ -11,12 +11,13 @@ const BASE_URL = () => {
 }
 
 async function zapiPost(path: string, body: unknown) {
-  const clientToken = process.env.ZAPI_CLIENT_TOKEN ?? ''
+  // Remove BOM e caracteres não-ASCII que corrompem o header HTTP
+  const clientToken = (process.env.ZAPI_CLIENT_TOKEN ?? '').replace(/[^\x20-\x7E]/g, '').trim()
   const res = await fetch(`${BASE_URL()}${path}`, {
     method:  'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Client-Token':  clientToken,
+      ...(clientToken ? { 'Client-Token': clientToken } : {}),
     },
     body:    JSON.stringify(body),
   })
