@@ -320,7 +320,7 @@ export async function POST(request: NextRequest) {
     const audioUrl = body.audio?.audioUrl ?? body.ptt?.audioUrl
     if ((body.type === 'audio' || body.type === 'ptt') && audioUrl) {
       try {
-        text = await transcribeAudio(body.audio.audioUrl)
+        text = await transcribeAudio(audioUrl)
         await sendText(phone, `🎙️ _Transcrição do áudio:_\n"${text}"`)
       } catch {
         await sendText(phone, '⚠️ Não consegui transcrever o áudio. Por favor, envie como texto.')
