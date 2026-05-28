@@ -294,10 +294,11 @@ async function handleAwaitingFiles(
 export async function POST(request: NextRequest) {
   try {
     // Validação do secret (header ou query param)
-    const secret         = process.env.ZAPI_WEBHOOK_SECRET
-    const headerSecret   = request.headers.get('x-webhook-secret')
+    // Strip BOM/chars inválidos do env var (problema de vars adicionadas via PowerShell)
+    const secret         = (process.env.ZAPI_WEBHOOK_SECRET ?? '').replace(/[^\x20-\x7E]/g, '').trim()
+    const headerSecret   = request.headers.get('x-webhook-secret') ?? ''
     const { searchParams } = new URL(request.url)
-    const querySecret    = searchParams.get('secret')
+    const querySecret    = searchParams.get('secret') ?? ''
 
     if (secret && headerSecret !== secret && querySecret !== secret) {
       return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
