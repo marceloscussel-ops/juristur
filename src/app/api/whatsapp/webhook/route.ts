@@ -280,12 +280,14 @@ async function handleAwaitingFiles(
     const parts = formatAnalysis(result.text, category)
     await sendTextParts(phone, parts)
 
+    // Mantém sessão para capturar resposta sobre contato com advogado
+    await updateSession(sessionId, 'awaiting_followup')
+
   } catch (err) {
     console.error('[whatsapp/webhook] análise error:', err)
     await sendText(phone,
       '⚠️ Ocorreu um erro ao analisar seu caso. Por favor, tente novamente ou acesse a plataforma web.'
     )
-  } finally {
     await closeSession(sessionId)
   }
 }
@@ -390,6 +392,25 @@ export async function POST(request: NextRequest) {
       case 'processing':
         await sendText(phone, '⏳ Ainda estou analisando seu caso. Aguarde mais um instante...')
         break
+
+      case 'awaiting_followup': {
+        const t = text.toLowerCase().trim()
+        const wantsLawyer = t === '1' || t.includes('sim') || t.includes('quero') || t.includes('contratar')
+        if (wantsLawyer) {
+          const appUrl = env('NEXT_PUBLIC_APP_URL') ?? 'https://juristur.vercel.app'
+          await sendText(phone,
+            '✅ Ótimo! Um advogado especializado em turismo entrará em contato em breve.\n\n' +
+            `Você também pode acessar a plataforma para mais detalhes:\n${appUrl}`
+          )
+        } else {
+          await sendText(phone,
+            '✅ Tudo bem! Fico à disposição sempre que precisar.\n\n' +
+            'Quando quiser analisar um novo caso, é só enviar uma mensagem. 👋'
+          )
+        }
+        await closeSession(session.id)
+        break
+      }
     }
 
     return NextResponse.json({ ok: true })

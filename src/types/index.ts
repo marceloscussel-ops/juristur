@@ -81,6 +81,7 @@ export type WhatsappState =
   | 'awaiting_description'
   | 'awaiting_files'
   | 'processing'
+  | 'awaiting_followup'
   | 'completed'
 
 export interface RagCase {
