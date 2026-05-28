@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { normalizePhone } from '@/lib/phone'
 
 export async function GET() {
   try {
@@ -26,8 +27,8 @@ export async function PATCH(request: NextRequest) {
     const { name, phone } = await request.json()
     if (!name?.trim()) return NextResponse.json({ error: 'Nome é obrigatório.' }, { status: 400 })
 
-    // Normaliza phone: só dígitos
-    const phoneDigits = phone ? phone.replace(/\D/g, '') : null
+    // Normaliza para formato Z-API (sem o nono dígito)
+    const phoneDigits = phone ? normalizePhone(phone) : null
 
     const { error } = await supabase
       .from('agencies')

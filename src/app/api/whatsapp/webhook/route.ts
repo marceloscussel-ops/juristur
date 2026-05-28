@@ -20,6 +20,7 @@ import { extractTextFromFile } from '@/lib/extract-text'
 import { analyzeCase } from '@/lib/claude'
 import { findSimilarCases, formatSimilarCases } from '@/lib/ai/rag'
 import { env } from '@/lib/env'
+import { normalizePhone } from '@/lib/phone'
 
 export const maxDuration = 60
 
@@ -46,26 +47,6 @@ function getServiceClient() {
   )
 }
 
-/**
- * Normaliza número de telefone para o formato Z-API brasileiro.
- * Z-API envia: 55 + DDD (2) + número (8 dígitos) = 12 dígitos
- * Remove o nono dígito (9) de celulares se presente.
- * Ex: 5554999082111 → 555499082111
- *     554999082111  → 554999082111 (sem DDI duplicado)
- */
-function normalizePhone(raw: string): string {
-  let digits = raw.replace(/\D/g, '')
-
-  // Garante DDI 55
-  if (!digits.startsWith('55')) digits = '55' + digits
-
-  // Remove o nono dígito se o número tem 13 dígitos (55 + DDD + 9 + 8)
-  if (digits.length === 13) {
-    digits = digits.slice(0, 4) + digits.slice(5) // remove o 5º dígito (o "9")
-  }
-
-  return digits
-}
 
 /** Busca agência pelo número de telefone cadastrado. */
 async function findAgencyByPhone(phone: string) {

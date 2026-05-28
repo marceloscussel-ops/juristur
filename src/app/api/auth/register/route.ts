@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { normalizePhone } from '@/lib/phone'
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
       name,
       cnpj,
       email,
-      phone,
+      phone: phone ? normalizePhone(phone) : null,
     })
 
     if (agencyError) {
