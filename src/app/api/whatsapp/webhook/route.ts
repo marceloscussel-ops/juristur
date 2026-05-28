@@ -30,6 +30,8 @@ interface ZApiMessage {
   type:      string
   text?:     { message: string }
   audio?:    { audioUrl: string; mimeType: string }
+  // Z-API envia PTT (voice note) com campos alternativos
+  ptt?:      { audioUrl: string; mimeType: string }
   image?:    { imageUrl: string; mimeType: string; caption?: string }
   document?: { documentUrl: string; mimeType: string; fileName: string }
 }
@@ -307,14 +309,16 @@ export async function POST(request: NextRequest) {
     if (body.fromMe) return NextResponse.json({ ok: true })
 
     const phone = normalizePhone(body.phone)
-    console.log(`[webhook] phone_raw="${body.phone}" phone_normalized="${phone}"`)
     if (!phone) return NextResponse.json({ ok: true })
+
+    console.log(`[webhook] type="${body.type}" phone="${phone}" hasAudio=${!!body.audio} hasText=${!!body.text}`)
 
     // Extrai texto da mensagem
     let text = body.text?.message?.trim() ?? ''
 
-    // Áudio → transcrição Whisper
-    if (body.type === 'audio' && body.audio?.audioUrl) {
+    // Áudio → transcrição Whisper (Z-API usa "audio" ou "ptt" para voz)
+    const audioUrl = body.audio?.audioUrl ?? body.ptt?.audioUrl
+    if ((body.type === 'audio' || body.type === 'ptt') && audioUrl) {
       try {
         text = await transcribeAudio(body.audio.audioUrl)
         await sendText(phone, `🎙️ _Transcrição do áudio:_\n"${text}"`)
