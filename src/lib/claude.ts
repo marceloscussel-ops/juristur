@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { env } from '@/lib/env'
 
 // Cliente criado de forma lazy dentro da função para evitar crash de módulo
 // caso ANTHROPIC_API_KEY não esteja configurada no ambiente.
@@ -60,7 +61,7 @@ export async function analyzeCase(
   filesContent: string,
   similarCases: string = ''
 ): Promise<AnalysisResult> {
-  const apiKey = (process.env.ANTHROPIC_API_KEY ?? '').replace(/[^\x20-\x7E]/g, '').trim()
+  const apiKey = env('ANTHROPIC_API_KEY')
   if (!apiKey) {
     throw new Error('ANTHROPIC_API_KEY não configurada.')
   }

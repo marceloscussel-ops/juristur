@@ -3,20 +3,17 @@
  * Docs: https://developer.z-api.io/
  */
 
-/** Remove BOM e qualquer char fora do ASCII imprimível (problema de vars Vercel via PowerShell) */
-function cleanEnv(value: string | undefined): string {
-  return (value ?? '').replace(/[^\x20-\x7E]/g, '').trim()
-}
+import { env } from '@/lib/env'
 
 const BASE_URL = () => {
-  const id    = cleanEnv(process.env.ZAPI_INSTANCE_ID)
-  const token = cleanEnv(process.env.ZAPI_TOKEN)
+  const id    = env('ZAPI_INSTANCE_ID')
+  const token = env('ZAPI_TOKEN')
   if (!id || !token) throw new Error('ZAPI_INSTANCE_ID ou ZAPI_TOKEN não configurados.')
   return `https://api.z-api.io/instances/${id}/token/${token}`
 }
 
 async function zapiPost(path: string, body: unknown) {
-  const clientToken = cleanEnv(process.env.ZAPI_CLIENT_TOKEN)
+  const clientToken = env('ZAPI_CLIENT_TOKEN')
   const res = await fetch(`${BASE_URL()}${path}`, {
     method:  'POST',
     headers: {

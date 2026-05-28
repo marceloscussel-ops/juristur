@@ -19,6 +19,7 @@ import { transcribeAudio } from '@/lib/whatsapp/transcriber'
 import { extractTextFromFile } from '@/lib/extract-text'
 import { analyzeCase } from '@/lib/claude'
 import { findSimilarCases, formatSimilarCases } from '@/lib/ai/rag'
+import { env } from '@/lib/env'
 
 export const maxDuration = 60
 
@@ -40,8 +41,8 @@ interface ZApiMessage {
 
 function getServiceClient() {
   return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    env('NEXT_PUBLIC_SUPABASE_URL'),
+    env('SUPABASE_SERVICE_ROLE_KEY')
   )
 }
 
@@ -295,7 +296,7 @@ export async function POST(request: NextRequest) {
   try {
     // Validação do secret (header ou query param)
     // Strip BOM/chars inválidos do env var (problema de vars adicionadas via PowerShell)
-    const secret         = (process.env.ZAPI_WEBHOOK_SECRET ?? '').replace(/[^\x20-\x7E]/g, '').trim()
+    const secret         = env('ZAPI_WEBHOOK_SECRET')
     const headerSecret   = request.headers.get('x-webhook-secret') ?? ''
     const { searchParams } = new URL(request.url)
     const querySecret    = searchParams.get('secret') ?? ''

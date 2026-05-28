@@ -9,18 +9,19 @@
 
 import OpenAI from 'openai'
 import { createClient } from '@supabase/supabase-js'
+import { env } from '@/lib/env'
 
 // ─── Clientes (lazy) ────────────────────────────────────────────────────────
 
 function getOpenAIClient() {
-  const apiKey = process.env.OPENAI_API_KEY
+  const apiKey = env('OPENAI_API_KEY')
   if (!apiKey) throw new Error('OPENAI_API_KEY não configurada.')
   return new OpenAI({ apiKey })
 }
 
 function getServiceClient() {
-  const url     = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const service = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const url     = env('NEXT_PUBLIC_SUPABASE_URL')
+  const service = env('SUPABASE_SERVICE_ROLE_KEY')
   if (!url || !service) throw new Error('Credenciais Supabase não configuradas.')
   return createClient(url, service)
 }

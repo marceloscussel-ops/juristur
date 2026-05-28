@@ -5,13 +5,12 @@
 
 import { createClient } from '@supabase/supabase-js'
 import type { WhatsappSession, WhatsappState } from '@/types'
+import { env } from '@/lib/env'
 
 const TIMEOUT_MINUTES = 30
 
 function getServiceClient() {
-  const url     = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const service = process.env.SUPABASE_SERVICE_ROLE_KEY!
-  return createClient(url, service)
+  return createClient(env('NEXT_PUBLIC_SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'))
 }
 
 /** Dados temporários acumulados durante a conversa. */

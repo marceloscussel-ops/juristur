@@ -3,11 +3,10 @@
  */
 
 import OpenAI from 'openai'
+import { env } from '@/lib/env'
 
 export async function transcribeAudio(audioUrl: string): Promise<string> {
-  const rawKey = process.env.OPENAI_API_KEY ?? ''
-  const apiKey = rawKey.replace(/[^\x20-\x7E]/g, '').trim()
-  console.log(`[transcriber] apiKey length=${apiKey.length} url=${audioUrl.slice(0, 60)}`)
+  const apiKey = env('OPENAI_API_KEY')
   if (!apiKey) throw new Error('OPENAI_API_KEY não configurada.')
 
   const openai = new OpenAI({ apiKey })
