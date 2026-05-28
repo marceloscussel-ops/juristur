@@ -170,8 +170,8 @@ async function handleAwaitingFiles(
   const isDone      = ['pronto', 'não', 'nao', 'ok', 'sim'].includes(msgText)
   const currentFiles = sessionData.fileUrls ?? []
 
-  // Recebeu arquivo
-  if (msg.type === 'document' || msg.type === 'image') {
+  // Recebeu arquivo (Z-API sempre envia type="ReceivedCallback" — detecta pelo campo presente)
+  if (msg.document || msg.image) {
     if (currentFiles.length >= 5) {
       await sendText(phone, '⚠️ Limite de 5 arquivos atingido. Digite *pronto* para continuar.')
       return
@@ -316,9 +316,10 @@ export async function POST(request: NextRequest) {
     // Extrai texto da mensagem
     let text = body.text?.message?.trim() ?? ''
 
-    // Áudio → transcrição Whisper (Z-API usa "audio" ou "ptt" para voz)
+    // Áudio → transcrição Whisper
+    // Z-API sempre envia type="ReceivedCallback" — o conteúdo é detectado pelo campo presente
     const audioUrl = body.audio?.audioUrl ?? body.ptt?.audioUrl
-    if ((body.type === 'audio' || body.type === 'ptt') && audioUrl) {
+    if (audioUrl) {
       try {
         text = await transcribeAudio(audioUrl)
         await sendText(phone, `🎙️ _Transcrição do áudio:_\n"${text}"`)
