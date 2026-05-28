@@ -291,6 +291,7 @@ export async function POST(request: NextRequest) {
     if (body.fromMe) return NextResponse.json({ ok: true })
 
     const phone = normalizePhone(body.phone)
+    console.log(`[webhook] phone_raw="${body.phone}" phone_normalized="${phone}"`)
     if (!phone) return NextResponse.json({ ok: true })
 
     // Extrai texto da mensagem
