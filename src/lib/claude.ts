@@ -60,7 +60,7 @@ export async function analyzeCase(
   filesContent: string,
   similarCases: string = ''
 ): Promise<AnalysisResult> {
-  const apiKey = process.env.ANTHROPIC_API_KEY
+  const apiKey = (process.env.ANTHROPIC_API_KEY ?? '').replace(/[^\x20-\x7E]/g, '').trim()
   if (!apiKey) {
     throw new Error('ANTHROPIC_API_KEY não configurada.')
   }
