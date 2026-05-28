@@ -5,12 +5,14 @@
 import OpenAI from 'openai'
 
 export async function transcribeAudio(audioUrl: string): Promise<string> {
-  const apiKey = process.env.OPENAI_API_KEY
+  const rawKey = process.env.OPENAI_API_KEY ?? ''
+  const apiKey = rawKey.replace(/[^\x20-\x7E]/g, '').trim()
+  console.log(`[transcriber] apiKey length=${apiKey.length} url=${audioUrl.slice(0, 60)}`)
   if (!apiKey) throw new Error('OPENAI_API_KEY não configurada.')
 
   const openai = new OpenAI({ apiKey })
 
-  console.log(`[transcriber] baixando áudio: ${audioUrl}`)
+  console.log(`[transcriber] baixando áudio...`)
 
   // Baixa o áudio da URL fornecida pela Z-API
   const audioRes = await fetch(audioUrl)
