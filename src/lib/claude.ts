@@ -77,7 +77,7 @@ Por favor, analise este caso seguindo a estrutura definida.`
 
   const message = await client.messages.create({
     model: 'claude-sonnet-4-5',
-    max_tokens: 2048,
+    max_tokens: 8096,
     system: SYSTEM_PROMPT,
     messages: [{ role: 'user', content: userMessage }],
   })
