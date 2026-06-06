@@ -36,9 +36,9 @@ export default async function DashboardPage({ searchParams }: Props) {
     <div className="animate-fade-in">
       {/* Header */}
       <div className="j-section-header mb-6">
-        <div>
+        <div className="min-w-0 flex-1 mr-3">
           <p className="j-overline">Painel</p>
-          <h1 className="j-h1 mt-0.5">{agency?.name ?? 'Agência'}</h1>
+          <h1 className="j-h1 mt-0.5 truncate">{agency?.name ?? 'Agência'}</h1>
           <p className="j-caption mt-1">
             {hasFilter
               ? `${typedCases.length} resultado${typedCases.length !== 1 ? 's' : ''} filtrado${typedCases.length !== 1 ? 's' : ''}`
@@ -47,7 +47,7 @@ export default async function DashboardPage({ searchParams }: Props) {
                 : `${typedCases.length} caso${typedCases.length !== 1 ? 's' : ''} no total`}
           </p>
         </div>
-        <Link href="/casos/novo" className="btn btn-warm no-underline">
+        <Link href="/casos/novo" className="btn btn-warm no-underline flex-shrink-0 whitespace-nowrap">
           <PlusCircle className="w-4 h-4" />
           Novo caso
         </Link>
