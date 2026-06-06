@@ -1,24 +1,27 @@
 import type { Metadata } from 'next'
-import { Playfair_Display, DM_Sans, DM_Mono } from 'next/font/google'
+import { Sora, Inter, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import '@/styles/juristur.css'
 
-const playfair = Playfair_Display({
+const sora = Sora({
   subsets: ['latin'],
-  weight: ['400', '500', '600'],
+  weight: ['400', '500', '600', '700'],
   variable: '--font-display',
+  display: 'swap',
 })
 
-const dmSans = DM_Sans({
+const inter = Inter({
   subsets: ['latin'],
   weight: ['300', '400', '500', '600'],
   variable: '--font-body',
+  display: 'swap',
 })
 
-const dmMono = DM_Mono({
+const jetbrains = JetBrains_Mono({
   subsets: ['latin'],
   weight: ['400', '500'],
   variable: '--font-mono',
+  display: 'swap',
 })
 
 export const metadata: Metadata = {
@@ -28,7 +31,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={`${playfair.variable} ${dmSans.variable} ${dmMono.variable}`}>
+    <html lang="pt-BR" className={`${sora.variable} ${inter.variable} ${jetbrains.variable}`}>
       <body>{children}</body>
     </html>
   )

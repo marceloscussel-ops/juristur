@@ -47,7 +47,7 @@ export default async function DashboardPage({ searchParams }: Props) {
                 : `${typedCases.length} caso${typedCases.length !== 1 ? 's' : ''} no total`}
           </p>
         </div>
-        <Link href="/casos/novo" className="btn btn-gold no-underline">
+        <Link href="/casos/novo" className="btn btn-warm no-underline">
           <PlusCircle className="w-4 h-4" />
           Novo caso
         </Link>
@@ -63,7 +63,7 @@ export default async function DashboardPage({ searchParams }: Props) {
       {/* Lista */}
       {typedCases.length === 0 ? (
         <div className="j-card text-center py-16">
-          <FolderOpen className="w-10 h-10 text-slate-light mx-auto mb-4" />
+          <FolderOpen className="w-10 h-10 text-ink-40 mx-auto mb-4" />
           {hasFilter ? (
             <>
               <h2 className="j-h3 mb-1">Nenhum caso encontrado</h2>
@@ -76,7 +76,7 @@ export default async function DashboardPage({ searchParams }: Props) {
             <>
               <h2 className="j-h3 mb-1">Nenhum caso ainda</h2>
               <p className="j-caption mb-6">Abra seu primeiro caso para receber orientação jurídica</p>
-              <Link href="/casos/novo" className="btn btn-gold no-underline inline-flex">
+              <Link href="/casos/novo" className="btn btn-warm no-underline inline-flex">
                 <PlusCircle className="w-4 h-4" />
                 Abrir primeiro caso
               </Link>
@@ -98,19 +98,19 @@ export default async function DashboardPage({ searchParams }: Props) {
             <tbody>
               {typedCases.map(c => (
                 <tr key={c.id}>
-                  <td className="font-medium text-navy">
-                    <Link href={`/casos/${c.id}`} className="no-underline text-navy hover:text-teal transition-colors block">
+                  <td className="font-medium">
+                    <Link href={`/casos/${c.id}`} className="no-underline text-ink hover:text-indigo transition-colors block">
                       {c.title ?? c.category}
                     </Link>
                   </td>
-                  <td className="text-slate-light">{c.category}</td>
-                  <td className="text-slate-light whitespace-nowrap">
+                  <td className="text-ink-40">{c.category}</td>
+                  <td className="text-ink-40 whitespace-nowrap">
                     {new Date(c.created_at).toLocaleDateString('pt-BR')}
                   </td>
                   <td><StatusBadge status={c.status} /></td>
                   <td className="text-right">
                     <Link href={`/casos/${c.id}`} className="no-underline">
-                      <ChevronRight className="w-4 h-4 text-slate-light inline hover:text-teal transition-colors" />
+                      <ChevronRight className="w-4 h-4 text-ink-40 inline hover:text-indigo transition-colors" />
                     </Link>
                   </td>
                 </tr>

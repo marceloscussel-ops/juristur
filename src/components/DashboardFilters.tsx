@@ -39,7 +39,7 @@ export default function DashboardFilters({ categories, currentCategoria, current
 
   return (
     <div className="flex flex-wrap items-center gap-3 mb-4">
-      <span className="j-caption flex items-center gap-1.5 text-slate-light">
+      <span className="j-caption flex items-center gap-1.5 text-ink-40">
         <SlidersHorizontal className="w-3.5 h-3.5" /> Filtros
       </span>
 
@@ -49,7 +49,7 @@ export default function DashboardFilters({ categories, currentCategoria, current
         onChange={e => applyFilter('categoria', e.target.value || undefined)}
         className="j-input py-1.5 text-sm w-auto pr-8"
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234A5568' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%230D0D1A' stroke-width='2' stroke-opacity='0.4'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
           backgroundPosition: 'right 8px center',
           backgroundRepeat:   'no-repeat',
         }}
@@ -66,7 +66,7 @@ export default function DashboardFilters({ categories, currentCategoria, current
         onChange={e => applyFilter('status', e.target.value || undefined)}
         className="j-input py-1.5 text-sm w-auto pr-8"
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234A5568' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%230D0D1A' stroke-width='2' stroke-opacity='0.4'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
           backgroundPosition: 'right 8px center',
           backgroundRepeat:   'no-repeat',
         }}
@@ -81,7 +81,7 @@ export default function DashboardFilters({ categories, currentCategoria, current
       {hasFilter && (
         <button
           onClick={clearFilters}
-          className="inline-flex items-center gap-1 j-caption text-danger hover:text-navy transition-colors"
+          className="inline-flex items-center gap-1 j-caption text-danger hover:text-ink transition-colors"
         >
           <X className="w-3.5 h-3.5" /> Limpar
         </button>

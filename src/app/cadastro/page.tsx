@@ -15,7 +15,6 @@ function formatCNPJ(value: string) {
 }
 
 function formatPhone(value: string) {
-  // Mantém apenas dígitos, limita a 13 (DDI 55 + 11 dígitos)
   const digits = value.replace(/\D/g, '').slice(0, 13)
   if (digits.length <= 2)  return `+${digits}`
   if (digits.length <= 4)  return `+${digits.slice(0,2)} (${digits.slice(2)}`
@@ -47,7 +46,6 @@ export default function CadastroPage() {
       setError('A senha deve ter pelo menos 6 caracteres.')
       return
     }
-    // Extrai só os dígitos do telefone para salvar (formato DDI sem +)
     const phoneDigits = form.phone.replace(/\D/g, '')
     if (phoneDigits.length < 12) {
       setError('Informe o WhatsApp com DDI e DDD. Ex: +55 (51) 99999-9999')
@@ -79,8 +77,8 @@ export default function CadastroPage() {
       <div className="w-full max-w-[400px]">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 no-underline">
-            <Scale className="w-5 h-5 text-gold" />
-            <span className="font-display text-[22px] text-navy">JurisTur</span>
+            <Scale className="w-5 h-5 text-amber" />
+            <span className="font-display text-[22px] text-ink">JurisTur</span>
           </Link>
           <h1 className="j-h1 mt-5 mb-1">Cadastro da agência</h1>
           <p className="j-caption">Crie sua conta e comece a usar</p>
@@ -130,7 +128,7 @@ export default function CadastroPage() {
                   className="j-input pr-10" placeholder="Mínimo 6 caracteres"
                 />
                 <button type="button" onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-light hover:text-navy transition-colors">
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-40 hover:text-ink transition-colors">
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
@@ -146,7 +144,7 @@ export default function CadastroPage() {
 
         <p className="text-center j-caption mt-5">
           Já tem conta?{' '}
-          <Link href="/login" className="text-teal hover:underline font-medium">Entrar</Link>
+          <Link href="/login" className="text-indigo hover:underline font-medium">Entrar</Link>
         </p>
       </div>
     </div>

@@ -71,7 +71,7 @@ export default function PerfilPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="w-6 h-6 animate-spin text-teal" />
+        <Loader2 className="w-6 h-6 animate-spin text-indigo" />
       </div>
     )
   }
@@ -89,14 +89,14 @@ export default function PerfilPage() {
         <p className="j-label mb-4">Informações da conta</p>
         <div className="space-y-3">
           <div className="flex items-center gap-3">
-            <Mail className="w-4 h-4 text-slate-light flex-shrink-0" />
+            <Mail className="w-4 h-4 text-ink-40 flex-shrink-0" />
             <div>
               <p className="j-caption">E-mail</p>
               <p className="j-body font-medium">{agency?.email}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Building2 className="w-4 h-4 text-slate-light flex-shrink-0" />
+            <Building2 className="w-4 h-4 text-ink-40 flex-shrink-0" />
             <div>
               <p className="j-caption">CNPJ</p>
               <p className="j-body font-medium j-mono">
@@ -105,7 +105,7 @@ export default function PerfilPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Shield className="w-4 h-4 text-slate-light flex-shrink-0" />
+            <Shield className="w-4 h-4 text-ink-40 flex-shrink-0" />
             <div>
               <p className="j-caption">Plano atual</p>
               <p className="j-body font-medium capitalize">
@@ -114,7 +114,7 @@ export default function PerfilPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Building2 className="w-4 h-4 text-slate-light flex-shrink-0" />
+            <Building2 className="w-4 h-4 text-ink-40 flex-shrink-0" />
             <div>
               <p className="j-caption">Membro desde</p>
               <p className="j-body font-medium">

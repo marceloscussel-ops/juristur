@@ -34,7 +34,7 @@ export default async function CasoPage({ params }: { params: Promise<{ id: strin
   return (
     <div className="max-w-3xl mx-auto animate-fade-in">
       <div className="flex items-center justify-between mb-6 print:hidden">
-        <Link href="/dashboard" className="inline-flex items-center gap-1.5 j-caption text-teal hover:text-navy transition-colors no-underline">
+        <Link href="/dashboard" className="inline-flex items-center gap-1.5 j-caption text-indigo hover:text-ink transition-colors no-underline">
           <ArrowLeft className="w-3.5 h-3.5" />
           Voltar para meus casos
         </Link>
@@ -89,10 +89,10 @@ export default async function CasoPage({ params }: { params: Promise<{ id: strin
 
       {/* Análise */}
       {analysis ? (
-        <div className="j-card-teal mt-4">
+        <div className="j-card j-card-gradient mt-4">
           <p className="j-overline mb-3">Análise jurídica</p>
           <MarkdownRenderer content={analysis.ai_response} />
-          <p className="j-caption mt-6 pt-4 border-t border-[rgba(15,30,56,0.08)]">
+          <p className="j-caption mt-6 pt-4 border-t border-[rgba(13,13,26,0.07)]">
             Gerada em {new Date(analysis.created_at).toLocaleDateString('pt-BR', {
               day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
             })}
@@ -100,7 +100,7 @@ export default async function CasoPage({ params }: { params: Promise<{ id: strin
         </div>
       ) : (
         <div className="j-card mt-4 text-center py-10">
-          <Clock className="w-8 h-8 text-gold mx-auto mb-3" />
+          <Clock className="w-8 h-8 text-amber mx-auto mb-3" />
           <p className="j-h3 mb-1">Análise em processamento</p>
           <p className="j-caption">Recarregue a página em alguns instantes.</p>
         </div>
@@ -113,7 +113,7 @@ export default async function CasoPage({ params }: { params: Promise<{ id: strin
           <p className="j-body">Fale diretamente com um advogado especializado em direito do turismo.</p>
         </div>
         <a href={whatsappUrl} target="_blank" rel="noopener noreferrer"
-          className="btn btn-gold no-underline whitespace-nowrap">
+          className="btn btn-warm no-underline whitespace-nowrap">
           <MessageCircle className="w-4 h-4" />
           Falar com advogado
         </a>

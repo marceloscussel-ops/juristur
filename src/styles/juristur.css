@@ -1,174 +1,188 @@
 /* ============================================================
-   JURISTUR DESIGN SYSTEM — globals.css
-   Importe este arquivo no _app.tsx ou layout.tsx:
-   import '@/styles/juristur.css'
+   JURISTUR DESIGN SYSTEM V2 — juristur.css
+   Importado em src/app/layout.tsx
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+/* Fontes carregadas via next/font no layout.tsx — sem @import aqui */
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ─── CSS Variables (tokens) ─── */
+/* ─── CSS Variables ─── */
 :root {
   /* Cores */
-  --j-navy:         #0F1E38;
-  --j-navy-light:   #1A2F52;
-  --j-navy-mid:     #243D6B;
-  --j-gold:         #B8922A;
-  --j-gold-light:   #D4AF5A;
-  --j-gold-muted:   #F5EDD8;
-  --j-teal:         #1B7B8A;
-  --j-teal-light:   #2DABB9;
-  --j-teal-muted:   #E0F4F6;
-  --j-slate:        #4A5568;
-  --j-slate-light:  #718096;
-  --j-surface:      #F7F8FA;
+  --j-ink:          #0D0D1A;
+  --j-ink-80:       rgba(13, 13, 26, 0.80);
+  --j-ink-40:       rgba(13, 13, 26, 0.40);
+  --j-ink-15:       rgba(13, 13, 26, 0.07);
+  --j-indigo:       #2B1FCC;
+  --j-indigo-light: #4B40E0;
+  --j-indigo-pale:  #EEECFF;
+  --j-amber:        #F59E0B;
+  --j-amber-light:  #FCD34D;
+  --j-amber-pale:   #FFFBEB;
+  --j-teal:         #0EA5A0;
+  --j-teal-pale:    #F0FAFA;
+  --j-coral:        #F26D5B;
+  --j-coral-pale:   #FEF0EE;
+  --j-success:      #16A34A;
+  --j-danger:       #DC2626;
+  --j-warning:      #F59E0B;
+  --j-surface:      #F8F8FC;
   --j-white:        #FFFFFF;
-  --j-border:       rgba(15, 30, 56, 0.12);
-  --j-border-md:    rgba(15, 30, 56, 0.18);
-  --j-border-strong:rgba(15, 30, 56, 0.24);
-  --j-danger:       #C0392B;
-  --j-success:      #1A7A4A;
-  --j-warning:      #B8922A;
 
-  /* Tipografia */
-  --font-display: 'Playfair Display', Georgia, serif;
-  --font-body:    'DM Sans', sans-serif;
-  --font-mono:    'DM Mono', monospace;
+  /* Gradientes */
+  --gradient-brand: linear-gradient(90deg, var(--j-indigo), var(--j-coral));
+  --gradient-hero:  linear-gradient(135deg, #0D0D1A 0%, #1A1040 100%);
 
   /* Raios */
-  --radius-sm:  4px;
-  --radius-md:  8px;
-  --radius-lg:  12px;
-  --radius-xl:  16px;
-  --radius-pill:9999px;
+  --r-sm:   6px;
+  --r-md:   10px;
+  --r-lg:   16px;
+  --r-xl:   20px;
+  --r-pill: 9999px;
 }
 
 /* ─── Reset base ─── */
-*, *::before, *::after {
-  box-sizing: border-box;
-}
+*, *::before, *::after { box-sizing: border-box; }
 
 body {
-  font-family: var(--font-body);
+  font-family: var(--font-body, 'Inter', sans-serif);
   background-color: var(--j-surface);
-  color: var(--j-navy);
+  color: var(--j-ink);
   font-size: 14px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
 
 /* ─── Tipografia base ─── */
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-display);
-  color: var(--j-navy);
-  font-weight: 500;
+h1, h2 {
+  font-family: var(--font-display, 'Sora', sans-serif);
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  color: var(--j-ink);
 }
 
-h1 { font-size: 28px; line-height: 1.2; }
-h2 { font-size: 22px; line-height: 1.3; font-family: var(--font-body); font-weight: 600; }
-h3 { font-size: 18px; line-height: 1.4; font-family: var(--font-body); font-weight: 600; }
-h4 { font-size: 15px; line-height: 1.5; font-family: var(--font-body); font-weight: 600; }
-
-p {
-  color: var(--j-slate);
-  line-height: 1.7;
+h3, h4, h5, h6 {
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--j-ink);
 }
 
-code, pre {
-  font-family: var(--font-mono);
+h1 { font-size: 26px; line-height: 1.2; }
+h2 { font-size: 20px; line-height: 1.3; }
+h3 { font-size: 16px; line-height: 1.4; }
+h4 { font-size: 15px; line-height: 1.5; }
+
+p  { color: var(--j-ink-80); line-height: 1.7; }
+
+code, kbd, pre {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
   font-size: 13px;
   color: var(--j-teal);
 }
 
-/* ─── Scrollbar personalizada ─── */
-::-webkit-scrollbar { width: 6px; height: 6px; }
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: var(--j-surface); }
-::-webkit-scrollbar-thumb { background: rgba(15,30,56,0.18); border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(15,30,56,0.30); }
+::-webkit-scrollbar-thumb { background: rgba(13,13,26,0.15); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(13,13,26,0.28); }
 
-/* ─── Utilitários de tipografia Juristur ─── */
+/* ─── Seleção de texto ─── */
+::selection { background: var(--j-indigo-pale); color: var(--j-indigo); }
+
+
+/* ============================================================
+   COMPONENTES — @layer components
+============================================================ */
 @layer components {
 
-  .j-overline {
-    @apply font-body text-[11px] font-semibold uppercase tracking-[0.12em] text-gold;
-  }
-
+  /* ─── TIPOGRAFIA UTILITÁRIA ─── */
   .j-display {
-    @apply font-display text-[36px] font-medium text-navy leading-tight;
+    @apply font-display text-[38px] font-bold text-ink leading-[1.1] tracking-[-0.02em];
   }
 
   .j-h1 {
-    @apply font-display text-[28px] font-medium text-navy leading-tight;
+    @apply font-display text-[26px] font-bold text-ink leading-tight tracking-[-0.02em];
   }
 
   .j-h2 {
-    @apply font-body text-[20px] font-semibold text-navy;
+    @apply font-display text-[20px] font-semibold text-ink leading-snug tracking-[-0.01em];
   }
 
   .j-h3 {
-    @apply font-body text-[16px] font-semibold text-navy;
+    @apply font-body text-[16px] font-semibold text-ink leading-snug tracking-[-0.01em];
+  }
+
+  .j-overline {
+    @apply font-body text-[11px] font-semibold uppercase tracking-[0.12em] text-indigo;
   }
 
   .j-body {
-    @apply font-body text-[14px] text-slate leading-relaxed;
+    @apply font-body text-[14px] text-ink-80 leading-relaxed;
   }
 
   .j-caption {
-    @apply font-body text-[12px] text-slate-light;
+    @apply font-body text-[12px] text-ink-40;
   }
 
   .j-mono {
-    @apply font-mono text-[13px] text-teal;
+    @apply font-mono text-[13px] text-teal tracking-[0.02em];
   }
 
-  /* ─── Botões ─── */
+
+  /* ─── BOTÕES ─── */
   .btn {
-    @apply inline-flex items-center gap-1.5 px-[18px] h-[38px] rounded-md
+    @apply inline-flex items-center gap-1.5 px-[18px] h-[40px] rounded-md
            font-body text-[13px] font-medium cursor-pointer border-none
-           transition-all duration-150 no-underline select-none;
+           transition-all duration-150 tracking-[-0.01em]
+           select-none no-underline active:scale-[0.98];
   }
 
-  .btn-sm  { @apply h-[30px] px-3 text-[12px]; }
-  .btn-lg  { @apply h-[46px] px-6 text-[15px]; }
-  .btn-icon{ @apply w-[38px] px-0 justify-center; }
+  .btn-sm  { @apply h-[32px] px-3 text-[12px] rounded-sm; }
+  .btn-lg  { @apply h-[48px] px-6 text-[15px] rounded-lg; }
+  .btn-icon{ @apply w-[40px] px-0 justify-center; }
 
   .btn-primary {
-    @apply btn bg-navy text-white hover:bg-navy-light active:scale-[0.98];
+    @apply btn bg-ink text-white hover:bg-[#1A1A2E];
   }
 
-  .btn-gold {
-    @apply btn bg-gold text-white hover:bg-gold-light active:scale-[0.98];
+  .btn-accent {
+    @apply btn bg-indigo text-white hover:bg-indigo-light;
+  }
+
+  .btn-warm {
+    @apply btn bg-amber text-ink hover:opacity-90;
   }
 
   .btn-outline {
-    @apply btn bg-transparent text-navy border border-[rgba(15,30,56,0.24)]
-           hover:bg-surface active:scale-[0.98];
+    @apply btn bg-transparent text-ink border border-[rgba(13,13,26,0.15)]
+           hover:bg-surface;
   }
 
   .btn-ghost {
-    @apply btn bg-transparent text-teal border border-transparent
-           hover:bg-teal-muted active:scale-[0.98];
+    @apply btn bg-transparent text-indigo border border-transparent
+           hover:bg-indigo-pale;
   }
 
   .btn-danger {
-    @apply btn bg-transparent text-danger border border-[rgba(192,57,43,0.30)]
-           hover:bg-[#FDF2F1] active:scale-[0.98];
+    @apply btn bg-transparent text-danger border border-[rgba(220,38,38,0.20)]
+           hover:bg-[#FEF2F2];
   }
 
-  /* ─── Inputs ─── */
+
+  /* ─── INPUTS ─── */
   .j-input {
-    @apply w-full h-[40px] px-[14px] border border-[rgba(15,30,56,0.24)] rounded-md
-           font-body text-[14px] text-navy bg-white outline-none
-           transition-[border-color,box-shadow] duration-150
-           placeholder:text-slate-light
-           focus:border-teal focus:shadow-focus-teal;
+    @apply w-full h-[42px] px-[14px] border border-[rgba(13,13,26,0.15)] rounded-md
+           font-body text-[14px] text-ink bg-white outline-none
+           transition-all duration-150 placeholder:text-ink-40
+           focus:border-indigo focus:shadow-focus-indigo;
   }
 
   .j-input-error {
-    @apply border-danger focus:border-danger focus:shadow-[0_0_0_3px_rgba(192,57,43,0.15)];
+    @apply border-danger focus:border-danger focus:shadow-[0_0_0_3px_rgba(220,38,38,0.12)];
   }
 
   .j-input-success {
@@ -176,11 +190,11 @@ code, pre {
   }
 
   .j-label {
-    @apply block font-body text-[12px] font-medium text-navy mb-1.5 tracking-[0.01em];
+    @apply block font-body text-[12px] font-medium text-ink mb-[5px] tracking-[-0.01em];
   }
 
   .j-hint {
-    @apply font-body text-[11px] text-slate-light mt-1;
+    @apply font-body text-[11px] text-ink-40 mt-1;
   }
 
   .j-hint-error {
@@ -191,124 +205,187 @@ code, pre {
     @apply j-input h-auto py-2.5 min-h-[80px] resize-y;
   }
 
-  /* ─── Badges ─── */
+
+  /* ─── BADGES ─── */
   .badge {
-    @apply inline-flex items-center gap-1 px-2.5 py-[3px] rounded-pill
-           text-[11px] font-medium tracking-[0.02em];
+    @apply inline-flex items-center gap-[5px] px-2.5 py-[3px] rounded-pill
+           text-[11px] font-medium tracking-[0.01em];
   }
 
-  .badge-navy    { @apply bg-navy text-white; }
-  .badge-gold    { @apply bg-gold-muted text-gold; }
-  .badge-teal    { @apply bg-teal-muted text-teal; }
-  .badge-success { @apply bg-[#EAF5ED] text-success; }
-  .badge-danger  { @apply bg-[#FDF2F1] text-danger; }
-  .badge-slate   { @apply bg-surface text-slate border border-[rgba(15,30,56,0.24)]; }
+  .badge-dot {
+    @apply w-[5px] h-[5px] rounded-full bg-current opacity-80 flex-shrink-0;
+  }
 
-  /* ─── Cards ─── */
+  .badge-ink     { @apply bg-ink text-white; }
+  .badge-indigo  { @apply bg-indigo-pale text-indigo; }
+  .badge-amber   { @apply bg-amber-pale text-[#92400E]; }
+  .badge-teal    { @apply bg-teal-pale text-teal; }
+  .badge-success { @apply bg-[#F0FDF4] text-success; }
+  .badge-danger  { @apply bg-[#FEF2F2] text-danger; }
+  .badge-muted   { @apply bg-surface text-ink-40 border border-[rgba(13,13,26,0.12)]; }
+
+
+  /* ─── AREA TAGS ─── */
+  .area-tag {
+    @apply inline-flex items-center px-2 py-[3px] rounded-sm text-[11px] font-medium;
+  }
+
+
+  /* ─── CARDS ─── */
   .j-card {
-    @apply bg-white border border-[rgba(15,30,56,0.12)] rounded-lg p-5 shadow-card;
+    @apply bg-white border border-[rgba(13,13,26,0.07)] rounded-lg p-5 relative overflow-hidden;
   }
 
-  .j-card-gold {
-    @apply j-card border-l-[3px] border-l-gold rounded-l-none;
+  .j-card-gradient::before {
+    content: '';
+    @apply absolute top-0 left-0 right-0 h-[3px];
+    background: linear-gradient(90deg, #2B1FCC, #F26D5B);
   }
 
-  .j-card-teal {
-    @apply j-card border-t-2 border-t-teal;
+  .j-card-amber::before {
+    content: '';
+    @apply absolute top-0 left-0 bottom-0 w-[3px] bg-amber;
   }
 
-  /* ─── Tabela ─── */
+
+  /* ─── STAT CARD ─── */
+  .j-stat {
+    @apply bg-surface rounded-lg p-4;
+  }
+
+  .j-stat-value {
+    @apply font-display text-[26px] font-bold text-ink leading-none tracking-[-0.02em];
+  }
+
+  .j-stat-label {
+    @apply text-[11px] text-ink-40 mt-1 tracking-[-0.01em];
+  }
+
+
+  /* ─── ALERTAS ─── */
+  .j-alert {
+    @apply flex gap-2.5 p-3.5 px-4 rounded-md border text-[13px] items-start;
+  }
+
+  .j-alert-title {
+    @apply font-semibold mb-0.5 text-[13px];
+  }
+
+  .j-alert-info    { @apply bg-[#F0F9FF] border-[rgba(14,165,160,0.25)] text-[#0D5E72]; }
+  .j-alert-success { @apply bg-[#F0FDF4] border-[rgba(22,163,74,0.25)] text-[#14532D]; }
+  .j-alert-warning { @apply bg-amber-pale border-[rgba(245,158,11,0.30)] text-[#78350F]; }
+  .j-alert-danger  { @apply bg-[#FEF2F2] border-[rgba(220,38,38,0.25)] text-[#7F1D1D]; }
+
+
+  /* ─── TABELA ─── */
   .j-table {
     @apply w-full border-collapse text-[13px];
   }
 
   .j-table thead tr {
-    @apply border-b border-[rgba(15,30,56,0.24)];
+    @apply border-b border-[rgba(13,13,26,0.12)];
   }
 
   .j-table th {
-    @apply text-left py-2 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-light;
+    @apply text-left py-2 px-2.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-40;
   }
 
   .j-table td {
-    @apply py-[11px] px-3 text-navy border-b border-[rgba(15,30,56,0.08)];
+    @apply py-[11px] px-2.5 text-ink border-b border-[rgba(13,13,26,0.07)];
   }
 
-  .j-table tbody tr:last-child td {
-    @apply border-b-0;
-  }
+  .j-table tbody tr:last-child td { @apply border-b-0; }
+  .j-table tbody tr:hover td { @apply bg-surface; }
 
-  .j-table tbody tr:hover td {
-    @apply bg-surface;
-  }
 
-  /* ─── Alertas ─── */
-  .j-alert {
-    @apply flex gap-3 p-3.5 px-4 rounded-md border text-[13px] items-start;
-  }
-
-  .j-alert-info    { @apply bg-[#EEF6FF] border-[rgba(27,123,138,0.3)] text-[#0A4A5E]; }
-  .j-alert-success { @apply bg-[#EAF5ED] border-[rgba(26,122,74,0.3)] text-[#0D4E2A]; }
-  .j-alert-warning { @apply bg-gold-muted border-[rgba(184,146,42,0.3)] text-[#6B4E1A]; }
-  .j-alert-danger  { @apply bg-[#FDF2F1] border-[rgba(192,57,43,0.3)] text-[#7A2119]; }
-
-  /* ─── Stat card ─── */
-  .j-stat {
-    @apply bg-surface rounded-md p-4 text-center;
-  }
-
-  .j-stat-value {
-    @apply font-display text-[28px] font-medium text-navy leading-none;
-  }
-
-  .j-stat-label {
-    @apply text-[11px] text-slate-light mt-1 uppercase tracking-[0.1em];
-  }
-
-  /* ─── Navegação ─── */
+  /* ─── NAVBAR ─── */
   .j-nav {
-    @apply bg-navy flex items-center justify-between px-5 h-14;
+    @apply bg-ink flex items-center justify-between px-6 h-14;
+  }
+
+  .j-nav-logo {
+    @apply font-display text-[17px] font-bold text-white tracking-[-0.01em]
+           flex items-center gap-2;
   }
 
   .j-nav-link {
-    @apply px-3.5 py-1.5 text-[13px] text-white/60 rounded hover:text-white
-           hover:bg-white/[0.06] transition-colors duration-150 cursor-pointer;
+    @apply px-3.5 h-14 flex items-center text-[13px]
+           text-white/40 cursor-pointer transition-colors duration-150
+           border-b-2 border-transparent
+           hover:text-white/80;
   }
 
   .j-nav-link-active {
-    @apply text-white bg-white/10;
+    @apply text-white border-b-amber;
   }
 
-  /* ─── Chip / Filtro ─── */
+
+  /* ─── CHIP / FILTRO ─── */
   .j-chip {
-    @apply inline-flex items-center gap-1.5 px-3 py-[5px]
-           border border-[rgba(15,30,56,0.24)] rounded-pill text-[12px] text-navy
-           bg-white cursor-pointer transition-all duration-150
-           hover:border-[rgba(15,30,56,0.40)];
+    @apply inline-flex items-center gap-1.5 px-3.5 py-[6px]
+           border border-[rgba(13,13,26,0.15)] rounded-pill
+           text-[12px] font-medium text-ink bg-white cursor-pointer
+           transition-all duration-150 hover:border-[rgba(13,13,26,0.30)];
   }
 
   .j-chip-active {
-    @apply bg-navy text-white border-navy;
+    @apply bg-ink text-white border-ink;
   }
 
-  /* ─── Sidebar item ─── */
+
+  /* ─── SIDEBAR ITEM ─── */
   .j-sidebar-item {
-    @apply flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] text-slate
-           cursor-pointer transition-colors duration-150
-           hover:bg-teal-muted hover:text-teal;
+    @apply flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px]
+           text-ink-80 cursor-pointer transition-colors duration-150
+           hover:bg-indigo-pale hover:text-indigo;
   }
 
   .j-sidebar-item-active {
-    @apply bg-teal-muted text-teal font-medium;
+    @apply bg-indigo-pale text-indigo font-medium;
   }
 
-  /* ─── Section header padrão ─── */
+
+  /* ─── SECTION HEADER ─── */
   .j-section-header {
     @apply flex items-center justify-between mb-5;
   }
 
-  /* ─── Divider ─── */
+
+  /* ─── DIVIDER ─── */
   .j-divider {
-    @apply border-t border-[rgba(15,30,56,0.10)] my-4;
+    @apply border-t border-[rgba(13,13,26,0.07)] my-4;
   }
+
+
+  /* ─── HERO SECTION ─── */
+  .j-hero {
+    background-image: linear-gradient(135deg, #0D0D1A 0%, #1A1040 100%);
+  }
+
+
+  /* ─── PROCESS NUMBER ─── */
+  .j-proc-number {
+    @apply font-mono text-[12px] text-teal tracking-[0.02em];
+  }
+
+
+  /* ─── BRAND BADGE ─── */
+  .j-brand-badge {
+    @apply inline-flex items-center gap-1.5 rounded-pill px-3 py-[5px]
+           text-[11px] font-medium;
+    background: rgba(43, 31, 204, 0.12);
+    border: 1px solid rgba(43, 31, 204, 0.2);
+    color: rgba(180, 175, 255, 0.9);
+  }
+}
+
+/* ── Estilos de impressão ── */
+@media print {
+  body > * { display: none !important; }
+  .print-area { display: block !important; }
+  nav, .print\:hidden { display: none !important; }
+  @page { margin: 2cm; size: A4; }
+  body { font-size: 12pt; color: #000; background: #fff; }
+  .j-card { border: 1px solid #ccc; box-shadow: none; break-inside: avoid; }
+  a { text-decoration: none; color: inherit; }
 }

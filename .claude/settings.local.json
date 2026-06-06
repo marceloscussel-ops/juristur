@@ -7,7 +7,15 @@
       "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"User\"\\); node --version; npm --version)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000)",
       "WebFetch(domain:juristur.vercel.app)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(git commit -m 'fix: timeout e erros silenciosos na criação de caso *)",
+      "Bash(git push *)",
+      "Bash(npx vercel *)",
+      "Bash(node_modules\\\\.bin\\\\vercel ls *)",
+      "Bash(./node_modules/.bin/vercel ls *)",
+      "PowerShell(cd \"C:\\\\Users\\\\marce\\\\SmartLegalTech\"; $env:PATH += \";C:\\\\Users\\\\marce\\\\AppData\\\\Roaming\\\\npm\"; npx vercel env ls 2>&1 | head -40)"
     ]
   }
 }

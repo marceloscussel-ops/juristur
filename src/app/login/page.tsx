@@ -35,8 +35,8 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 no-underline">
-            <Scale className="w-5 h-5 text-gold" />
-            <span className="font-display text-[22px] text-navy">JurisTur</span>
+            <Scale className="w-5 h-5 text-amber" />
+            <span className="font-display text-[22px] text-ink">JurisTur</span>
           </Link>
           <h1 className="j-h1 mt-5 mb-1">Bem-vindo de volta</h1>
           <p className="j-caption">Entre com os dados da sua agência</p>
@@ -74,7 +74,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-light hover:text-navy transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-40 hover:text-ink transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -93,7 +93,7 @@ export default function LoginPage() {
 
         <p className="text-center j-caption mt-5">
           Não tem conta?{' '}
-          <Link href="/cadastro" className="text-teal hover:underline font-medium">
+          <Link href="/cadastro" className="text-indigo hover:underline font-medium">
             Cadastre sua agência
           </Link>
         </p>
