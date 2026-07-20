@@ -59,7 +59,9 @@ O que fazer
 Liste as ações práticas em ordem de prioridade. Máximo 4 itens curtos.
 
 Os caminhos possíveis
-Mencione as opções (negociação, processo judicial) com uma linha de avaliação para cada uma.
+Apresente cada opção como um item de lista separado (bullet iniciado por "- "), um por linha, com uma linha de avaliação para cada. Use exatamente este formato:
+- Negociação: sua avaliação em uma linha
+- Processo judicial: sua avaliação em uma linha
 
 Depois das quatro seções acima, encerre com uma frase curta e cordial (sem título): ofereça montar um modelo de contato para negociação com a outra parte e pergunte se a agência ficou com alguma dúvida.
 
