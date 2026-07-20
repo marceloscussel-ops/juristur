@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { notifyAgencyCaseReady } from '@/lib/notify'
 import { env } from '@/lib/env'
 
 function getServiceClient() {
@@ -31,6 +32,9 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   if (analysisError) return NextResponse.json({ error: 'Erro ao aprovar análise.' }, { status: 500 })
 
   await auth.db.from('cases').update({ status: 'concluido' }).eq('id', caseId)
+
+  // Avisa a agência que a análise foi liberada (origem web → notifica; whatsapp → suprime)
+  await notifyAgencyCaseReady(caseId)
 
   return NextResponse.json({ ok: true })
 }
