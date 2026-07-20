@@ -100,8 +100,8 @@ export default async function AdminDashboard({ searchParams }: Props) {
   // ── Dados ──
   const supabase = db()
   const [{ data: agencies }, { data: cases }, { data: analyses }] = await Promise.all([
-    supabase.from('agencies').select('created_at, subscription_status, trial_ends_at'),
-    supabase.from('cases').select('created_at, origin, category'),
+    supabase.from('agencies').select('id, name, created_at, subscription_status, trial_ends_at'),
+    supabase.from('cases').select('created_at, origin, category, agency_id'),
     supabase.from('case_analyses').select('review_status, tokens_used, created_at'),
   ])
   const ags = agencies ?? []
@@ -125,6 +125,13 @@ export default async function AdminDashboard({ searchParams }: Props) {
   // ── Categorias / origem / funil (do período) ──
   const categoryData = Array.from(countBy(csP, c => c.category ?? 'Outro').entries())
     .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value)
+
+  // ── Casos por agência (do período): agrupa por agency_id, rotula com o nome ──
+  const agencyName = new Map<string, string>()
+  for (const a of ags) agencyName.set(a.id, a.name ?? 'Agência')
+  const agencyData = Array.from(countBy(csP, c => c.agency_id ?? 'unknown').entries())
+    .map(([id, value]) => ({ label: agencyName.get(id) ?? 'Desconhecida', value }))
     .sort((a, b) => b.value - a.value)
 
   const revMap = countBy(ansP, a => a.review_status ?? 'pending')
@@ -191,6 +198,11 @@ export default async function AdminDashboard({ searchParams }: Props) {
           <HBars data={categoryData} color="#5B57E8" />
         </ChartCard>
       </div>
+
+      {/* Casos por agência */}
+      <ChartCard title={`Casos por agência · ${plabel}`}>
+        <HBars data={agencyData} color="#5B57E8" />
+      </ChartCard>
 
       {/* Status (base atual) + Funil */}
       <div className="grid lg:grid-cols-2 gap-5">
