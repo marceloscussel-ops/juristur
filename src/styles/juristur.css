@@ -11,30 +11,31 @@
 
 /* ─── CSS Variables ─── */
 :root {
-  /* Cores */
-  --j-ink:          #0D0D1A;
-  --j-ink-80:       rgba(13, 13, 26, 0.80);
-  --j-ink-40:       rgba(13, 13, 26, 0.40);
-  --j-ink-15:       rgba(13, 13, 26, 0.07);
-  --j-indigo:       #2B1FCC;
-  --j-indigo-light: #4B40E0;
-  --j-indigo-pale:  #EEECFF;
-  --j-amber:        #F59E0B;
-  --j-amber-light:  #FCD34D;
-  --j-amber-pale:   #FFFBEB;
-  --j-teal:         #0EA5A0;
-  --j-teal-pale:    #F0FAFA;
-  --j-coral:        #F26D5B;
-  --j-coral-pale:   #FEF0EE;
+  /* Cores — Design System TurisGuard */
+  --j-ink:          #16202F;  /* Ink 800 */
+  --j-ink-900:      #0B121C;  /* Ink 900 */
+  --j-ink-80:       rgba(22, 32, 47, 0.80);
+  --j-ink-40:       rgba(22, 32, 47, 0.40);
+  --j-ink-15:       rgba(22, 32, 47, 0.07);
+  --j-indigo:       #5B57E8;  /* Indigo 500 */
+  --j-indigo-light: #4842D4;  /* Indigo 600 */
+  --j-indigo-pale:  #EEF0FF;  /* Indigo 50 */
+  --j-amber:        #E8900C;  /* Amber 500 */
+  --j-amber-light:  #FBC04D;  /* Amber 300 */
+  --j-amber-pale:   #FFF8EB;  /* Amber 50 */
+  --j-teal:         #0E9E7A;  /* Teal 500 */
+  --j-teal-pale:    #EAFBF5;  /* Teal 50 */
+  --j-coral:        #EE4A34;  /* Coral 500 */
+  --j-coral-pale:   #FFF1EF;  /* Coral 50 */
   --j-success:      #16A34A;
   --j-danger:       #DC2626;
-  --j-warning:      #F59E0B;
-  --j-surface:      #F8F8FC;
+  --j-warning:      #E8900C;
+  --j-surface:      #F7F9FB;
   --j-white:        #FFFFFF;
 
   /* Gradientes */
-  --gradient-brand: linear-gradient(90deg, var(--j-indigo), var(--j-coral));
-  --gradient-hero:  linear-gradient(135deg, #0D0D1A 0%, #1A1040 100%);
+  --gradient-brand: linear-gradient(90deg, #5B57E8, #EE4A34);
+  --gradient-hero:  linear-gradient(135deg, #0B121C 0%, #16202F 100%);
 
   /* Raios */
   --r-sm:   6px;
@@ -146,7 +147,7 @@ code, kbd, pre {
   .btn-icon{ @apply w-[40px] px-0 justify-center; }
 
   .btn-primary {
-    @apply btn bg-ink text-white hover:bg-[#1A1A2E];
+    @apply btn bg-ink text-white hover:bg-[#232F42];
   }
 
   .btn-accent {
@@ -218,7 +219,7 @@ code, kbd, pre {
 
   .badge-ink     { @apply bg-ink text-white; }
   .badge-indigo  { @apply bg-indigo-pale text-indigo; }
-  .badge-amber   { @apply bg-amber-pale text-[#92400E]; }
+  .badge-amber   { @apply bg-amber-pale text-[#7C420E]; }
   .badge-teal    { @apply bg-teal-pale text-teal; }
   .badge-success { @apply bg-[#F0FDF4] text-success; }
   .badge-danger  { @apply bg-[#FEF2F2] text-danger; }
@@ -273,7 +274,7 @@ code, kbd, pre {
 
   .j-alert-info    { @apply bg-[#F0F9FF] border-[rgba(14,165,160,0.25)] text-[#0D5E72]; }
   .j-alert-success { @apply bg-[#F0FDF4] border-[rgba(22,163,74,0.25)] text-[#14532D]; }
-  .j-alert-warning { @apply bg-amber-pale border-[rgba(245,158,11,0.30)] text-[#78350F]; }
+  .j-alert-warning { @apply bg-amber-pale border-[rgba(232,144,12,0.30)] text-[#7C420E]; }
   .j-alert-danger  { @apply bg-[#FEF2F2] border-[rgba(220,38,38,0.25)] text-[#7F1D1D]; }
 
 
@@ -359,7 +360,7 @@ code, kbd, pre {
 
   /* ─── HERO SECTION ─── */
   .j-hero {
-    background-image: linear-gradient(135deg, #0D0D1A 0%, #1A1040 100%);
+    background-image: linear-gradient(135deg, #0B121C 0%, #16202F 100%);
   }
 
 

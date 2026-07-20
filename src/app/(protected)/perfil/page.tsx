@@ -1,7 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Building2, Mail, Phone, Shield, Save, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
+import Link from 'next/link'
+import { Building2, Mail, Phone, Shield, Save, CheckCircle, AlertCircle, Loader2, Sparkles } from 'lucide-react'
+import { getTrialInfo, PLAN_LABELS } from '@/lib/plans'
+import type { AgencyPlan } from '@/types'
 
 function formatPhone(value: string) {
   const digits = value.replace(/\D/g, '').slice(0, 13)
@@ -12,12 +15,64 @@ function formatPhone(value: string) {
 }
 
 interface AgencyData {
-  name:       string
-  cnpj:       string
-  email:      string
-  phone:      string | null
-  plan:       string
-  created_at: string
+  name:                string
+  cnpj:                string
+  email:               string
+  phone:               string | null
+  plan:                string
+  subscription_status: string
+  trial_ends_at:       string | null
+  created_at:          string
+}
+
+function SubscriptionCard({ agency }: { agency: AgencyData }) {
+  const trial = getTrialInfo(agency)
+
+  if (trial.isActive) {
+    return (
+      <div className="j-card mb-4">
+        <p className="j-label mb-4">Assinatura</p>
+        <div className="flex items-center gap-3">
+          <Shield className="w-4 h-4 text-teal flex-shrink-0" />
+          <div>
+            <p className="j-caption">Plano atual</p>
+            <p className="j-body font-medium">
+              {PLAN_LABELS[agency.plan as AgencyPlan] ?? agency.plan} · ativo
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const endsAtTxt = trial.endsAt
+    ? trial.endsAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+    : '—'
+  const diasTxt = trial.daysLeft === 1 ? '1 dia' : `${trial.daysLeft} dias`
+
+  return (
+    <div className={`j-card mb-4 ${trial.isExpired ? 'ring-1 ring-coral-200' : ''}`}>
+      <p className="j-label mb-4">Assinatura</p>
+      <div className="flex items-start gap-3 mb-4">
+        <Sparkles className={`w-4 h-4 flex-shrink-0 mt-0.5 ${trial.isExpired ? 'text-coral' : 'text-indigo'}`} />
+        <div>
+          <p className="j-caption">Plano atual</p>
+          {trial.isExpired ? (
+            <p className="j-body font-medium text-coral">Período gratuito encerrado</p>
+          ) : (
+            <>
+              <p className="j-body font-medium">Período gratuito · restam {diasTxt}</p>
+              <p className="j-caption mt-0.5">Acesso gratuito até {endsAtTxt}</p>
+            </>
+          )}
+        </div>
+      </div>
+      <Link href="/assinar" className="btn btn-primary no-underline">
+        <Sparkles className="w-4 h-4" />
+        {trial.isExpired ? 'Assinar agora' : 'Ver planos'}
+      </Link>
+    </div>
+  )
 }
 
 export default function PerfilPage() {
@@ -62,12 +117,6 @@ export default function PerfilPage() {
     setSaving(false)
   }
 
-  const planLabels: Record<string, string> = {
-    free:  'Gratuito',
-    basic: 'Básico',
-    pro:   'Profissional',
-  }
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -105,15 +154,6 @@ export default function PerfilPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Shield className="w-4 h-4 text-ink-40 flex-shrink-0" />
-            <div>
-              <p className="j-caption">Plano atual</p>
-              <p className="j-body font-medium capitalize">
-                {planLabels[agency?.plan ?? 'free'] ?? agency?.plan}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
             <Building2 className="w-4 h-4 text-ink-40 flex-shrink-0" />
             <div>
               <p className="j-caption">Membro desde</p>
@@ -126,6 +166,9 @@ export default function PerfilPage() {
           </div>
         </div>
       </div>
+
+      {/* Assinatura / período gratuito */}
+      {agency && <SubscriptionCard agency={agency} />}
 
       {/* Formulário editável */}
       <div className="j-card">

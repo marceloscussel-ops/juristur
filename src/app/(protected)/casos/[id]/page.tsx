@@ -2,11 +2,14 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import StatusBadge from '@/components/StatusBadge'
-import Disclaimer from '@/components/Disclaimer'
-import MarkdownRenderer from '@/components/MarkdownRenderer'
 import PrintButton from '@/components/PrintButton'
+import LegalResponse from '@/components/LegalResponse'
+import CaseRefresh from '@/components/CaseRefresh'
+import CaseFollowUp from '@/components/CaseFollowUp'
+import CaseEscalate from '@/components/CaseEscalate'
+import { getTrialInfo, getEscalationInfo } from '@/lib/plans'
 import { Case } from '@/types'
-import { ArrowLeft, MessageCircle, Paperclip, Clock } from 'lucide-react'
+import { ArrowLeft, Paperclip, Clock } from 'lucide-react'
 
 const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '5511999999999'
 
@@ -23,13 +26,31 @@ export default async function CasoPage({ params }: { params: Promise<{ id: strin
   if (!data) notFound()
 
   const caseData = data as Case
-  const analysis = caseData.case_analyses?.[0]
+
+  // Só exibe análises aprovadas pelo advogado
+  const analysis = (caseData.case_analyses ?? []).find(a => a.review_status === 'approved') ?? null
   const files = caseData.case_files ?? []
 
   const whatsappMessage = encodeURIComponent(
     `Olá! Preciso de assistência jurídica. Tenho um caso sobre: ${caseData.title} (categoria: ${caseData.category})`
   )
   const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappMessage}`
+
+  // Cota de escaladas gratuitas (período de teste)
+  const { data: agency } = await supabase
+    .from('agencies')
+    .select('subscription_status, trial_ends_at, created_at')
+    .eq('id', user!.id)
+    .single()
+
+  const { count: escalationsUsed } = await supabase
+    .from('cases')
+    .select('id', { count: 'exact', head: true })
+    .eq('agency_id', user!.id)
+    .not('escalated_at', 'is', null)
+
+  const escalationInfo = getEscalationInfo(getTrialInfo(agency ?? {}), escalationsUsed ?? 0)
+  const alreadyEscalated = !!caseData.escalated_at
 
   return (
     <div className="max-w-3xl mx-auto animate-fade-in">
@@ -84,40 +105,48 @@ export default async function CasoPage({ params }: { params: Promise<{ id: strin
         )}
       </div>
 
-      {/* Disclaimer */}
-      <Disclaimer />
-
       {/* Análise */}
       {analysis ? (
-        <div className="j-card j-card-gradient mt-4">
-          <p className="j-overline mb-3">Análise jurídica</p>
-          <MarkdownRenderer content={analysis.ai_response} />
-          <p className="j-caption mt-6 pt-4 border-t border-[rgba(13,13,26,0.07)]">
-            Gerada em {new Date(analysis.created_at).toLocaleDateString('pt-BR', {
-              day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
-            })}
-          </p>
-        </div>
+        <>
+          <div className="mt-4">
+            <LegalResponse
+              content={analysis.ai_response}
+              severity={analysis.severity}
+              generatedAt={analysis.created_at}
+            />
+            <CaseEscalate
+              caseId={caseData.id}
+              whatsappUrl={whatsappUrl}
+              alreadyEscalated={alreadyEscalated}
+              info={escalationInfo}
+              severity={analysis.severity}
+              variant="primary"
+            />
+          </div>
+          <CaseFollowUp caseId={caseData.id} />
+        </>
       ) : (
         <div className="j-card mt-4 text-center py-10">
           <Clock className="w-8 h-8 text-amber mx-auto mb-3" />
           <p className="j-h3 mb-1">Análise em processamento</p>
-          <p className="j-caption">Recarregue a página em alguns instantes.</p>
+          <p className="j-caption">A análise será entregue assim que aprovada pelo advogado.</p>
+          <div className="flex justify-center">
+            <CaseRefresh awaiting={true} />
+          </div>
+          <div className="mt-6 pt-5 border-t border-[rgba(13,13,26,0.07)]">
+            <p className="j-caption mb-1">Precisa de resposta agora?</p>
+            <div className="flex justify-center">
+              <CaseEscalate
+                caseId={caseData.id}
+                whatsappUrl={whatsappUrl}
+                alreadyEscalated={alreadyEscalated}
+                info={escalationInfo}
+                variant="outline"
+              />
+            </div>
+          </div>
         </div>
       )}
-
-      {/* WhatsApp */}
-      <div className="j-card mt-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <div className="flex-1">
-          <p className="j-h3 mb-0.5">Precisa de atendimento humano?</p>
-          <p className="j-body">Fale diretamente com um advogado especializado em direito do turismo.</p>
-        </div>
-        <a href={whatsappUrl} target="_blank" rel="noopener noreferrer"
-          className="btn btn-warm no-underline whitespace-nowrap">
-          <MessageCircle className="w-4 h-4" />
-          Falar com advogado
-        </a>
-      </div>
     </div>
   )
 }

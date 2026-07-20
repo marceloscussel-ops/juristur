@@ -1,6 +1,13 @@
 export type CaseStatus = 'em_analise' | 'concluido' | 'arquivado'
 export type CaseOrigin = 'web' | 'whatsapp'
-export type AgencyPlan = 'free' | 'basic' | 'pro'
+export type AgencyPlan = 'free' | 'essencial' | 'profissional' | 'enterprise'
+export type SubscriptionStatus = 'trial' | 'active' | 'expired' | 'canceled'
+
+/**
+ * Máximo de perguntas de acompanhamento (follow-up) permitidas por caso.
+ * Evita conversas infinitas e controla o custo por caso. Vale para web e WhatsApp.
+ */
+export const MAX_FOLLOWUP_QUESTIONS = 5
 
 export type CaseCategory =
   | 'Cancelamento de pacote pelo cliente'
@@ -26,12 +33,22 @@ export const CASE_CATEGORIES: CaseCategory[] = [
 ]
 
 export interface Agency {
+  id:                  string
+  name:                string
+  cnpj:                string
+  email:               string
+  phone:               string | null
+  plan:                AgencyPlan
+  subscription_status: SubscriptionStatus
+  trial_ends_at:       string | null
+  created_at:          string
+}
+
+export interface CaseMessage {
   id:         string
-  name:       string
-  cnpj:       string
-  email:      string
-  phone:      string | null
-  plan:       AgencyPlan
+  case_id:    string
+  role:       'user' | 'assistant'
+  content:    string
   created_at: string
 }
 
@@ -43,9 +60,11 @@ export interface Case {
   category:     CaseCategory
   status:       CaseStatus
   origin:       CaseOrigin
+  escalated_at: string | null
   created_at:   string
-  case_analyses?: CaseAnalysis[]
-  case_files?:    CaseFile[]
+  case_analyses?:  CaseAnalysis[]
+  case_files?:     CaseFile[]
+  case_messages?:  CaseMessage[]
 }
 
 export interface CaseFile {
@@ -58,12 +77,44 @@ export interface CaseFile {
   created_at:     string
 }
 
+export type ReviewStatus = 'pending' | 'approved' | 'revision_requested'
+
+/** Severidade/risco do caso, classificada pela IA. */
+export type Severity = 'leve' | 'medio' | 'elevado' | 'elevadissimo'
+
 export interface CaseAnalysis {
+  id:            string
+  case_id:       string
+  ai_response:   string
+  tokens_used:   number | null
+  review_status: ReviewStatus
+  severity:      Severity | null
+  lawyer_notes:  string | null
+  reviewed_at:   string | null
+  created_at:    string
+}
+
+export interface LawyerSettings {
+  id:           number
+  auto_approve: boolean
+  lawyer_phone: string | null
+  updated_at:   string
+}
+
+export interface LawyerCase {
   id:          string
-  case_id:     string
-  ai_response: string
-  tokens_used: number | null
+  title:       string | null
+  description: string
+  category:    CaseCategory
+  status:      CaseStatus
+  origin:      CaseOrigin
   created_at:  string
+  agency_name: string
+  analysis_id:    string
+  ai_response:    string
+  review_status:  ReviewStatus
+  lawyer_notes:   string | null
+  analysis_created_at: string
 }
 
 export interface WhatsappSession {
@@ -81,7 +132,7 @@ export type WhatsappState =
   | 'awaiting_description'
   | 'awaiting_files'
   | 'processing'
-  | 'awaiting_followup'
+  | 'follow_up'
   | 'completed'
 
 export interface RagCase {

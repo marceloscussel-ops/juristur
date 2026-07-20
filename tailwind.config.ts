@@ -9,38 +9,57 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // ─── Primárias ───
+        // ─── Ink — Primária (BASE: 800) ───
         ink: {
-          DEFAULT: '#0D0D1A',
-          80: 'rgba(13,13,26,0.80)',
-          40: 'rgba(13,13,26,0.40)',
-          15: 'rgba(13,13,26,0.07)',
+          DEFAULT: '#16202F',
+          900:     '#0B121C',
+          80:      'rgba(22,32,47,0.80)',
+          40:      'rgba(22,32,47,0.40)',
+          15:      'rgba(22,32,47,0.07)',
         },
+        // ─── Indigo — Interação/CTAs (BASE: 500) ───
         indigo: {
-          DEFAULT: '#2B1FCC',
-          light:   '#4B40E0',
-          pale:    '#EEECFF',
+          DEFAULT: '#5B57E8',
+          light:   '#4842D4',
+          pale:    '#EEF0FF',
+          50:      '#EEF0FF',
+          100:     '#DEE2FF',
+          300:     '#9DA1FB',
+          700:     '#3A35AC',
         },
+        // ─── Amber — Alerta/Atenção (BASE: 500) ───
         amber: {
-          DEFAULT: '#F59E0B',
-          light:   '#FCD34D',
-          pale:    '#FFFBEB',
+          DEFAULT: '#E8900C',
+          light:   '#FBC04D',
+          pale:    '#FFF8EB',
+          50:      '#FFF8EB',
+          200:     '#FDD88A',
+          700:     '#9A530A',
+          800:     '#7C420E',
         },
-        // ─── Suporte ───
+        // ─── Teal — Sucesso/Resolvido (BASE: 500) ───
         teal: {
-          DEFAULT: '#0EA5A0',
-          pale:    '#F0FAFA',
+          DEFAULT: '#0E9E7A',
+          pale:    '#EAFBF5',
+          50:      '#EAFBF5',
+          100:     '#C8F4E5',
+          700:     '#086552',
         },
+        // ─── Coral — Risco/Escalada (BASE: 500) ───
         coral: {
-          DEFAULT: '#F26D5B',
-          pale:    '#FEF0EE',
+          DEFAULT: '#EE4A34',
+          600:     '#D33420',
+          700:     '#AF2719',
+          pale:    '#FFF1EF',
+          50:      '#FFF1EF',
+          200:     '#FFC0B7',
         },
         // ─── Semânticas ───
         success: '#16A34A',
         danger:  '#DC2626',
-        warning: '#F59E0B',
+        warning: '#E8900C',
         // ─── Superfícies ───
-        surface: '#F8F8FC',
+        surface: '#F7F9FB',
       },
 
       fontFamily: {
@@ -86,15 +105,16 @@ const config: Config = {
       },
 
       boxShadow: {
-        'focus-indigo': '0 0 0 3px rgba(43,31,204,0.15)',
-        'focus-teal':   '0 0 0 3px rgba(14,165,160,0.15)',
-        'card':         '0 1px 3px rgba(13,13,26,0.05)',
-        'dropdown':     '0 8px 24px rgba(13,13,26,0.10)',
+        'focus-indigo': '0 0 0 3px rgba(91,87,232,0.15)',
+        'focus-teal':   '0 0 0 3px rgba(14,158,122,0.15)',
+        'card':         '0 1px 2px rgba(11,18,28,.04), 0 12px 28px -18px rgba(11,18,28,.18)',
+        'btn-indigo':   '0 8px 20px -8px rgba(91,87,232,.55)',
+        'btn-coral':    '0 8px 20px -8px rgba(211,52,32,.55)',
       },
 
       backgroundImage: {
-        'brand-gradient': 'linear-gradient(90deg, #2B1FCC, #F26D5B)',
-        'hero-gradient':  'linear-gradient(135deg, #0D0D1A 0%, #1A1040 100%)',
+        'brand-gradient': 'linear-gradient(90deg, #5B57E8, #EE4A34)',
+        'hero-gradient':  'linear-gradient(135deg, #0B121C 0%, #16202F 100%)',
       },
 
       keyframes: {

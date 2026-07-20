@@ -15,7 +15,10 @@
       "Bash(npx vercel *)",
       "Bash(node_modules\\\\.bin\\\\vercel ls *)",
       "Bash(./node_modules/.bin/vercel ls *)",
-      "PowerShell(cd \"C:\\\\Users\\\\marce\\\\SmartLegalTech\"; $env:PATH += \";C:\\\\Users\\\\marce\\\\AppData\\\\Roaming\\\\npm\"; npx vercel env ls 2>&1 | head -40)"
+      "PowerShell(cd \"C:\\\\Users\\\\marce\\\\SmartLegalTech\"; $env:PATH += \";C:\\\\Users\\\\marce\\\\AppData\\\\Roaming\\\\npm\"; npx vercel env ls 2>&1 | head -40)",
+      "Bash(npm run *)",
+      "Bash(vercel --prod)",
+      "Bash(npx tsc *)"
     ]
   }
 }

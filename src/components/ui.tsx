@@ -89,7 +89,7 @@ export function StatusBadge({ status }: { status: string }) {
 ═══════════════════════════════ */
 const areaStyles: Record<string, string> = {
   civel:          'bg-[#EEF6FF] text-[#1D4ED8]',
-  tributario:     'bg-amber-pale text-[#92400E]',
+  tributario:     'bg-amber-pale text-[#7C420E]',
   trabalhista:    'bg-teal-pale text-teal',
   contratual:     'bg-[#F0FDF4] text-[#166534]',
   criminal:       'bg-[#FEF2F2] text-[#991B1B]',

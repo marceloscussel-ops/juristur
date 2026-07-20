@@ -4,10 +4,12 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Scale, LogOut, Menu, X, PlusCircle, UserCircle } from 'lucide-react'
+import { LogOut, Menu, X, PlusCircle, UserCircle } from 'lucide-react'
+import TGLogo from '@/components/TGLogo'
 
 const navItems = [
   { href: '/dashboard', label: 'Meus Casos' },
+  { href: '/assinar',   label: 'Planos'     },
   { href: '/perfil',    label: 'Perfil'      },
 ]
 
@@ -26,9 +28,8 @@ export default function Navbar() {
   return (
     <nav className="j-nav" aria-label="Navegação principal">
       {/* Logo */}
-      <Link href="/dashboard" className="flex items-center gap-2 no-underline">
-        <Scale className="w-5 h-5 text-amber" />
-        <span className="font-display text-[18px] text-white leading-none">JurisTur</span>
+      <Link href="/dashboard" className="flex items-center no-underline">
+        <TGLogo size={34} variant="mono-light" withWordmark />
       </Link>
 
       {/* Links desktop */}
@@ -47,7 +48,7 @@ export default function Navbar() {
 
       {/* Ações desktop */}
       <div className="hidden sm:flex items-center gap-2">
-        <Link href="/casos/novo" className="btn btn-warm btn-sm no-underline">
+        <Link href="/casos/novo" className="btn btn-accent btn-sm no-underline">
           <PlusCircle className="w-3.5 h-3.5" />
           Novo caso
         </Link>
@@ -77,7 +78,7 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="sm:hidden absolute top-14 left-0 right-0 bg-[#1A1040] border-t border-white/10 px-4 py-3 space-y-1 z-50">
+        <div className="sm:hidden absolute top-14 left-0 right-0 bg-[#0B121C] border-t border-white/10 px-4 py-3 space-y-1 z-50">
           {navItems.map(item => (
             <Link
               key={item.href}

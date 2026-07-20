@@ -1,9 +1,15 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import StatusBadge from '@/components/StatusBadge'
+import SeverityBadge from '@/components/SeverityBadge'
 import DashboardFilters from '@/components/DashboardFilters'
 import { Case, CASE_CATEGORIES } from '@/types'
 import { ChevronRight, FolderOpen, PlusCircle } from 'lucide-react'
+
+/** Severidade a exibir: só de análise aprovada (a agência não vê pendências). */
+function caseSeverity(c: Case) {
+  return (c.case_analyses ?? []).find(a => a.review_status === 'approved')?.severity ?? null
+}
 
 interface Props {
   searchParams: Promise<{ categoria?: string; status?: string }>
@@ -20,7 +26,7 @@ export default async function DashboardPage({ searchParams }: Props) {
 
   let query = supabase
     .from('cases')
-    .select('*')
+    .select('*, case_analyses(severity, review_status)')
     .eq('agency_id', user!.id)
     .order('created_at', { ascending: false })
 
@@ -47,7 +53,7 @@ export default async function DashboardPage({ searchParams }: Props) {
                 : `${typedCases.length} caso${typedCases.length !== 1 ? 's' : ''} no total`}
           </p>
         </div>
-        <Link href="/casos/novo" className="btn btn-warm no-underline flex-shrink-0 whitespace-nowrap">
+        <Link href="/casos/novo" className="btn btn-accent no-underline flex-shrink-0 whitespace-nowrap">
           <PlusCircle className="w-4 h-4" />
           Novo caso
         </Link>
@@ -76,7 +82,7 @@ export default async function DashboardPage({ searchParams }: Props) {
             <>
               <h2 className="j-h3 mb-1">Nenhum caso ainda</h2>
               <p className="j-caption mb-6">Abra seu primeiro caso para receber orientação jurídica</p>
-              <Link href="/casos/novo" className="btn btn-warm no-underline inline-flex">
+              <Link href="/casos/novo" className="btn btn-accent no-underline inline-flex">
                 <PlusCircle className="w-4 h-4" />
                 Abrir primeiro caso
               </Link>
@@ -89,23 +95,31 @@ export default async function DashboardPage({ searchParams }: Props) {
             <thead>
               <tr>
                 <th>Caso</th>
-                <th>Categoria</th>
-                <th>Data</th>
+                <th className="hidden md:table-cell">Categoria</th>
+                <th className="hidden sm:table-cell">Data</th>
+                <th>Severidade</th>
                 <th>Status</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
-              {typedCases.map(c => (
+              {typedCases.map(c => {
+                const sev = caseSeverity(c)
+                return (
                 <tr key={c.id}>
                   <td className="font-medium">
                     <Link href={`/casos/${c.id}`} className="no-underline text-ink hover:text-indigo transition-colors block">
                       {c.title ?? c.category}
                     </Link>
                   </td>
-                  <td className="text-ink-40">{c.category}</td>
-                  <td className="text-ink-40 whitespace-nowrap">
+                  <td className="text-ink-40 hidden md:table-cell">{c.category}</td>
+                  <td className="text-ink-40 whitespace-nowrap hidden sm:table-cell">
                     {new Date(c.created_at).toLocaleDateString('pt-BR')}
+                  </td>
+                  <td>
+                    {sev
+                      ? <SeverityBadge severity={sev} compact />
+                      : <span className="text-ink-40">—</span>}
                   </td>
                   <td><StatusBadge status={c.status} /></td>
                   <td className="text-right">
@@ -114,7 +128,8 @@ export default async function DashboardPage({ searchParams }: Props) {
                     </Link>
                   </td>
                 </tr>
-              ))}
+                )
+              })}
             </tbody>
           </table>
         </div>

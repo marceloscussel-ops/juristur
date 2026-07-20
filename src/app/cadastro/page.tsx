@@ -3,7 +3,10 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Scale, Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
+import TGLogo from '@/components/TGLogo'
+import OAuthButtons from '@/components/OAuthButtons'
+import { isValidBrazilianMobile } from '@/lib/phone'
 
 function formatCNPJ(value: string) {
   const digits = value.replace(/\D/g, '').slice(0, 14)
@@ -47,8 +50,8 @@ export default function CadastroPage() {
       return
     }
     const phoneDigits = form.phone.replace(/\D/g, '')
-    if (phoneDigits.length < 12) {
-      setError('Informe o WhatsApp com DDI e DDD. Ex: +55 (51) 99999-9999')
+    if (!isValidBrazilianMobile(form.phone)) {
+      setError('WhatsApp inválido. Informe com DDI e DDD. Ex: +55 (51) 99999-9999')
       return
     }
     setLoading(true)
@@ -76,9 +79,8 @@ export default function CadastroPage() {
     <div className="min-h-screen bg-surface flex flex-col items-center justify-center px-4 py-10">
       <div className="w-full max-w-[400px]">
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 no-underline">
-            <Scale className="w-5 h-5 text-amber" />
-            <span className="font-display text-[22px] text-ink">JurisTur</span>
+          <Link href="/" className="inline-flex items-center no-underline">
+            <TGLogo size={36} variant="color" withWordmark />
           </Link>
           <h1 className="j-h1 mt-5 mb-1">Cadastro da agência</h1>
           <p className="j-caption">Crie sua conta e comece a usar</p>
@@ -140,6 +142,8 @@ export default function CadastroPage() {
               {loading ? 'Criando conta...' : 'Criar conta'}
             </button>
           </form>
+
+          <OAuthButtons next="/perfil" />
         </div>
 
         <p className="text-center j-caption mt-5">

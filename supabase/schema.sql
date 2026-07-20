@@ -19,14 +19,33 @@ CREATE TABLE IF NOT EXISTS agencies (
   cnpj      TEXT NOT NULL,
   email     TEXT NOT NULL UNIQUE,
   phone     TEXT UNIQUE,               -- número WhatsApp com DDI (ex: 5511999999999)
-  plan      TEXT NOT NULL DEFAULT 'free'
-              CHECK (plan IN ('free', 'basic', 'pro')),
+  plan      TEXT NOT NULL DEFAULT 'free',
+  subscription_status TEXT NOT NULL DEFAULT 'trial',
+  trial_ends_at       TIMESTAMPTZ,     -- fim do acesso gratuito (piloto: created_at + 30 dias)
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
 -- Colunas novas em agencies (idempotente para bancos já existentes)
 ALTER TABLE agencies ADD COLUMN IF NOT EXISTS phone TEXT UNIQUE;
 ALTER TABLE agencies ADD COLUMN IF NOT EXISTS plan  TEXT NOT NULL DEFAULT 'free';
+ALTER TABLE agencies ADD COLUMN IF NOT EXISTS subscription_status TEXT NOT NULL DEFAULT 'trial';
+ALTER TABLE agencies ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMPTZ;
+
+-- Constraints de plano e status (recriadas de forma idempotente)
+UPDATE agencies SET plan = 'free'
+  WHERE plan NOT IN ('free', 'essencial', 'profissional', 'enterprise');
+ALTER TABLE agencies DROP CONSTRAINT IF EXISTS agencies_plan_check;
+ALTER TABLE agencies ADD  CONSTRAINT agencies_plan_check
+  CHECK (plan IN ('free', 'essencial', 'profissional', 'enterprise'));
+
+ALTER TABLE agencies DROP CONSTRAINT IF EXISTS agencies_subscription_status_check;
+ALTER TABLE agencies ADD  CONSTRAINT agencies_subscription_status_check
+  CHECK (subscription_status IN ('trial', 'active', 'expired', 'canceled'));
+
+-- Backfill: agências existentes ganham 30 dias de piloto a partir do cadastro
+UPDATE agencies
+  SET trial_ends_at = created_at + INTERVAL '30 days'
+  WHERE trial_ends_at IS NULL;
 
 -- Casos
 CREATE TABLE IF NOT EXISTS cases (
@@ -44,6 +63,9 @@ CREATE TABLE IF NOT EXISTS cases (
 
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS origin TEXT NOT NULL DEFAULT 'web';
 ALTER TABLE cases ALTER COLUMN title DROP NOT NULL;  -- título é opcional (WhatsApp não tem)
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS escalated_at TIMESTAMPTZ;  -- quando o caso foi escalado a um advogado
+-- Índice parcial para contar escaladas por agência (cota de escaladas gratuitas)
+CREATE INDEX IF NOT EXISTS cases_escalated_idx ON cases(agency_id) WHERE escalated_at IS NOT NULL;
 
 -- Arquivos do caso
 CREATE TABLE IF NOT EXISTS case_files (
@@ -68,6 +90,16 @@ CREATE TABLE IF NOT EXISTS case_analyses (
 );
 
 ALTER TABLE case_analyses ADD COLUMN IF NOT EXISTS tokens_used INT;
+ALTER TABLE case_analyses ADD COLUMN IF NOT EXISTS severity TEXT;  -- leve | medio | elevado | elevadissimo
+
+-- Mensagens de acompanhamento (follow-up após análise inicial)
+CREATE TABLE IF NOT EXISTS case_messages (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  case_id    UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+  role       TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+  content    TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
 
 -- ============================================================
 -- Sessões WhatsApp
@@ -106,6 +138,7 @@ CREATE INDEX IF NOT EXISTS cases_agency_id_idx          ON cases(agency_id);
 CREATE INDEX IF NOT EXISTS cases_origin_idx             ON cases(origin);
 CREATE INDEX IF NOT EXISTS case_files_case_id_idx       ON case_files(case_id);
 CREATE INDEX IF NOT EXISTS case_analyses_case_id_idx    ON case_analyses(case_id);
+CREATE INDEX IF NOT EXISTS case_messages_case_id_idx    ON case_messages(case_id);
 CREATE INDEX IF NOT EXISTS whatsapp_sessions_phone_idx  ON whatsapp_sessions(phone);
 CREATE INDEX IF NOT EXISTS whatsapp_sessions_agency_idx ON whatsapp_sessions(agency_id);
 
@@ -123,6 +156,7 @@ ALTER TABLE cases              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE case_files         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE case_analyses      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE whatsapp_sessions  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE case_messages      ENABLE ROW LEVEL SECURITY;
 -- rag_cases: sem RLS (leitura pública + escrita via service role)
 
 -- Policies: agencies
@@ -153,6 +187,17 @@ CREATE POLICY "case_analyses_own" ON case_analyses
     EXISTS (
       SELECT 1 FROM cases
       WHERE cases.id = case_analyses.case_id
+        AND cases.agency_id = auth.uid()
+    )
+  );
+
+-- Policies: case_messages
+DROP POLICY IF EXISTS "case_messages_own" ON case_messages;
+CREATE POLICY "case_messages_own" ON case_messages
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM cases
+      WHERE cases.id = case_messages.case_id
         AND cases.agency_id = auth.uid()
     )
   );
@@ -207,15 +252,18 @@ LANGUAGE plpgsql
 SECURITY DEFINER SET search_path = public
 AS $$
 BEGIN
-  INSERT INTO public.agencies (id, name, cnpj, email, phone)
+  -- Piloto: 30 dias de acesso gratuito. Após o piloto, alterar para 7 dias.
+  INSERT INTO public.agencies (id, name, cnpj, email, phone, subscription_status, trial_ends_at)
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'name',  'Agência sem nome'),
     COALESCE(NEW.raw_user_meta_data->>'cnpj',  '00.000.000/0000-00'),
     NEW.email,
-    NEW.raw_user_meta_data->>'phone'
+    NEW.raw_user_meta_data->>'phone',
+    'trial',
+    now() + INTERVAL '30 days'
   )
-  ON CONFLICT (id) DO NOTHING;
+  ON CONFLICT DO NOTHING;
   RETURN NEW;
 END;
 $$;

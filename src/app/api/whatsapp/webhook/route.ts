@@ -17,10 +17,12 @@ import { sendText, sendTextParts } from '@/lib/whatsapp/sender'
 import { categoryMenu, parseCategory, formatAnalysis } from '@/lib/whatsapp/formatter'
 import { transcribeAudio } from '@/lib/whatsapp/transcriber'
 import { extractTextFromFile } from '@/lib/extract-text'
-import { analyzeCase } from '@/lib/claude'
+import { analyzeCase, analyzeCaseRevision, followUpCase, ConversationMessage } from '@/lib/claude'
 import { findSimilarCases, formatSimilarCases } from '@/lib/ai/rag'
+import { notifyAgencyCaseReady } from '@/lib/notify'
 import { env } from '@/lib/env'
 import { normalizePhone } from '@/lib/phone'
+import { MAX_FOLLOWUP_QUESTIONS } from '@/types'
 
 export const maxDuration = 60
 
@@ -85,6 +87,212 @@ async function saveWhatsAppFile(
   const extractedText     = await extractTextFromFile(buffer, mimeType, fileName)
 
   return { publicUrl: urlData.publicUrl, extractedText }
+}
+
+// ─── Handler do advogado ──────────────────────────────────────────────────────
+
+async function sendLawyerHelp(phone: string) {
+  await sendText(phone, [
+    `🔎 *Comandos disponíveis:*`,
+    ``,
+    `Para aprovar, responda:  *APROVAR*`,
+    `Para pedir ajuste:  *REVISAR: seus comentários*`,
+    ``,
+    `_Havendo mais de um caso pendente, inclua o código (6 primeiros caracteres). Ex: APROVAR A1B2C3_`,
+  ].join('\n'))
+}
+
+async function handleLawyerCommand(phone: string, rawText: string) {
+  const db = getServiceClient()
+
+  // Tolera copiar/colar: remove markdown do WhatsApp (* _ ~ `) e normaliza espaços.
+  // Assim "✅ *APROVAR A7ED6E*" vira "✅ APROVAR A7ED6E" e é reconhecido igual a digitar.
+  const text = rawText.replace(/[*_~`]/g, ' ').replace(/\s+/g, ' ').trim()
+
+  const cmd = text.match(/\b(APROVAR|REVISAR)\b\s*([\s\S]*)/i)
+  if (!cmd) { await sendLawyerHelp(phone); return }
+
+  const action = cmd[1].toUpperCase()
+  const rest   = cmd[2].trim()
+
+  // Extrai código (hex, 6 primeiros do UUID) e comentários conforme a ação
+  let shortCode: string | null = null
+  let notes = ''
+  if (action === 'APROVAR') {
+    const m = rest.match(/^([A-Fa-f0-9]{4,8})\b/)
+    shortCode = m ? m[1].toUpperCase() : null
+  } else {
+    const withCode = rest.match(/^([A-Fa-f0-9]{4,8})\s*:\s*([\s\S]+)/)
+    if (withCode) { shortCode = withCode[1].toUpperCase(); notes = withCode[2].trim() }
+    else          { notes = rest.replace(/^:\s*/, '').trim() }
+  }
+
+  // Resolve o caso alvo: código explícito OU único caso pendente
+  const { data: pending } = await db
+    .from('case_analyses').select('case_id').eq('review_status', 'pending')
+  const pendingIds: string[] = (pending ?? []).map(p => p.case_id)
+
+  let targetId: string | null = null
+  if (shortCode) {
+    targetId = pendingIds.find(id => id.toUpperCase().startsWith(shortCode!)) ?? null
+    if (!targetId) {
+      const { data: all } = await db.from('cases').select('id')
+      targetId = (all ?? []).find(c => c.id.toUpperCase().startsWith(shortCode!))?.id ?? null
+    }
+    if (!targetId) {
+      await sendText(phone, `⚠️ Caso com código "${shortCode}" não encontrado.`)
+      return
+    }
+  } else if (pendingIds.length === 1) {
+    targetId = pendingIds[0]
+  } else if (pendingIds.length === 0) {
+    await sendText(phone, `✅ Não há casos aguardando revisão no momento.`)
+    return
+  } else {
+    const codes = pendingIds.map(id => id.slice(0, 6).toUpperCase()).join(', ')
+    await sendText(phone,
+      `Há ${pendingIds.length} casos aguardando revisão. Informe o código.\n` +
+      `Ex: *${action} ${pendingIds[0].slice(0, 6).toUpperCase()}*\n\n` +
+      `Pendentes: ${codes}`
+    )
+    return
+  }
+
+  const codeLabel = targetId.slice(0, 6).toUpperCase()
+
+  // ── APROVAR ──
+  if (action === 'APROVAR') {
+    await db.from('case_analyses')
+      .update({ review_status: 'approved', reviewed_at: new Date().toISOString() })
+      .eq('case_id', targetId)
+    await db.from('cases').update({ status: 'concluido' }).eq('id', targetId)
+    await notifyAgencyCaseReady(targetId)
+    await sendText(phone, `✅ Caso *${codeLabel}* aprovado. A análise foi liberada para a agência.`)
+    return
+  }
+
+  // ── REVISAR ──
+  if (!notes) {
+    await sendText(phone,
+      `Para revisar o caso *${codeLabel}*, envie os comentários assim:\n` +
+      `*REVISAR ${codeLabel}: precisa citar o art. 22...*`
+    )
+    return
+  }
+
+  const { data: caseRow } = await db
+    .from('cases').select('description, category').eq('id', targetId).single()
+  const { data: analysis } = await db
+    .from('case_analyses').select('ai_response').eq('case_id', targetId).single()
+
+  if (!caseRow || !analysis) {
+    await sendText(phone, `⚠️ Análise do caso "${codeLabel}" não encontrada.`)
+    return
+  }
+
+  await sendText(phone, `⏳ Gerando nova análise com seus comentários...`)
+  await db.from('case_analyses')
+    .update({ review_status: 'revision_requested', lawyer_notes: notes })
+    .eq('case_id', targetId)
+
+  try {
+    const result = await analyzeCaseRevision(caseRow.description, caseRow.category, analysis.ai_response, notes)
+
+    await db.from('case_analyses').update({
+      ai_response:   result.text,
+      tokens_used:   result.tokensUsed,
+      review_status: 'pending',
+      lawyer_notes:  notes,
+      reviewed_at:   null,
+      severity:      result.severity ?? null,
+    }).eq('case_id', targetId)
+
+    const preview = result.text.length > 1500 ? result.text.slice(0, 1500) + '\n[continua...]' : result.text
+    await sendText(phone, [
+      `🔄 *Nova análise gerada — Código ${codeLabel}*`,
+      ``,
+      preview,
+      ``,
+      `Responda para decidir:`,
+      `APROVAR ${codeLabel}`,
+      `REVISAR ${codeLabel}: novos comentários`,
+    ].join('\n'))
+  } catch {
+    await sendText(phone, `⚠️ Erro ao gerar nova análise. Tente pela plataforma web.`)
+  }
+}
+
+// ─── Follow-up após análise ───────────────────────────────────────────────────
+
+async function handleFollowUp(phone: string, caseId: string, question: string) {
+  const db = getServiceClient()
+
+  const { data: caseRow } = await db
+    .from('cases')
+    .select('description, category')
+    .eq('id', caseId)
+    .single()
+
+  const { data: analysis } = await db
+    .from('case_analyses')
+    .select('ai_response')
+    .eq('case_id', caseId)
+    .eq('review_status', 'approved')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single()
+
+  if (!caseRow || !analysis) {
+    await sendText(phone, '⚠️ Não encontrei a análise desse caso. Acesse a plataforma web para mais detalhes.')
+    return
+  }
+
+  const { data: history } = await db
+    .from('case_messages')
+    .select('role, content')
+    .eq('case_id', caseId)
+    .order('created_at', { ascending: true })
+
+  // Trava de limite: controla custo e evita conversa infinita
+  const asked = (history ?? []).filter(m => m.role === 'user').length
+  if (asked >= MAX_FOLLOWUP_QUESTIONS) {
+    await sendText(phone,
+      `⚠️ Você já fez ${MAX_FOLLOWUP_QUESTIONS} perguntas sobre este caso, que é o limite.\n\n` +
+      'Para uma nova dúvida, digite *novo caso* e faça uma nova análise.'
+    )
+    return
+  }
+
+  // Salva a pergunta
+  await db.from('case_messages').insert({ case_id: caseId, role: 'user', content: question })
+
+  await sendText(phone, '⏳ Um momento...')
+
+  try {
+    const result = await followUpCase(
+      caseRow.description,
+      caseRow.category,
+      analysis.ai_response,
+      (history ?? []) as ConversationMessage[],
+      question,
+    )
+
+    // Salva a resposta
+    await db.from('case_messages').insert({ case_id: caseId, role: 'assistant', content: result.text })
+
+    // Envia sem usar formatAnalysis (resposta conversacional, não estruturada)
+    const MAX = 3800
+    if (result.text.length <= MAX) {
+      await sendText(phone, result.text)
+    } else {
+      const mid = result.text.lastIndexOf('\n', MAX)
+      await sendText(phone, result.text.slice(0, mid > 0 ? mid : MAX))
+      await sendText(phone, result.text.slice(mid > 0 ? mid : MAX).trim())
+    }
+    await sendText(phone, '_Tem mais alguma dúvida? Pode perguntar. Para novo caso, digite *novo caso*._')
+  } catch {
+    await sendText(phone, '⚠️ Erro ao processar sua pergunta. Tente pela plataforma web.')
+  }
 }
 
 // ─── Handlers de estado ───────────────────────────────────────────────────────
@@ -249,20 +457,41 @@ async function handleAwaitingFiles(
     }
 
     if (caseId) {
+      // Verifica auto_approve do advogado
+      const { data: lwSettings } = await supabase
+        .from('lawyer_settings')
+        .select('auto_approve, lawyer_phone')
+        .single()
+
+      const autoApprove  = lwSettings?.auto_approve ?? true
+      const reviewStatus = autoApprove ? 'approved' : 'pending'
+
       await supabase.from('case_analyses').insert({
-        case_id:     caseId,
-        ai_response: result.text,
-        tokens_used: result.tokensUsed,
+        case_id:       caseId,
+        ai_response:   result.text,
+        tokens_used:   result.tokensUsed,
+        review_status: reviewStatus,
+        severity:      result.severity ?? null,
       })
-      await supabase.from('cases').update({ status: 'concluido' }).eq('id', caseId)
+
+      if (autoApprove) {
+        await supabase.from('cases').update({ status: 'concluido' }).eq('id', caseId)
+      } else if (lwSettings?.lawyer_phone) {
+        const { data: agencyRow } = await supabase.from('agencies').select('name').eq('id', agencyId).single()
+        const { notifyLawyerNewCase } = await import('@/lib/notify')
+        await notifyLawyerNewCase(lwSettings.lawyer_phone, caseId, agencyRow?.name ?? 'Agência', category, result.text)
+      }
     }
 
     // Envia resposta formatada para WhatsApp
     const parts = formatAnalysis(result.text, category)
     await sendTextParts(phone, parts)
 
-    // Mantém sessão para capturar resposta sobre contato com advogado
-    await updateSession(sessionId, 'awaiting_followup')
+    await sendText(phone,
+      '❓ Ficou com alguma dúvida sobre a análise? Me pergunte agora!\n\n' +
+      '_Para iniciar um novo caso, digite *novo caso*._'
+    )
+    await updateSession(sessionId, 'follow_up')
 
   } catch (err) {
     console.error('[whatsapp/webhook] análise error:', err)
@@ -296,6 +525,23 @@ export async function POST(request: NextRequest) {
     const phone = normalizePhone(body.phone)
     if (!phone) return NextResponse.json({ ok: true })
 
+    // Verifica se é o advogado enviando um comando (APROVAR / REVISAR)
+    const supabaseService = getServiceClient()
+    const { data: lawyerSettings } = await supabaseService
+      .from('lawyer_settings')
+      .select('lawyer_phone')
+      .single()
+
+    const lawyerPhone = lawyerSettings?.lawyer_phone
+      ? normalizePhone(lawyerSettings.lawyer_phone)
+      : null
+
+    if (lawyerPhone && phone === lawyerPhone) {
+      const msgText = body.text?.message?.trim() ?? ''
+      await handleLawyerCommand(phone, msgText)
+      return NextResponse.json({ ok: true })
+    }
+
     console.log(`[webhook] type="${body.type}" phone="${phone}" hasAudio=${!!body.audio} hasText=${!!body.text}`)
 
     // Extrai texto da mensagem
@@ -319,7 +565,7 @@ export async function POST(request: NextRequest) {
     if (!agency) {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://juristur.vercel.app'
       await sendText(phone,
-        `👋 Olá! Seu número não está cadastrado na plataforma JurisTur.\n\n` +
+        `👋 Olá! Seu número não está cadastrado na plataforma TurisGuard.\n\n` +
         `Para usar este serviço, acesse o link abaixo e cadastre sua agência:\n${appUrl}/cadastro`
       )
       return NextResponse.json({ ok: true })
@@ -374,22 +620,19 @@ export async function POST(request: NextRequest) {
         await sendText(phone, '⏳ Ainda estou analisando seu caso. Aguarde mais um instante...')
         break
 
-      case 'awaiting_followup': {
+      case 'follow_up': {
         const t = text.toLowerCase().trim()
-        const wantsLawyer = t === '1' || t.includes('sim') || t.includes('quero') || t.includes('contratar')
-        if (wantsLawyer) {
-          const appUrl = env('NEXT_PUBLIC_APP_URL') ?? 'https://juristur.vercel.app'
-          await sendText(phone,
-            '✅ Ótimo! Um advogado especializado em turismo entrará em contato em breve.\n\n' +
-            `Você também pode acessar a plataforma para mais detalhes:\n${appUrl}`
-          )
+        const isNewCase = t === 'novo caso' || t === 'encerrar' || t === 'sair'
+
+        if (isNewCase) {
+          await closeSession(session.id)
+          await handleNoSession(phone, agency)
+        } else if (session.case_id) {
+          await handleFollowUp(phone, session.case_id, text)
         } else {
-          await sendText(phone,
-            '✅ Tudo bem! Fico à disposição sempre que precisar.\n\n' +
-            'Quando quiser analisar um novo caso, é só enviar uma mensagem. 👋'
-          )
+          await sendText(phone, '⚠️ Sessão inválida. Para começar um novo caso, digite *novo caso*.')
+          await closeSession(session.id)
         }
-        await closeSession(session.id)
         break
       }
     }

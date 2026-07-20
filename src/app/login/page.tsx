@@ -4,7 +4,9 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Scale, Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
+import TGLogo from '@/components/TGLogo'
+import OAuthButtons from '@/components/OAuthButtons'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -19,13 +21,14 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
       setError('E-mail ou senha incorretos.')
       setLoading(false)
       return
     }
-    router.push('/dashboard')
+    const isLawyer = data.user?.app_metadata?.role === 'lawyer'
+    router.push(isLawyer ? '/lawyer/dashboard' : '/dashboard')
     router.refresh()
   }
 
@@ -34,9 +37,8 @@ export default function LoginPage() {
       <div className="w-full max-w-[400px]">
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 no-underline">
-            <Scale className="w-5 h-5 text-amber" />
-            <span className="font-display text-[22px] text-ink">JurisTur</span>
+          <Link href="/" className="inline-flex items-center no-underline">
+            <TGLogo size={36} variant="color" withWordmark />
           </Link>
           <h1 className="j-h1 mt-5 mb-1">Bem-vindo de volta</h1>
           <p className="j-caption">Entre com os dados da sua agência</p>
@@ -59,7 +61,12 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="j-label" htmlFor="password">Senha</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="j-label" htmlFor="password">Senha</label>
+                <Link href="/esqueci-senha" className="j-caption text-indigo hover:underline">
+                  Esqueci minha senha
+                </Link>
+              </div>
               <div className="relative">
                 <input
                   id="password"
@@ -89,6 +96,8 @@ export default function LoginPage() {
               {loading ? 'Entrando...' : 'Entrar'}
             </button>
           </form>
+
+          <OAuthButtons />
         </div>
 
         <p className="text-center j-caption mt-5">

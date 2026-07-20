@@ -1,0 +1,175 @@
+/* ===== TurisGuard Landing Page — Responsive ===== */
+
+/* ── Tablet / large mobile (≤ 900px) ── */
+@media (max-width: 900px) {
+
+  /* Nav */
+  .lp-nav-inner {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+    gap: 16px !important;
+  }
+  .lp-nav-links {
+    display: none !important;
+  }
+
+  /* Hero */
+  .lp-hero-grid {
+    grid-template-columns: 1fr !important;
+    padding: 44px 20px 56px !important;
+    gap: 40px !important;
+  }
+  .lp-h1 {
+    font-size: 38px !important;
+    letter-spacing: -1.5px !important;
+  }
+  .lp-h2 {
+    font-size: 28px !important;
+    letter-spacing: -0.5px !important;
+  }
+  .lp-h2-sm {
+    font-size: 24px !important;
+    letter-spacing: -0.3px !important;
+  }
+
+  /* Section containers */
+  .lp-section-pad {
+    padding: 64px 20px !important;
+  }
+  .lp-faq-pad {
+    padding: 64px 20px !important;
+  }
+  .lp-footer-inner {
+    padding: 40px 20px 32px !important;
+  }
+
+  /* Grids */
+  .lp-problem-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .lp-steps-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .lp-features-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* 2-col full-width sections */
+  .lp-2col-lang {
+    grid-template-columns: 1fr !important;
+    padding: 64px 20px !important;
+    gap: 28px !important;
+  }
+  .lp-2col-wa {
+    grid-template-columns: 1fr !important;
+    padding: 64px 20px !important;
+    gap: 40px !important;
+  }
+
+  /* Escalation card */
+  .lp-escalation-grid {
+    grid-template-columns: 1fr !important;
+    gap: 28px !important;
+  }
+  .lp-escalation-inner {
+    padding: 36px 28px !important;
+  }
+
+  /* Pricing */
+  .lp-pricing-grid {
+    grid-template-columns: 1fr !important;
+    max-width: 440px;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  /* Footer */
+  .lp-footer-row {
+    flex-direction: column !important;
+    gap: 28px !important;
+  }
+  .lp-footer-links {
+    gap: 32px !important;
+  }
+
+  /* Slogan */
+  .lp-slogan {
+    font-size: 17px !important;
+  }
+}
+
+/* ── Small mobile (≤ 540px) ── */
+@media (max-width: 540px) {
+
+  /* Nav */
+  .lp-nav-inner {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  .lp-nav-entrar {
+    font-size: 13.5px !important;
+  }
+  .lp-nav-cta {
+    font-size: 13px !important;
+    padding: 8px 13px !important;
+  }
+
+  /* Hero */
+  .lp-hero-grid {
+    padding: 36px 16px 48px !important;
+    gap: 32px !important;
+  }
+  .lp-h1 {
+    font-size: 30px !important;
+    letter-spacing: -0.8px !important;
+  }
+  .lp-h2 {
+    font-size: 22px !important;
+  }
+  .lp-h2-sm {
+    font-size: 20px !important;
+  }
+
+  /* Section containers */
+  .lp-section-pad {
+    padding: 52px 16px !important;
+  }
+  .lp-2col-lang {
+    padding: 52px 16px !important;
+  }
+  .lp-2col-wa {
+    padding: 52px 16px !important;
+  }
+  .lp-faq-pad {
+    padding: 52px 16px !important;
+  }
+  .lp-footer-inner {
+    padding: 36px 16px 28px !important;
+  }
+
+  /* Grids → single column */
+  .lp-problem-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .lp-features-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .lp-pricing-grid {
+    max-width: none !important;
+  }
+
+  /* Escalation */
+  .lp-escalation-inner {
+    padding: 24px 16px !important;
+  }
+
+  /* Footer */
+  .lp-footer-links {
+    gap: 24px !important;
+  }
+
+  /* Slogan */
+  .lp-slogan {
+    font-size: 15px !important;
+  }
+}

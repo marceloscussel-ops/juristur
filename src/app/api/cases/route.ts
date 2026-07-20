@@ -3,9 +3,16 @@ import { createClient } from '@/lib/supabase/server'
 import { analyzeCase } from '@/lib/claude'
 import { extractTextFromFile } from '@/lib/extract-text'
 import { findSimilarCases, formatSimilarCases } from '@/lib/ai/rag'
+import { notifyAnalysisFailed, notifyLawyerNewCase, notifyAgencyCaseReady } from '@/lib/notify'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { env } from '@/lib/env'
 
-// Timeout de 60s no Vercel (máximo do plano Hobby)
-export const maxDuration = 60
+function getServiceClient() {
+  return createServiceClient(env('NEXT_PUBLIC_SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'))
+}
+
+// Vercel Pro permite até 300s — necessário para Claude + RAG em casos com arquivos
+export const maxDuration = 300
 
 export async function GET() {
   try {
@@ -49,6 +56,21 @@ export async function POST(request: NextRequest) {
 
     if (!description || !category) {
       return NextResponse.json({ error: 'Preencha todos os campos obrigatórios.' }, { status: 400 })
+    }
+
+    // Limite diário por agência (evita abuso durante o piloto)
+    const today = new Date().toISOString().slice(0, 10)
+    const { count: todayCount } = await supabase
+      .from('cases')
+      .select('*', { count: 'exact', head: true })
+      .eq('agency_id', user.id)
+      .gte('created_at', today)
+
+    if ((todayCount ?? 0) >= 10) {
+      return NextResponse.json(
+        { error: 'Limite diário de 10 casos atingido. Tente novamente amanhã.' },
+        { status: 429 }
+      )
     }
 
     // 1. Criar o caso
@@ -131,16 +153,43 @@ export async function POST(request: NextRequest) {
         similarCasesCtx
       )
 
+      // Verifica configuração de aprovação do advogado
+      const db = getServiceClient()
+      const { data: lawyerSettings } = await db
+        .from('lawyer_settings')
+        .select('auto_approve, lawyer_phone')
+        .single()
+
+      const autoApprove  = lawyerSettings?.auto_approve ?? true
+      const reviewStatus = autoApprove ? 'approved' : 'pending'
+
       await supabase.from('case_analyses').insert({
-        case_id:     caseData.id,
-        ai_response: result.text,
-        tokens_used: result.tokensUsed,
+        case_id:       caseData.id,
+        ai_response:   result.text,
+        tokens_used:   result.tokensUsed,
+        review_status: reviewStatus,
+        severity:      result.severity ?? null,
       })
 
-      await supabase.from('cases').update({ status: 'concluido' }).eq('id', caseData.id)
+      if (autoApprove) {
+        await supabase.from('cases').update({ status: 'concluido' }).eq('id', caseData.id)
+        await notifyAgencyCaseReady(caseData.id)
+      } else {
+        // Notifica advogado para revisar
+        if (lawyerSettings?.lawyer_phone) {
+          const { data: agencyData } = await supabase.from('agencies').select('name').eq('id', user.id).single()
+          await notifyLawyerNewCase(
+            lawyerSettings.lawyer_phone,
+            caseData.id,
+            agencyData?.name ?? 'Agência',
+            category,
+            result.text,
+          )
+        }
+      }
     } catch (aiErr) {
       console.error('[cases POST] AI analysis error:', aiErr)
-      // Caso criado com sucesso — status fica em 'em_analise'
+      await notifyAnalysisFailed(caseData.id, user.id, aiErr)
     }
 
     return NextResponse.json({ caseId: caseData.id }, { status: 201 })

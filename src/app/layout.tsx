@@ -5,7 +5,7 @@ import '@/styles/juristur.css'
 
 const sora = Sora({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+  weight: ['400', '500', '600', '700', '800'],
   variable: '--font-display',
   display: 'swap',
 })
@@ -25,14 +25,33 @@ const jetbrains = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'JurisTur — Assessoria Jurídica para Agências de Turismo',
+  title: 'TurisGuard — Assessoria Jurídica para Agências de Turismo',
   description: 'Plataforma de assessoria jurídica especializada para agências de turismo brasileiras',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const gaId = process.env.NEXT_PUBLIC_GA_ID
+
   return (
     <html lang="pt-BR" className={`${sora.variable} ${inter.variable} ${jetbrains.variable}`}>
-      <body>{children}</body>
+      <body>
+        {/* Google Analytics (gtag.js) — snippet oficial, renderizado no HTML */}
+        {gaId && (
+          <>
+            <script async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} />
+            <script
+              id="ga-gtag-init"
+              dangerouslySetInnerHTML={{
+                __html: `window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '${gaId}');`,
+              }}
+            />
+          </>
+        )}
+        {children}
+      </body>
     </html>
   )
 }
