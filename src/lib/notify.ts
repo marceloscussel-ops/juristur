@@ -25,7 +25,7 @@ export async function notifyAgencyCaseReady(caseId: string) {
 
     const { data: caseRow } = await db
       .from('cases')
-      .select('category, agency_id, origin')
+      .select('description, agency_id, origin')
       .eq('id', caseId)
       .single()
 
@@ -43,16 +43,19 @@ export async function notifyAgencyCaseReady(caseId: string) {
     const shortCode = caseId.slice(0, 6).toUpperCase()
     const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://juristur.vercel.app'
     const link      = `${appUrl}/casos/${caseId}`
+    const desc      = (caseRow.description ?? '').trim().replace(/\s+/g, ' ')
+    const shortDesc = desc.length > 120 ? desc.slice(0, 117).trimEnd() + '…' : desc
 
     await sendTransactional({
       to:           agency.phone,
       templateName: 'case_ready',
-      params:       [agency.name, shortCode, link],
+      params:       [agency.name, shortCode, shortDesc, link],
       text: [
         `✅ *Sua análise está pronta — TurisGuard*`,
         ``,
         `Olá, ${agency.name}!`,
-        `A análise do caso *${shortCode}* (${caseRow.category}) foi concluída.`,
+        `A análise do seu caso *${shortCode}* foi concluída.`,
+        ...(shortDesc ? [`_${shortDesc}_`] : []),
         ``,
         `Acesse o parecer completo na plataforma:`,
         link,
