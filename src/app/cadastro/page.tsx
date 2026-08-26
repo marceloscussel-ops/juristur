@@ -7,15 +7,7 @@ import { Eye, EyeOff } from 'lucide-react'
 import TGLogo from '@/components/TGLogo'
 import OAuthButtons from '@/components/OAuthButtons'
 import { isValidBrazilianMobile } from '@/lib/phone'
-
-function formatCNPJ(value: string) {
-  const digits = value.replace(/\D/g, '').slice(0, 14)
-  return digits
-    .replace(/^(\d{2})(\d)/, '$1.$2')
-    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
-    .replace(/\.(\d{3})(\d)/, '.$1/$2')
-    .replace(/(\d{4})(\d)/, '$1-$2')
-}
+import { formatCpfCnpj, isValidCpfCnpj } from '@/lib/document'
 
 function formatPhone(value: string) {
   const digits = value.replace(/\D/g, '').slice(0, 13)
@@ -36,7 +28,7 @@ export default function CadastroPage() {
     const { name, value } = e.target
     setForm(prev => ({
       ...prev,
-      [name]: name === 'cnpj'  ? formatCNPJ(value)
+      [name]: name === 'cnpj'  ? formatCpfCnpj(value)
              : name === 'phone' ? formatPhone(value)
              : value,
     }))
@@ -47,6 +39,10 @@ export default function CadastroPage() {
     setError('')
     if (form.password.length < 6) {
       setError('A senha deve ter pelo menos 6 caracteres.')
+      return
+    }
+    if (!isValidCpfCnpj(form.cnpj)) {
+      setError('CPF ou CNPJ inválido. Confira os números digitados.')
       return
     }
     const phoneDigits = form.phone.replace(/\D/g, '')
@@ -96,10 +92,11 @@ export default function CadastroPage() {
             </div>
 
             <div>
-              <label className="j-label" htmlFor="cnpj">CNPJ</label>
+              <label className="j-label" htmlFor="cnpj">CPF ou CNPJ</label>
               <input id="cnpj" name="cnpj" type="text" required value={form.cnpj}
                 onChange={handleChange} className="j-input font-mono"
-                placeholder="00.000.000/0001-00" />
+                inputMode="numeric"
+                placeholder="CPF ou CNPJ da agência" />
             </div>
 
             <div>

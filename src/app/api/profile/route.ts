@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { normalizePhone } from '@/lib/phone'
+import { isValidCpfCnpj } from '@/lib/document'
 
 export async function GET() {
   try {
@@ -24,15 +25,27 @@ export async function PATCH(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
-    const { name, phone } = await request.json()
+    const { name, phone, cnpj } = await request.json()
     if (!name?.trim()) return NextResponse.json({ error: 'Nome é obrigatório.' }, { status: 400 })
+
+    // CPF/CNPJ é opcional na edição, mas se informado precisa ser válido.
+    const docDigits = (cnpj ?? '').replace(/\D/g, '')
+    if (docDigits && !isValidCpfCnpj(docDigits)) {
+      return NextResponse.json({ error: 'CPF ou CNPJ inválido. Confira os números digitados.' }, { status: 400 })
+    }
 
     // Normaliza para formato Z-API (sem o nono dígito)
     const phoneDigits = phone ? normalizePhone(phone) : null
 
+    const update: { name: string; phone: string | null; cnpj?: string } = {
+      name: name.trim(),
+      phone: phoneDigits || null,
+    }
+    if (docDigits) update.cnpj = docDigits
+
     const { error } = await supabase
       .from('agencies')
-      .update({ name: name.trim(), phone: phoneDigits || null })
+      .update(update)
       .eq('id', user.id)
 
     if (error) {

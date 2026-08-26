@@ -17,6 +17,7 @@ import {
   serviceClient,
 } from '@/lib/asaas'
 import { hasActiveAccess } from '@/lib/plans'
+import { isValidCpfCnpj } from '@/lib/document'
 import type { BillingCycle, PaymentMethod } from '@/types'
 
 export const maxDuration = 30
@@ -24,10 +25,9 @@ export const maxDuration = 30
 const CYCLES:  BillingCycle[]  = ['mensal', 'anual']
 const METHODS: PaymentMethod[] = ['card', 'pix', 'boleto']
 
-/** CNPJ válido = 14 dígitos e não é o placeholder de cadastro. */
+/** Documento válido = CPF ou CNPJ com dígitos verificadores corretos. */
 function hasValidCnpj(cnpj?: string | null): boolean {
-  const digits = (cnpj ?? '').replace(/\D/g, '')
-  return digits.length === 14 && !/^0+$/.test(digits)
+  return isValidCpfCnpj(cnpj)
 }
 
 export async function POST(request: NextRequest) {

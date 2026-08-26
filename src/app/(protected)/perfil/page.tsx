@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { Building2, Mail, Phone, Shield, Save, CheckCircle, AlertCircle, Loader2, Sparkles, XCircle } from 'lucide-react'
 import { getTrialInfo, PLAN_LABELS } from '@/lib/plans'
+import { formatCpfCnpj, isValidCpfCnpj } from '@/lib/document'
 import type { AgencyPlan } from '@/types'
 
 function formatPhone(value: string) {
@@ -160,6 +161,7 @@ function SubscriptionCard({ agency, onChange }: { agency: AgencyData; onChange: 
 export default function PerfilPage() {
   const [agency, setAgency]   = useState<AgencyData | null>(null)
   const [name,   setName]     = useState('')
+  const [doc,    setDoc]      = useState('')
   const [phone,  setPhone]    = useState('')
   const [loading, setLoading] = useState(true)
   const [saving,  setSaving]  = useState(false)
@@ -170,6 +172,7 @@ export default function PerfilPage() {
     const d = await fetch('/api/profile', { cache: 'no-store' }).then(r => r.json())
     setAgency(d.agency)
     setName(d.agency.name)
+    setDoc(d.agency.cnpj ? formatCpfCnpj(d.agency.cnpj) : '')
     setPhone(d.agency.phone ? formatPhone(d.agency.phone) : '')
   }, [])
 
@@ -181,12 +184,18 @@ export default function PerfilPage() {
     e.preventDefault()
     setError('')
     setSuccess(false)
+
+    if (!isValidCpfCnpj(doc)) {
+      setError('CPF ou CNPJ inválido. Confira os números digitados.')
+      return
+    }
+
     setSaving(true)
 
     const res  = await fetch('/api/profile', {
       method:  'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ name, phone }),
+      body:    JSON.stringify({ name, phone, cnpj: doc.replace(/\D/g, '') }),
     })
     const data = await res.json()
 
@@ -229,15 +238,6 @@ export default function PerfilPage() {
           <div className="flex items-center gap-3">
             <Building2 className="w-4 h-4 text-ink-40 flex-shrink-0" />
             <div>
-              <p className="j-caption">CNPJ</p>
-              <p className="j-body font-medium j-mono">
-                {agency?.cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Building2 className="w-4 h-4 text-ink-40 flex-shrink-0" />
-            <div>
               <p className="j-caption">Membro desde</p>
               <p className="j-body font-medium">
                 {agency?.created_at
@@ -263,6 +263,21 @@ export default function PerfilPage() {
               value={name} onChange={e => setName(e.target.value)}
               className="j-input"
               placeholder="Nome da agência"
+            />
+          </div>
+
+          <div>
+            <label className="j-label" htmlFor="doc">
+              <Building2 className="w-3.5 h-3.5 inline mr-1" />
+              CPF ou CNPJ
+            </label>
+            <input
+              id="doc" type="text"
+              value={doc}
+              onChange={e => setDoc(formatCpfCnpj(e.target.value))}
+              className="j-input j-mono"
+              inputMode="numeric"
+              placeholder="CPF ou CNPJ da agência"
             />
           </div>
 

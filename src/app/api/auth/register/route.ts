@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { normalizePhone, isValidBrazilianMobile } from '@/lib/phone'
+import { isValidCpfCnpj } from '@/lib/document'
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,6 +10,13 @@ export async function POST(request: NextRequest) {
 
     if (!name || !cnpj || !email || !phone || !password) {
       return NextResponse.json({ error: 'Todos os campos são obrigatórios.' }, { status: 400 })
+    }
+
+    if (!isValidCpfCnpj(cnpj)) {
+      return NextResponse.json(
+        { error: 'CPF ou CNPJ inválido. Confira os números digitados.' },
+        { status: 400 }
+      )
     }
 
     if (!isValidBrazilianMobile(phone)) {
