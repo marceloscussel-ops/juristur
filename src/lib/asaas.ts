@@ -111,6 +111,19 @@ export async function ensureCustomer(agency: AgencyForBilling): Promise<string> 
 
 const successUrl = () => `${appUrl()}/assinar/sucesso`
 
+/**
+ * Campo `callback` (auto-redirect pós-pagamento). O Asaas valida que o domínio do
+ * successUrl bata EXATAMENTE com o cadastrado nos dados comerciais da conta; um
+ * mismatch derruba a criação da cobrança com "É necessário enviar uma URL que use
+ * o mesmo domínio...". Como o redirect é só UX (o webhook é quem libera o acesso),
+ * mantemos desligado por padrão. Religue com ASAAS_SEND_CALLBACK=true depois de
+ * garantir que NEXT_PUBLIC_APP_URL == domínio cadastrado no Asaas.
+ */
+function callbackFields(): Record<string, unknown> {
+  if (env('ASAAS_SEND_CALLBACK') !== 'true') return {}
+  return { callback: { successUrl: successUrl(), autoRedirect: true } }
+}
+
 export interface CheckoutResult {
   invoiceUrl:      string
   subscriptionId?: string
@@ -132,7 +145,7 @@ export async function createMonthlySubscription(
       nextDueDate: dueDate(0),
       externalReference: agencyId,
       description: `TurisGuard — Plano ${plan.nome} (mensal)`,
-      callback: { successUrl: successUrl(), autoRedirect: true },
+      ...callbackFields(),
     }),
   })
 
@@ -160,7 +173,7 @@ export async function createAnnualCardPayment(
       dueDate: dueDate(0),
       externalReference: agencyId,
       description: `TurisGuard — Plano ${plan.nome} (anual, 12×)`,
-      callback: { successUrl: successUrl(), autoRedirect: true },
+      ...callbackFields(),
     }),
   })
   return { invoiceUrl: pay.invoiceUrl, paymentId: pay.id }
@@ -186,7 +199,7 @@ export async function createAnnualUpfrontPayment(
       dueDate: dueDate(method === 'boleto' ? 3 : 0),
       externalReference: agencyId,
       description: `TurisGuard — Plano ${plan.nome} (anual, à vista)`,
-      callback: { successUrl: successUrl(), autoRedirect: true },
+      ...callbackFields(),
     }),
   })
   return { invoiceUrl: pay.invoiceUrl, paymentId: pay.id }
