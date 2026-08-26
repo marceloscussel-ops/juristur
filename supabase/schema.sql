@@ -47,6 +47,13 @@ UPDATE agencies
   SET trial_ends_at = created_at + INTERVAL '30 days'
   WHERE trial_ends_at IS NULL;
 
+-- Cobrança Asaas (idempotente para bancos já existentes)
+ALTER TABLE agencies ADD COLUMN IF NOT EXISTS asaas_customer_id     TEXT;
+ALTER TABLE agencies ADD COLUMN IF NOT EXISTS asaas_subscription_id TEXT;  -- plano mensal (assinatura)
+ALTER TABLE agencies ADD COLUMN IF NOT EXISTS asaas_payment_id      TEXT;  -- plano anual (cobrança avulsa)
+ALTER TABLE agencies ADD COLUMN IF NOT EXISTS billing_cycle         TEXT;  -- 'mensal' | 'anual'
+ALTER TABLE agencies ADD COLUMN IF NOT EXISTS access_until          TIMESTAMPTZ; -- fim do acesso pago
+
 -- Casos
 CREATE TABLE IF NOT EXISTS cases (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -117,6 +124,27 @@ CREATE TABLE IF NOT EXISTS whatsapp_sessions (
 );
 
 -- ============================================================
+-- Eventos de cobrança Asaas (auditoria + idempotência do webhook)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS billing_events (
+  id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  agency_id             UUID REFERENCES agencies(id) ON DELETE SET NULL,
+  event                 TEXT NOT NULL,          -- PAYMENT_CONFIRMED, PAYMENT_RECEIVED, ...
+  asaas_payment_id      TEXT,
+  asaas_subscription_id TEXT,
+  billing_type          TEXT,
+  value                 NUMERIC,
+  status                TEXT,
+  raw                   JSONB NOT NULL,
+  created_at            TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+-- Dedupe: o Asaas reenvia eventos até receber 2xx. Um mesmo (evento + cobrança)
+-- só pode ser processado uma vez. COALESCE evita colisão quando payment_id é NULL.
+CREATE UNIQUE INDEX IF NOT EXISTS billing_events_dedupe_idx
+  ON billing_events(event, COALESCE(asaas_payment_id, ''));
+
+-- ============================================================
 -- Base de conhecimento RAG
 -- ============================================================
 CREATE TABLE IF NOT EXISTS rag_cases (
@@ -157,7 +185,9 @@ ALTER TABLE case_files         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE case_analyses      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE whatsapp_sessions  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE case_messages      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE billing_events     ENABLE ROW LEVEL SECURITY;
 -- rag_cases: sem RLS (leitura pública + escrita via service role)
+-- billing_events: sem policy — apenas o service role (webhook) lê/escreve
 
 -- Policies: agencies
 DROP POLICY IF EXISTS "agencies_own" ON agencies;

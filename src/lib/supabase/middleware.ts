@@ -1,5 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { getTrialInfo } from '@/lib/plans'
+import { isAdmin } from '@/lib/admin'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -50,6 +52,30 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)
+  }
+
+  // Bloqueio de acesso: agência com trial expirado e sem assinatura ativa só pode
+  // acessar /assinar e /perfil (para corrigir o CNPJ). APIs já são isPublicPath e
+  // passam livres — o weblayout logado é o alvo do bloqueio.
+  const billingExempt =
+    pathname === '/assinar' || pathname.startsWith('/assinar/') || pathname === '/perfil'
+
+  if (
+    user && !isLawyer && !isLawyerPath &&
+    !isAdmin(user.email) && !pathname.startsWith('/admin') &&
+    !isPublicPath && !billingExempt
+  ) {
+    const { data: agency } = await supabase
+      .from('agencies')
+      .select('subscription_status, trial_ends_at, created_at, access_until')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (agency && getTrialInfo(agency).isExpired) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/assinar'
+      return NextResponse.redirect(url)
+    }
   }
 
   return supabaseResponse

@@ -10,7 +10,7 @@ export default async function AssinarPage() {
 
   const { data: agency } = await supabase
     .from('agencies')
-    .select('plan, subscription_status, trial_ends_at, created_at')
+    .select('plan, subscription_status, trial_ends_at, created_at, access_until')
     .eq('id', user!.id)
     .single()
 

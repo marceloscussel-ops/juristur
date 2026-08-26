@@ -91,16 +91,32 @@ export interface TrialInfo {
   endsAt:     Date | null
 }
 
+/** Tipo mínimo de agência para as regras de acesso/cobrança. */
+export interface AgencyAccess {
+  subscription_status?: string | null
+  trial_ends_at?:       string | null
+  created_at?:          string | null
+  access_until?:        string | null
+}
+
+/**
+ * Acesso pago válido. Governado pelo `access_until`: enquanto ele estiver no
+ * futuro, a agência tem acesso — mesmo que a assinatura já tenha sido CANCELADA
+ * (cancelamento vale até o fim do ciclo já pago). Estorno/chargeback zeram o
+ * `access_until`, cortando na hora. Sem `access_until` (dados antigos), cai no
+ * status `active`. Fonte única da regra — usada pelo middleware e pela UI.
+ */
+export function hasActiveAccess(agency: AgencyAccess): boolean {
+  if (agency.access_until) return new Date(agency.access_until).getTime() > Date.now()
+  return agency.subscription_status === 'active'
+}
+
 /**
  * Calcula o estado do período gratuito de uma agência.
  * Robusto a trial_ends_at ausente (fallback: created_at + TRIAL_DAYS).
  */
-export function getTrialInfo(agency: {
-  subscription_status?: string | null
-  trial_ends_at?:       string | null
-  created_at?:          string | null
-}): TrialInfo {
-  const isActive = agency.subscription_status === 'active'
+export function getTrialInfo(agency: AgencyAccess): TrialInfo {
+  const isActive = hasActiveAccess(agency)
 
   const endsAt = agency.trial_ends_at
     ? new Date(agency.trial_ends_at)

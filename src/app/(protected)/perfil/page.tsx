@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { Building2, Mail, Phone, Shield, Save, CheckCircle, AlertCircle, Loader2, Sparkles } from 'lucide-react'
+import { Building2, Mail, Phone, Shield, Save, CheckCircle, AlertCircle, Loader2, Sparkles, XCircle } from 'lucide-react'
 import { getTrialInfo, PLAN_LABELS } from '@/lib/plans'
 import type { AgencyPlan } from '@/types'
 
@@ -23,24 +23,106 @@ interface AgencyData {
   subscription_status: string
   trial_ends_at:       string | null
   created_at:          string
+  billing_cycle?:      string | null
+  access_until?:       string | null
 }
 
-function SubscriptionCard({ agency }: { agency: AgencyData }) {
+function SubscriptionCard({ agency, onChange }: { agency: AgencyData; onChange: () => void }) {
   const trial = getTrialInfo(agency)
+  const [confirming, setConfirming] = useState(false)
+  const [canceling, setCanceling]   = useState(false)
+  const [cancelErr, setCancelErr]   = useState('')
+
+  async function handleCancel() {
+    setCancelErr('')
+    setCanceling(true)
+    const res  = await fetch('/api/billing/cancel', { method: 'POST' })
+    const data = await res.json().catch(() => ({}))
+    setCanceling(false)
+    if (!res.ok) {
+      setCancelErr(data.error || 'Não foi possível cancelar.')
+      return
+    }
+    setConfirming(false)
+    onChange()
+  }
 
   if (trial.isActive) {
+    const cicloTxt  = agency.billing_cycle === 'anual' ? 'anual' : agency.billing_cycle === 'mensal' ? 'mensal' : null
+    const canceled  = agency.subscription_status === 'canceled'
+    const isMonthly = agency.billing_cycle === 'mensal'
+    const ateTxt = agency.access_until
+      ? new Date(agency.access_until).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+      : null
+
     return (
       <div className="j-card mb-4">
         <p className="j-label mb-4">Assinatura</p>
         <div className="flex items-center gap-3">
-          <Shield className="w-4 h-4 text-teal flex-shrink-0" />
+          <Shield className={`w-4 h-4 flex-shrink-0 ${canceled ? 'text-amber' : 'text-teal'}`} />
           <div>
             <p className="j-caption">Plano atual</p>
             <p className="j-body font-medium">
-              {PLAN_LABELS[agency.plan as AgencyPlan] ?? agency.plan} · ativo
+              {PLAN_LABELS[agency.plan as AgencyPlan] ?? agency.plan}
+              {canceled ? ' · cancelada' : ' · ativo'}
+              {cicloTxt ? ` · ${cicloTxt}` : ''}
             </p>
+            {canceled && ateTxt && (
+              <p className="j-caption mt-0.5">Cancelada — acesso disponível até {ateTxt}.</p>
+            )}
+            {!canceled && ateTxt && (
+              <p className="j-caption mt-0.5">
+                {isMonthly ? `Renova automaticamente em ${ateTxt}` : `Acesso garantido até ${ateTxt}`}
+              </p>
+            )}
+            {!canceled && !isMonthly && agency.billing_cycle === 'anual' && (
+              <p className="j-caption mt-0.5">O plano anual não renova automaticamente.</p>
+            )}
           </div>
         </div>
+
+        {/* Cancelamento — só faz sentido para assinatura mensal ativa */}
+        {!canceled && isMonthly && (
+          <div className="mt-4 pt-4 border-t border-[rgba(13,13,26,0.07)]">
+            {confirming ? (
+              <div>
+                <p className="j-caption mb-3">
+                  Ao cancelar, a renovação para de acontecer, mas você continua com acesso
+                  até {ateTxt ?? 'o fim do período pago'}. Deseja cancelar?
+                </p>
+                {cancelErr && (
+                  <div className="j-alert j-alert-danger mb-3">
+                    <AlertCircle className="w-4 h-4 shrink-0" /> {cancelErr}
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <button
+                    type="button" onClick={handleCancel} disabled={canceling}
+                    className="btn btn-danger"
+                  >
+                    {canceling
+                      ? <><Loader2 className="w-4 h-4 animate-spin" /> Cancelando…</>
+                      : <><XCircle className="w-4 h-4" /> Confirmar cancelamento</>}
+                  </button>
+                  <button
+                    type="button" onClick={() => setConfirming(false)} disabled={canceling}
+                    className="btn btn-outline"
+                  >
+                    Manter assinatura
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirming(true)}
+                className="text-[13px] text-ink-40 hover:text-coral underline"
+              >
+                Cancelar assinatura
+              </button>
+            )}
+          </div>
+        )}
       </div>
     )
   }
@@ -84,16 +166,16 @@ export default function PerfilPage() {
   const [success, setSuccess] = useState(false)
   const [error,   setError]   = useState('')
 
-  useEffect(() => {
-    fetch('/api/profile')
-      .then(r => r.json())
-      .then(d => {
-        setAgency(d.agency)
-        setName(d.agency.name)
-        setPhone(d.agency.phone ? formatPhone(d.agency.phone) : '')
-      })
-      .finally(() => setLoading(false))
+  const loadAgency = useCallback(async () => {
+    const d = await fetch('/api/profile', { cache: 'no-store' }).then(r => r.json())
+    setAgency(d.agency)
+    setName(d.agency.name)
+    setPhone(d.agency.phone ? formatPhone(d.agency.phone) : '')
   }, [])
+
+  useEffect(() => {
+    loadAgency().finally(() => setLoading(false))
+  }, [loadAgency])
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -168,7 +250,7 @@ export default function PerfilPage() {
       </div>
 
       {/* Assinatura / período gratuito */}
-      {agency && <SubscriptionCard agency={agency} />}
+      {agency && <SubscriptionCard agency={agency} onChange={loadAgency} />}
 
       {/* Formulário editável */}
       <div className="j-card">

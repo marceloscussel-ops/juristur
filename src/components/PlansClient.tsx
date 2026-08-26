@@ -1,8 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, X, MessageCircle, Sparkles } from 'lucide-react'
+import { Check, X, Sparkles, CreditCard, QrCode, FileText, Loader2, AlertCircle } from 'lucide-react'
+import Link from 'next/link'
 import { PLANS, type PlanDef } from '@/lib/plans'
+import type { PaymentMethod } from '@/types'
 
 type Billing = 'mensal' | 'anual'
 
@@ -108,14 +110,67 @@ function Toggle({ active, onClick, children }: { active: boolean; onClick: () =>
   )
 }
 
+interface MethodOption {
+  id:    PaymentMethod
+  label: string
+  desc:  string
+  icon:  React.ReactNode
+}
+
 function SubscribeModal({
   plan, billing, whatsapp, onClose,
 }: { plan: PlanDef; billing: Billing; whatsapp: string; onClose: () => void }) {
-  const preco = billing === 'anual' ? plan.anual : plan.mensal
-  const msg = encodeURIComponent(
-    `Olá! Quero assinar o plano ${plan.nome} do TurisGuard (R$ ${preco}/mês, cobrança ${billing}).`
-  )
-  const waLink = `https://wa.me/${whatsapp}?text=${msg}`
+  const [method, setMethod]   = useState<PaymentMethod>('card')
+  const [loading, setLoading] = useState(false)
+  const [error, setError]     = useState<React.ReactNode>('')
+
+  const anualTotal = plan.anual * 12 // R$ 948
+
+  const options: MethodOption[] = billing === 'anual'
+    ? [
+        { id: 'card',   label: 'Cartão de crédito', desc: `12× de R$ ${plan.anual} (total R$ ${anualTotal})`, icon: <CreditCard className="w-5 h-5" /> },
+        { id: 'pix',    label: 'PIX',               desc: `R$ ${anualTotal} à vista`,                          icon: <QrCode className="w-5 h-5" /> },
+        { id: 'boleto', label: 'Boleto',            desc: `R$ ${anualTotal} à vista`,                          icon: <FileText className="w-5 h-5" /> },
+      ]
+    : [
+        { id: 'card',   label: 'Cartão de crédito', desc: `R$ ${plan.mensal}/mês · renova automático`, icon: <CreditCard className="w-5 h-5" /> },
+        { id: 'pix',    label: 'PIX',               desc: `R$ ${plan.mensal}/mês`,                      icon: <QrCode className="w-5 h-5" /> },
+        { id: 'boleto', label: 'Boleto',            desc: `R$ ${plan.mensal}/mês`,                      icon: <FileText className="w-5 h-5" /> },
+      ]
+
+  async function handleContinue() {
+    setError('')
+    setLoading(true)
+    try {
+      const res  = await fetch('/api/billing/checkout', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ cycle: billing, method }),
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        if (data.code === 'invalid_cnpj') {
+          setError(
+            <>
+              Complete o CNPJ da sua agência no{' '}
+              <Link href="/perfil" className="underline font-medium">perfil</Link> antes de assinar.
+            </>
+          )
+        } else {
+          setError(data.error || 'Não foi possível iniciar o pagamento.')
+        }
+        setLoading(false)
+        return
+      }
+
+      // Redireciona para a fatura hospedada do Asaas.
+      window.location.href = data.invoiceUrl
+    } catch {
+      setError('Erro de conexão. Tente novamente.')
+      setLoading(false)
+    }
+  }
 
   return (
     <div
@@ -123,7 +178,7 @@ function SubscribeModal({
       onClick={onClose}
     >
       <div
-        className="j-card max-w-[400px] w-full relative animate-fade-up"
+        className="j-card max-w-[420px] w-full relative animate-fade-up"
         onClick={e => e.stopPropagation()}
       >
         <button
@@ -139,25 +194,75 @@ function SubscribeModal({
           <Sparkles className="w-6 h-6 text-indigo" />
         </div>
 
-        <h3 className="j-h2">Pagamento chegando em breve</h3>
-        <p className="j-body text-ink-80 mt-2">
-          Estamos finalizando a ativação de pagamentos online. Para garantir o plano{' '}
-          <strong>{plan.nome}</strong> (R$ {preco}/mês) agora, fale com a gente no WhatsApp — ativamos
-          sua conta manualmente sem custo adicional.
+        <h3 className="j-h2">Assinar {plan.nome}</h3>
+        <p className="j-caption mt-1">
+          {billing === 'anual'
+            ? 'Plano anual — escolha como quer pagar.'
+            : 'Plano mensal — escolha a forma de pagamento.'}
         </p>
 
-        <a
-          href={waLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn btn-primary w-full no-underline mt-5"
+        <div className="mt-5 space-y-2.5">
+          {options.map(opt => {
+            const active = method === opt.id
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setMethod(opt.id)}
+                className={`w-full flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${
+                  active
+                    ? 'border-indigo bg-indigo-50 text-ink'
+                    : 'border-[rgba(13,13,26,0.1)] hover:border-indigo/50'
+                }`}
+              >
+                <span className={active ? 'text-indigo' : 'text-ink-40'}>{opt.icon}</span>
+                <span className="flex-1">
+                  <span className="block j-body font-medium">{opt.label}</span>
+                  <span className="block j-caption">{opt.desc}</span>
+                </span>
+                <span
+                  className={`w-4 h-4 rounded-full border-2 shrink-0 ${
+                    active ? 'border-indigo bg-indigo' : 'border-ink-40'
+                  }`}
+                />
+              </button>
+            )
+          })}
+        </div>
+
+        {error && (
+          <div className="j-alert j-alert-danger mt-4">
+            <AlertCircle className="w-4 h-4 shrink-0" /> <span>{error}</span>
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={handleContinue}
+          disabled={loading}
+          className="btn btn-primary w-full mt-5"
         >
-          <MessageCircle className="w-4 h-4" />
-          Falar no WhatsApp
-        </a>
-        <button type="button" onClick={onClose} className="btn btn-outline w-full mt-2">
-          Agora não
+          {loading
+            ? <><Loader2 className="w-4 h-4 animate-spin" /> Iniciando…</>
+            : 'Continuar para pagamento'}
         </button>
+
+        <p className="j-caption text-center mt-3">
+          Pagamento processado com segurança pelo Asaas.
+          {whatsapp && (
+            <>
+              {' '}Dúvidas?{' '}
+              <a
+                href={`https://wa.me/${whatsapp}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                Fale no WhatsApp
+              </a>.
+            </>
+          )}
+        </p>
       </div>
     </div>
   )

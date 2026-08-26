@@ -6,7 +6,7 @@ import TrialBanner from '@/components/TrialBanner'
 import { getTrialInfo, TRIAL_DAYS } from '@/lib/plans'
 import { env } from '@/lib/env'
 
-const AGENCY_COLS = 'subscription_status, trial_ends_at, created_at'
+const AGENCY_COLS = 'subscription_status, trial_ends_at, created_at, access_until'
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()

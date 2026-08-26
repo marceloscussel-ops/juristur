@@ -2,6 +2,8 @@ export type CaseStatus = 'em_analise' | 'concluido' | 'arquivado'
 export type CaseOrigin = 'web' | 'whatsapp'
 export type AgencyPlan = 'free' | 'essencial' | 'profissional' | 'enterprise'
 export type SubscriptionStatus = 'trial' | 'active' | 'expired' | 'canceled'
+export type BillingCycle = 'mensal' | 'anual'
+export type PaymentMethod = 'card' | 'pix' | 'boleto'
 
 /**
  * Máximo de perguntas de acompanhamento (follow-up) permitidas por caso.
@@ -42,6 +44,11 @@ export interface Agency {
   subscription_status: SubscriptionStatus
   trial_ends_at:       string | null
   created_at:          string
+  asaas_customer_id?:     string | null
+  asaas_subscription_id?: string | null
+  asaas_payment_id?:      string | null
+  billing_cycle?:         BillingCycle | null
+  access_until?:          string | null
 }
 
 export interface CaseMessage {
