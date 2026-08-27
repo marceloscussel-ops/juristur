@@ -6,7 +6,7 @@ import type { TrialInfo } from '@/lib/plans'
  * Barra de status do período gratuito, exibida no topo da área logada.
  * - Assinante ativo  → não renderiza nada
  * - Trial saudável   → faixa discreta (indigo)
- * - Trial acabando   → faixa de atenção (âmbar, ≤ 7 dias)
+ * - Trial acabando   → faixa de atenção (âmbar, ≤ 3 dias)
  * - Trial expirado   → faixa de alerta (coral) com CTA forte
  */
 export default function TrialBanner({ trial }: { trial: TrialInfo }) {
@@ -29,7 +29,7 @@ export default function TrialBanner({ trial }: { trial: TrialInfo }) {
     )
   }
 
-  if (trial.daysLeft <= 7) {
+  if (trial.daysLeft <= 3) {
     return (
       <Bar tone="amber">
         <span className="flex items-center gap-2 min-w-0">
