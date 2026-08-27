@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Check, X, Sparkles, CreditCard, QrCode, FileText, Loader2, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import { PLANS, type PlanDef } from '@/lib/plans'
@@ -123,6 +123,16 @@ function SubscribeModal({
   const [method, setMethod]   = useState<PaymentMethod>('card')
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState<React.ReactNode>('')
+
+  // Ao voltar do Asaas pelo botão do navegador, a página é restaurada do bfcache
+  // com o estado congelado (botão preso em "Iniciando…"). Reseta nesse caso.
+  useEffect(() => {
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) { setLoading(false); setError('') }
+    }
+    window.addEventListener('pageshow', onPageShow)
+    return () => window.removeEventListener('pageshow', onPageShow)
+  }, [])
 
   const anualTotal = plan.anual * 12 // R$ 948
 
