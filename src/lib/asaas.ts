@@ -112,16 +112,31 @@ export async function ensureCustomer(agency: AgencyForBilling): Promise<string> 
 const successUrl = () => `${appUrl()}/assinar/sucesso`
 
 /**
- * Campo `callback` (auto-redirect pós-pagamento). O Asaas valida que o domínio do
- * successUrl bata EXATAMENTE com o cadastrado nos dados comerciais da conta; um
- * mismatch derruba a criação da cobrança com "É necessário enviar uma URL que use
- * o mesmo domínio...". Como o redirect é só UX (o webhook é quem libera o acesso),
- * mantemos desligado por padrão. Religue com ASAAS_SEND_CALLBACK=true depois de
- * garantir que NEXT_PUBLIC_APP_URL == domínio cadastrado no Asaas.
+ * Cria uma cobrança/assinatura, opcionalmente com o `callback` de auto-redirect
+ * pós-pagamento (successUrl).
+ *
+ * O Asaas valida que o domínio do successUrl bata EXATAMENTE com o cadastrado nos
+ * dados comerciais da conta; um mismatch derruba a criação da cobrança com "É
+ * necessário enviar uma URL que use o mesmo domínio...". Como o redirect é só UX
+ * (o webhook é quem libera o acesso), ele:
+ *   - só é enviado com ASAAS_SEND_CALLBACK=true;
+ *   - se o Asaas recusar por domínio, refazemos SEM o callback — assim o redirect
+ *     nunca bloqueia o checkout.
  */
-function callbackFields(): Record<string, unknown> {
-  if (env('ASAAS_SEND_CALLBACK') !== 'true') return {}
-  return { callback: { successUrl: successUrl(), autoRedirect: true } }
+async function createBilling<T>(path: string, body: Record<string, unknown>): Promise<T> {
+  const post = (b: Record<string, unknown>) =>
+    asaasFetch<T>(path, { method: 'POST', body: JSON.stringify(b) })
+
+  if (env('ASAAS_SEND_CALLBACK') !== 'true') return post(body)
+
+  const withCallback = { ...body, callback: { successUrl: successUrl(), autoRedirect: true } }
+  try {
+    return await post(withCallback)
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : ''
+    if (/dom[ií]nio|url/i.test(msg)) return post(body) // domínio não bate: segue sem redirect
+    throw err
+  }
 }
 
 export interface CheckoutResult {
@@ -135,18 +150,14 @@ export async function createMonthlySubscription(
   customerId: string, agencyId: string, method: PaymentMethod,
 ): Promise<CheckoutResult> {
   const plan = essentialPlan()
-  const sub = await asaasFetch<{ id: string }>('/subscriptions', {
-    method: 'POST',
-    body: JSON.stringify({
-      customer: customerId,
-      billingType: toBillingType(method),
-      value: plan.mensal,
-      cycle: 'MONTHLY',
-      nextDueDate: dueDate(0),
-      externalReference: agencyId,
-      description: `TurisGuard — Plano ${plan.nome} (mensal)`,
-      ...callbackFields(),
-    }),
+  const sub = await createBilling<{ id: string }>('/subscriptions', {
+    customer: customerId,
+    billingType: toBillingType(method),
+    value: plan.mensal,
+    cycle: 'MONTHLY',
+    nextDueDate: dueDate(0),
+    externalReference: agencyId,
+    description: `TurisGuard — Plano ${plan.nome} (mensal)`,
   })
 
   const payments = await asaasFetch<{ data: { invoiceUrl: string }[] }>(
@@ -163,18 +174,14 @@ export async function createAnnualCardPayment(
   customerId: string, agencyId: string,
 ): Promise<CheckoutResult> {
   const plan = essentialPlan()
-  const pay = await asaasFetch<{ id: string; invoiceUrl: string }>('/payments', {
-    method: 'POST',
-    body: JSON.stringify({
-      customer: customerId,
-      billingType: 'CREDIT_CARD',
-      installmentCount: 12,
-      installmentValue: plan.anual,           // 12 × R$ 79
-      dueDate: dueDate(0),
-      externalReference: agencyId,
-      description: `TurisGuard — Plano ${plan.nome} (anual, 12×)`,
-      ...callbackFields(),
-    }),
+  const pay = await createBilling<{ id: string; invoiceUrl: string }>('/payments', {
+    customer: customerId,
+    billingType: 'CREDIT_CARD',
+    installmentCount: 12,
+    installmentValue: plan.anual,           // 12 × R$ 79
+    dueDate: dueDate(0),
+    externalReference: agencyId,
+    description: `TurisGuard — Plano ${plan.nome} (anual, 12×)`,
   })
   return { invoiceUrl: pay.invoiceUrl, paymentId: pay.id }
 }
@@ -190,17 +197,13 @@ export async function createAnnualUpfrontPayment(
 ): Promise<CheckoutResult> {
   const plan = essentialPlan()
   const total = plan.anual * 12                // R$ 948 à vista
-  const pay = await asaasFetch<{ id: string; invoiceUrl: string }>('/payments', {
-    method: 'POST',
-    body: JSON.stringify({
-      customer: customerId,
-      billingType: toBillingType(method),
-      value: total,
-      dueDate: dueDate(method === 'boleto' ? 3 : 0),
-      externalReference: agencyId,
-      description: `TurisGuard — Plano ${plan.nome} (anual, à vista)`,
-      ...callbackFields(),
-    }),
+  const pay = await createBilling<{ id: string; invoiceUrl: string }>('/payments', {
+    customer: customerId,
+    billingType: toBillingType(method),
+    value: total,
+    dueDate: dueDate(method === 'boleto' ? 3 : 0),
+    externalReference: agencyId,
+    description: `TurisGuard — Plano ${plan.nome} (anual, à vista)`,
   })
   return { invoiceUrl: pay.invoiceUrl, paymentId: pay.id }
 }
