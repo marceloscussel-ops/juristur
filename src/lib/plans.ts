@@ -1,14 +1,17 @@
 /**
  * plans.ts — Fonte única de verdade para planos e período gratuito.
  *
- * PILOTO: todos ganham 30 dias grátis. Após o piloto, alterar TRIAL_DAYS para 7
- * (e também o INTERVAL do trigger handle_new_user em supabase/schema.sql).
+ * Novos cadastros ganham 7 dias grátis. Agências que já se cadastraram no
+ * piloto (30 dias) mantêm o prazo original, pois `trial_ends_at` foi gravado
+ * na criação e tem prioridade sobre este valor em getTrialInfo().
+ * Este número precisa espelhar o INTERVAL do trigger handle_new_user em
+ * supabase/schema.sql.
  */
 
 import type { AgencyPlan } from '@/types'
 
-/** Dias de acesso gratuito concedidos no cadastro. Piloto = 30. */
-export const TRIAL_DAYS = 30
+/** Dias de acesso gratuito concedidos a novos cadastros. */
+export const TRIAL_DAYS = 7
 
 /** Escaladas para advogado incluídas sem custo durante o período gratuito. */
 export const TRIAL_ESCALATIONS = 2

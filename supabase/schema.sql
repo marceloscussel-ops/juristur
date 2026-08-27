@@ -282,7 +282,8 @@ LANGUAGE plpgsql
 SECURITY DEFINER SET search_path = public
 AS $$
 BEGIN
-  -- Piloto: 30 dias de acesso gratuito. Após o piloto, alterar para 7 dias.
+  -- Novos cadastros: 7 dias de acesso gratuito. Agências do piloto (30 dias)
+  -- mantêm o trial_ends_at já gravado na criação.
   INSERT INTO public.agencies (id, name, cnpj, email, phone, subscription_status, trial_ends_at)
   VALUES (
     NEW.id,
@@ -291,7 +292,7 @@ BEGIN
     NEW.email,
     NEW.raw_user_meta_data->>'phone',
     'trial',
-    now() + INTERVAL '30 days'
+    now() + INTERVAL '7 days'
   )
   ON CONFLICT DO NOTHING;
   RETURN NEW;
