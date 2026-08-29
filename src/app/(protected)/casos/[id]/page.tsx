@@ -8,6 +8,7 @@ import CaseRefresh from '@/components/CaseRefresh'
 import CaseFollowUp from '@/components/CaseFollowUp'
 import CaseEscalate from '@/components/CaseEscalate'
 import { getTrialInfo, getEscalationInfo } from '@/lib/plans'
+import { formatDateTimeLong } from '@/lib/datetime'
 import { Case } from '@/types'
 import { ArrowLeft, Paperclip, Clock } from 'lucide-react'
 
@@ -53,7 +54,7 @@ export default async function CasoPage({ params }: { params: Promise<{ id: strin
   const alreadyEscalated = !!caseData.escalated_at
 
   return (
-    <div className="max-w-3xl mx-auto animate-fade-in">
+    <div className={`max-w-3xl mx-auto animate-fade-in ${analysis ? 'pb-40 print:pb-0' : ''}`}>
       <div className="flex items-center justify-between mb-6 print:hidden">
         <Link href="/dashboard" className="inline-flex items-center gap-1.5 j-caption text-indigo hover:text-ink transition-colors no-underline">
           <ArrowLeft className="w-3.5 h-3.5" />
@@ -74,9 +75,7 @@ export default async function CasoPage({ params }: { params: Promise<{ id: strin
 
         <p className="j-caption flex items-center gap-1.5 mb-4">
           <Clock className="w-3.5 h-3.5" />
-          Aberto em {new Date(caseData.created_at).toLocaleDateString('pt-BR', {
-            day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
-          })}
+          Aberto em {formatDateTimeLong(caseData.created_at)}
         </p>
 
         <div className="j-divider" />
@@ -114,16 +113,20 @@ export default async function CasoPage({ params }: { params: Promise<{ id: strin
               severity={analysis.severity}
               generatedAt={analysis.created_at}
             />
-            <CaseEscalate
-              caseId={caseData.id}
-              whatsappUrl={whatsappUrl}
-              alreadyEscalated={alreadyEscalated}
-              info={escalationInfo}
-              severity={analysis.severity}
-              variant="primary"
-            />
           </div>
+
+          {/* Perguntas de acompanhamento logo abaixo da análise —
+              antes o campo ficava no fim da página e passava despercebido. */}
           <CaseFollowUp caseId={caseData.id} />
+
+          <CaseEscalate
+            caseId={caseData.id}
+            whatsappUrl={whatsappUrl}
+            alreadyEscalated={alreadyEscalated}
+            info={escalationInfo}
+            severity={analysis.severity}
+            variant="primary"
+          />
         </>
       ) : (
         <div className="j-card mt-4 text-center py-10">

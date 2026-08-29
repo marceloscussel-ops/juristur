@@ -4,6 +4,7 @@ import StatusBadge from '@/components/StatusBadge'
 import SeverityBadge from '@/components/SeverityBadge'
 import DashboardFilters from '@/components/DashboardFilters'
 import { Case, CASE_CATEGORIES } from '@/types'
+import { formatDate } from '@/lib/datetime'
 import { ChevronRight, FolderOpen, PlusCircle } from 'lucide-react'
 
 /** Severidade a exibir: só de análise aprovada (a agência não vê pendências). */
@@ -114,7 +115,7 @@ export default async function DashboardPage({ searchParams }: Props) {
                   </td>
                   <td className="text-ink-40 hidden md:table-cell">{c.category}</td>
                   <td className="text-ink-40 whitespace-nowrap hidden sm:table-cell">
-                    {new Date(c.created_at).toLocaleDateString('pt-BR')}
+                    {formatDate(c.created_at)}
                   </td>
                   <td>
                     {sev

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Building2, Mail, Phone, Shield, Save, CheckCircle, AlertCircle, Loader2, Sparkles, XCircle } from 'lucide-react'
 import { getTrialInfo, PLAN_LABELS } from '@/lib/plans'
 import { formatCpfCnpj, isValidCpfCnpj } from '@/lib/document'
+import { formatDateLong } from '@/lib/datetime'
 import type { AgencyPlan } from '@/types'
 
 function formatPhone(value: string) {
@@ -53,7 +54,7 @@ function SubscriptionCard({ agency, onChange }: { agency: AgencyData; onChange: 
     const canceled  = agency.subscription_status === 'canceled'
     const isMonthly = agency.billing_cycle === 'mensal'
     const ateTxt = agency.access_until
-      ? new Date(agency.access_until).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+      ? formatDateLong(agency.access_until)
       : null
 
     return (
@@ -129,7 +130,7 @@ function SubscriptionCard({ agency, onChange }: { agency: AgencyData; onChange: 
   }
 
   const endsAtTxt = trial.endsAt
-    ? trial.endsAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+    ? formatDateLong(trial.endsAt)
     : '—'
   const diasTxt = trial.daysLeft === 1 ? '1 dia' : `${trial.daysLeft} dias`
 
@@ -241,7 +242,7 @@ export default function PerfilPage() {
               <p className="j-caption">Membro desde</p>
               <p className="j-body font-medium">
                 {agency?.created_at
-                  ? new Date(agency.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+                  ? formatDateLong(agency.created_at)
                   : '—'}
               </p>
             </div>

@@ -6,6 +6,7 @@ import MarkdownRenderer from '@/components/MarkdownRenderer'
 import SeverityBadge from '@/components/SeverityBadge'
 import ReviewActions from '@/components/lawyer/ReviewActions'
 import { env } from '@/lib/env'
+import { formatDateTimeLong, formatDayMonthTime } from '@/lib/datetime'
 
 function getServiceClient() {
   return createServiceClient(env('NEXT_PUBLIC_SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'))
@@ -60,9 +61,7 @@ export default async function LawyerCasoPage({ params }: { params: Promise<{ id:
         </div>
         <p className="j-caption flex items-center gap-1.5 mb-4">
           <Clock className="w-3.5 h-3.5" />
-          Aberto em {new Date(caseData.created_at).toLocaleDateString('pt-BR', {
-            day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
-          })}
+          Aberto em {formatDateTimeLong(caseData.created_at)}
         </p>
         <div className="j-divider" />
         <div>
@@ -94,9 +93,7 @@ export default async function LawyerCasoPage({ params }: { params: Promise<{ id:
 
         <MarkdownRenderer content={analysis.ai_response} />
         <p className="j-caption mt-6 pt-4 border-t border-[rgba(13,13,26,0.07)]">
-          Gerada em {new Date(analysis.created_at).toLocaleDateString('pt-BR', {
-            day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
-          })}
+          Gerada em {formatDateTimeLong(analysis.created_at)}
         </p>
       </div>
 
@@ -129,9 +126,7 @@ export default async function LawyerCasoPage({ params }: { params: Promise<{ id:
                     {msg.content}
                   </p>
                   <p className={`text-xs mt-1.5 ${msg.role === 'user' ? 'text-white/60' : 'text-ink-40'}`}>
-                    {new Date(msg.created_at).toLocaleDateString('pt-BR', {
-                      day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
-                    })}
+                    {formatDayMonthTime(msg.created_at)}
                   </p>
                 </div>
               </div>

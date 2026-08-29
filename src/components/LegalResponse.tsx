@@ -3,6 +3,7 @@ import ComplexityBadge, { type Complexity } from './ComplexityBadge'
 import SeverityBadge from './SeverityBadge'
 import EscalateButton from './EscalateButton'
 import MarkdownRenderer from './MarkdownRenderer'
+import { formatDateTimeLong } from '@/lib/datetime'
 import type { Severity } from '@/types'
 
 interface Props {
@@ -75,9 +76,7 @@ export default function LegalResponse({ content, complexity, severity, generated
 
         {generatedAt && (
           <p style={{ fontFamily: 'Inter,sans-serif', fontSize: 12, color: '#6E7E98', marginTop: 12, marginBottom: 0 }}>
-            Gerada em {new Date(generatedAt).toLocaleDateString('pt-BR', {
-              day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
-            })}
+            Gerada em {formatDateTimeLong(generatedAt)}
           </p>
         )}
 

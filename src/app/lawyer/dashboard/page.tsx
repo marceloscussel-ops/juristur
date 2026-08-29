@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { CheckCircle, FolderOpen, AlertCircle } from 'lucide-react'
 import { env } from '@/lib/env'
 import DashboardRefresh from '@/components/lawyer/DashboardRefresh'
+import { formatDate } from '@/lib/datetime'
 
 function getServiceClient() {
   return createServiceClient(env('NEXT_PUBLIC_SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'))
@@ -175,7 +176,7 @@ export default async function LawyerDashboardPage({ searchParams }: Props) {
                     <td className="text-ink-40">{agencyMap[c.agency_id] ?? '—'}</td>
                     <td className="text-ink-40">{c.category}</td>
                     <td className="text-ink-40 whitespace-nowrap">
-                      {new Date(a.created_at).toLocaleDateString('pt-BR')}
+                      {formatDate(a.created_at)}
                     </td>
                     <td>
                       <span className={`badge ${statusInfo.className}`}>{statusInfo.label}</span>
