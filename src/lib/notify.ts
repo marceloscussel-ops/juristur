@@ -92,6 +92,7 @@ export async function notifyLawyerNewCase(
   agencyName: string,
   category: string,
   analysisText: string,
+  isComplement = false,
 ) {
   const shortCode = caseId.slice(0, 6).toUpperCase()
   const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://juristur.vercel.app'
@@ -100,8 +101,15 @@ export async function notifyLawyerNewCase(
     ? analysisText.slice(0, 1500) + '\n[... continua na plataforma]'
     : analysisText
 
+  const header = isComplement
+    ? `🧩 *Complemento em caso pré-aprovado — TurisGuard*`
+    : `📋 *Novo caso para revisão — TurisGuard*`
+
   const message = [
-    `📋 *Novo caso para revisão — TurisGuard*`,
+    header,
+    ...(isComplement
+      ? [``, `⚠️ A agência acrescentou um complemento a um caso já aprovado. A IA regerou a análise abaixo — revise antes de reentregar.`]
+      : []),
     ``,
     `🏢 Agência: ${agencyName}`,
     `📁 Categoria: ${category}`,

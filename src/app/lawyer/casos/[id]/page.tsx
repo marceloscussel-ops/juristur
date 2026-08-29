@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import Link from 'next/link'
-import { ArrowLeft, Clock, RefreshCw, MessageSquare } from 'lucide-react'
+import { ArrowLeft, Clock, RefreshCw, MessageSquare, Layers } from 'lucide-react'
 import MarkdownRenderer from '@/components/MarkdownRenderer'
 import SeverityBadge from '@/components/SeverityBadge'
 import ReviewActions from '@/components/lawyer/ReviewActions'
@@ -36,6 +36,7 @@ export default async function LawyerCasoPage({ params }: { params: Promise<{ id:
   const agency  = caseData.agencies as { name: string } | null
   const isPending = analysis.review_status === 'pending'
   const isRevision = analysis.review_status === 'revision_requested'
+  const isComplement = analysis.from_complement === true
 
   return (
     <div className="max-w-3xl mx-auto animate-fade-in">
@@ -46,6 +47,18 @@ export default async function LawyerCasoPage({ params }: { params: Promise<{ id:
         </Link>
         <span className="j-caption text-ink-40">Código: {id.slice(0, 6).toUpperCase()}</span>
       </div>
+
+      {/* Aviso: complemento de caso pré-aprovado */}
+      {isComplement && (
+        <div className="mb-4 rounded-xl border border-indigo/30 bg-indigo-50/50 p-4 flex items-start gap-2.5">
+          <Layers className="w-4 h-4 text-indigo shrink-0 mt-0.5" />
+          <p className="text-[13px] text-ink-80">
+            <strong className="text-indigo">Complemento de caso pré-aprovado.</strong>{' '}
+            A agência acrescentou uma ressalva a um caso que já havia sido aprovado. A IA regerou a
+            análise abaixo considerando o relato original + o complemento — reveja antes de reentregar.
+          </p>
+        </div>
+      )}
 
       {/* Dados do caso */}
       <div className="j-card mb-4">
@@ -65,9 +78,25 @@ export default async function LawyerCasoPage({ params }: { params: Promise<{ id:
         </p>
         <div className="j-divider" />
         <div>
-          <p className="j-label mb-2">Descrição do caso</p>
+          <p className="j-label mb-2">
+            {caseData.complement ? 'Relato original' : 'Descrição do caso'}
+          </p>
           <p className="j-body whitespace-pre-wrap bg-surface rounded-md p-4">{caseData.description}</p>
         </div>
+
+        {caseData.complement && (
+          <div className="mt-4">
+            <p className="j-label mb-2 flex items-center gap-1.5">
+              <span className="badge badge-muted">Complemento da agência</span>
+              {caseData.complemented_at && (
+                <span className="j-caption font-normal">em {formatDateTimeLong(caseData.complemented_at)}</span>
+              )}
+            </p>
+            <p className="j-body whitespace-pre-wrap bg-indigo-50/60 border border-indigo/20 rounded-md p-4">
+              {caseData.complement}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Análise da IA */}
@@ -75,6 +104,11 @@ export default async function LawyerCasoPage({ params }: { params: Promise<{ id:
         <div className="flex items-center justify-between mb-3 gap-2">
           <div className="flex items-center gap-2.5">
             <p className="j-overline">Análise da IA</p>
+            {isComplement && (
+              <span className="badge badge-indigo flex items-center gap-1">
+                <Layers className="w-3 h-3" /> Complemento
+              </span>
+            )}
             {analysis.severity && <SeverityBadge severity={analysis.severity} compact />}
           </div>
           {isRevision && (

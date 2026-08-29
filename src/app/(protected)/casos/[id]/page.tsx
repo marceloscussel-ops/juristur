@@ -6,6 +6,7 @@ import PrintButton from '@/components/PrintButton'
 import LegalResponse from '@/components/LegalResponse'
 import CaseRefresh from '@/components/CaseRefresh'
 import CaseFollowUp from '@/components/CaseFollowUp'
+import CaseComplement from '@/components/CaseComplement'
 import CaseEscalate from '@/components/CaseEscalate'
 import { getTrialInfo, getEscalationInfo } from '@/lib/plans'
 import { formatDateTimeLong } from '@/lib/datetime'
@@ -81,9 +82,26 @@ export default async function CasoPage({ params }: { params: Promise<{ id: strin
         <div className="j-divider" />
 
         <div>
-          <p className="j-label mb-2">Descrição do caso</p>
+          <p className="j-label mb-2">
+            {caseData.complement ? 'Relato original' : 'Descrição do caso'}
+          </p>
           <p className="j-body whitespace-pre-wrap bg-surface rounded-md p-4">{caseData.description}</p>
         </div>
+
+        {/* Complemento (ressalva) — o relato original acima é preservado */}
+        {caseData.complement && (
+          <div className="mt-4">
+            <p className="j-label mb-2 flex items-center gap-1.5">
+              <span className="badge badge-muted">Complemento</span>
+              {caseData.complemented_at && (
+                <span className="j-caption font-normal">adicionado em {formatDateTimeLong(caseData.complemented_at)}</span>
+              )}
+            </p>
+            <p className="j-body whitespace-pre-wrap bg-indigo-50/60 border border-indigo/20 rounded-md p-4">
+              {caseData.complement}
+            </p>
+          </div>
+        )}
 
         {files.length > 0 && (
           <div className="mt-4">
@@ -101,6 +119,11 @@ export default async function CasoPage({ params }: { params: Promise<{ id: strin
               ))}
             </ul>
           </div>
+        )}
+
+        {/* Complementar: disponível só após aprovação e enquanto não houver complemento */}
+        {analysis && !caseData.complement && (
+          <CaseComplement caseId={caseData.id} />
         )}
       </div>
 
@@ -131,8 +154,14 @@ export default async function CasoPage({ params }: { params: Promise<{ id: strin
       ) : (
         <div className="j-card mt-4 text-center py-10">
           <Clock className="w-8 h-8 text-amber mx-auto mb-3" />
-          <p className="j-h3 mb-1">Análise em processamento</p>
-          <p className="j-caption">A análise será entregue assim que aprovada pelo advogado.</p>
+          <p className="j-h3 mb-1">
+            {caseData.complement ? 'Reanalisando com o seu complemento' : 'Análise em processamento'}
+          </p>
+          <p className="j-caption">
+            {caseData.complement
+              ? 'A nova análise, com o complemento, será entregue assim que aprovada pelo advogado.'
+              : 'A análise será entregue assim que aprovada pelo advogado.'}
+          </p>
           <div className="flex justify-center">
             <CaseRefresh awaiting={true} />
           </div>

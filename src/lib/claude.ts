@@ -175,6 +175,56 @@ Gere uma nova análise incorporando os comentários acima. Mantenha a mesma estr
   }
 }
 
+/**
+ * Reanálise disparada por um COMPLEMENTO da agência a um caso já aprovado.
+ * O relato original é preservado; o complemento acrescenta fatos. Gera uma
+ * análise completa (com as quatro seções e o marcador de severidade),
+ * considerando o relato original somado ao complemento.
+ */
+export async function analyzeCaseComplement(
+  description: string,
+  category: string,
+  originalAnalysis: string,
+  complement: string,
+): Promise<AnalysisResult> {
+  const apiKey = env('ANTHROPIC_API_KEY')
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY não configurada.')
+
+  const client = new Anthropic({ apiKey })
+
+  const userMessage = `Você já analisou o caso abaixo. A agência ACRESCENTOU um complemento ao relato original (uma ressalva ou informação esquecida). O relato original NÃO muda — o complemento apenas acrescenta fatos.
+
+CASO ORIGINAL:
+Categoria: ${category}
+Descrição original: ${description}
+
+COMPLEMENTO ADICIONADO PELA AGÊNCIA:
+${complement}
+
+SUA ANÁLISE ANTERIOR (do relato original):
+${originalAnalysis}
+
+Gere uma NOVA análise completa considerando o relato original somado ao complemento. Siga exatamente a estrutura de quatro seções e inclua o marcador SEVERIDADE na primeira linha. Se o complemento mudar a severidade ou as recomendações, reflita isso na nova análise.`
+
+  const message = await client.messages.create({
+    model:      'claude-sonnet-5',
+    max_tokens: 8096,
+    thinking:   { type: 'disabled' },
+    system:     SYSTEM_PROMPT,
+    messages:   [{ role: 'user', content: userMessage }],
+  })
+
+  const textContent = message.content.find(block => block.type === 'text')
+  if (!textContent || textContent.type !== 'text') throw new Error('Resposta inválida da IA')
+
+  const parsed = parseSeverity(textContent.text)
+  return {
+    text:       parsed.text,
+    severity:   parsed.severity,
+    tokensUsed: message.usage.input_tokens + message.usage.output_tokens,
+  }
+}
+
 export async function analyzeCase(
   description: string,
   category: string,

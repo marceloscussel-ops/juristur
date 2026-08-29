@@ -34,7 +34,7 @@ export default async function LawyerDashboardPage({ searchParams }: Props) {
   // Query análises com base no filtro
   let query = db
     .from('case_analyses')
-    .select('id, case_id, review_status, lawyer_notes, created_at')
+    .select('id, case_id, review_status, lawyer_notes, from_complement, created_at')
     .order('created_at', { ascending: false })
 
   if (activeFilter === 'pendentes') {
@@ -172,6 +172,9 @@ export default async function LawyerDashboardPage({ searchParams }: Props) {
                       <Link href={`/lawyer/casos/${c.id}`} className="no-underline text-ink hover:text-indigo transition-colors block">
                         {c.title ?? c.category}
                       </Link>
+                      {a.from_complement && (
+                        <span className="badge badge-indigo mt-1 inline-flex">Complemento</span>
+                      )}
                     </td>
                     <td className="text-ink-40">{agencyMap[c.agency_id] ?? '—'}</td>
                     <td className="text-ink-40">{c.category}</td>

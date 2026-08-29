@@ -11,6 +11,9 @@ export type PaymentMethod = 'card' | 'pix' | 'boleto'
  */
 export const MAX_FOLLOWUP_QUESTIONS = 5
 
+/** Tamanho máximo do complemento (ressalva) que a agência pode adicionar a um caso. */
+export const MAX_COMPLEMENT_LENGTH = 2000
+
 export type CaseCategory =
   | 'Cancelamento de pacote pelo cliente'
   | 'Cancelamento de pacote pelo fornecedor'
@@ -68,6 +71,8 @@ export interface Case {
   status:       CaseStatus
   origin:       CaseOrigin
   escalated_at: string | null
+  complement:      string | null
+  complemented_at: string | null
   created_at:   string
   case_analyses?:  CaseAnalysis[]
   case_files?:     CaseFile[]
@@ -98,6 +103,7 @@ export interface CaseAnalysis {
   severity:      Severity | null
   lawyer_notes:  string | null
   reviewed_at:   string | null
+  from_complement: boolean
   created_at:    string
 }
 

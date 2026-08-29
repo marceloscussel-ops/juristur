@@ -71,6 +71,10 @@ CREATE TABLE IF NOT EXISTS cases (
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS origin TEXT NOT NULL DEFAULT 'web';
 ALTER TABLE cases ALTER COLUMN title DROP NOT NULL;  -- título é opcional (WhatsApp não tem)
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS escalated_at TIMESTAMPTZ;  -- quando o caso foi escalado a um advogado
+-- Complemento (ressalva) da agência a um caso já aprovado. O relato original
+-- (description) é preservado; complemented_at != NULL trava para um único complemento.
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS complement      TEXT;
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS complemented_at TIMESTAMPTZ;
 -- Índice parcial para contar escaladas por agência (cota de escaladas gratuitas)
 CREATE INDEX IF NOT EXISTS cases_escalated_idx ON cases(agency_id) WHERE escalated_at IS NOT NULL;
 
@@ -98,6 +102,8 @@ CREATE TABLE IF NOT EXISTS case_analyses (
 
 ALTER TABLE case_analyses ADD COLUMN IF NOT EXISTS tokens_used INT;
 ALTER TABLE case_analyses ADD COLUMN IF NOT EXISTS severity TEXT;  -- leve | medio | elevado | elevadissimo
+-- Marca que a análise atual foi regerada por um complemento da agência (flag p/ o advogado).
+ALTER TABLE case_analyses ADD COLUMN IF NOT EXISTS from_complement BOOLEAN NOT NULL DEFAULT false;
 
 -- Mensagens de acompanhamento (follow-up após análise inicial)
 CREATE TABLE IF NOT EXISTS case_messages (
