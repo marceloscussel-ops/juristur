@@ -11,6 +11,7 @@ const navItems = [
   { href: '/dashboard', label: 'Meus Casos' },
   { href: '/assinar',   label: 'Planos'     },
   { href: '/perfil',    label: 'Perfil'      },
+  { href: '/ajuda',     label: 'Ajuda'       },
 ]
 
 export default function Navbar() {

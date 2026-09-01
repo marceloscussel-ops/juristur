@@ -87,6 +87,12 @@ export default async function DashboardPage({ searchParams }: Props) {
                 <PlusCircle className="w-4 h-4" />
                 Abrir primeiro caso
               </Link>
+              <p className="j-caption mt-4">
+                Primeira vez?{' '}
+                <Link href="/ajuda?secao=primeiros-passos" className="text-indigo hover:underline">
+                  Veja o passo a passo
+                </Link>
+              </p>
             </>
           )}
         </div>
