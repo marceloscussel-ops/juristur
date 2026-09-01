@@ -61,7 +61,7 @@ export default function HelpTabs({ supportUrl }: Props) {
                 {i + 1}
               </div>
               <div>
-                <p className="j-h4 mb-1">{p.titulo}</p>
+                <p className="text-[15px] font-bold text-ink mb-1">{p.titulo}</p>
                 <p className="j-body text-ink-80">{p.descricao}</p>
               </div>
             </div>
@@ -80,7 +80,7 @@ export default function HelpTabs({ supportUrl }: Props) {
                   <span className="w-8 h-8 rounded-md bg-indigo-pale text-indigo flex items-center justify-center flex-shrink-0">
                     <Icon className="w-4 h-4" />
                   </span>
-                  <p className="j-h4">{f.titulo}</p>
+                  <p className="text-[15px] font-bold text-ink">{f.titulo}</p>
                 </div>
                 <p className="j-body text-ink-80">{f.descricao}</p>
               </div>
@@ -102,7 +102,7 @@ export default function HelpTabs({ supportUrl }: Props) {
                   {itens.map((q, i) => (
                     <details key={i} className="j-card group py-0">
                       <summary className="flex items-center justify-between gap-3 cursor-pointer list-none py-4 [&::-webkit-details-marker]:hidden">
-                        <span className="j-h4">{q.pergunta}</span>
+                        <span className="text-[15px] font-semibold text-ink">{q.pergunta}</span>
                         <ChevronDown className="w-4 h-4 text-ink-40 shrink-0 transition-transform group-open:rotate-180" />
                       </summary>
                       <p className="j-body text-ink-80 pb-4 -mt-1">{q.resposta}</p>
