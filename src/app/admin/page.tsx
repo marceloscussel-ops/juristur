@@ -100,7 +100,7 @@ export default async function AdminDashboard({ searchParams }: Props) {
   // ── Dados ──
   const supabase = db()
   const [{ data: agencies }, { data: cases }, { data: analyses }] = await Promise.all([
-    supabase.from('agencies').select('id, name, created_at, subscription_status, trial_ends_at'),
+    supabase.from('agencies').select('id, name, created_at, subscription_status, trial_ends_at, origem, origem_campanha'),
     supabase.from('cases').select('created_at, origin, category, agency_id'),
     supabase.from('case_analyses').select('review_status, tokens_used, created_at'),
   ])
@@ -155,6 +155,28 @@ export default async function AdminDashboard({ searchParams }: Props) {
     { label: 'Teste expirado', value: expirado, color: '#EE4A34' },
   ]
 
+  // ── Aquisição: de onde vieram as agências ──
+  const ORIGEM_LABEL: Record<string, string> = { evento: 'Evento (QR code)' }
+  const origemOf = (o?: string | null) => (o ? ORIGEM_LABEL[o] ?? o : 'Orgânico / direto')
+
+  const origemData = Array.from(countBy(agsP, a => origemOf(a.origem)).entries())
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value)
+
+  // Campanhas (utm_campaign) — separa um evento do outro.
+  const campanhaData = Array.from(
+    countBy(agsP.filter(a => a.origem_campanha), a => a.origem_campanha as string).entries()
+  ).map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value)
+
+  // Conversão do evento: cadastrou é fácil — o que importa é quem chegou a usar.
+  const agenciasComCaso = new Set(cs.map(c => c.agency_id))
+  const eventoP         = agsP.filter(a => a.origem === 'evento')
+  const eventoTotal     = ags.filter(a => a.origem === 'evento')
+  const eventoAtivas    = eventoTotal.filter(a => agenciasComCaso.has(a.id)).length
+  const pctEventoAtivas = eventoTotal.length
+    ? Math.round((eventoAtivas / eventoTotal.length) * 100)
+    : 0
+
   return (
     <div className="animate-fade-in space-y-5">
       <div>
@@ -174,6 +196,23 @@ export default async function AdminDashboard({ searchParams }: Props) {
                   sub={`${pctWhatsapp}% dos casos do período`} accent="#25D366" />
         <StatTile label={`Tokens de IA · ${plabel}`} value={fmt(tokensPeriod)}
                   sub="consumo estimado na API" accent="#16202F" />
+      </div>
+
+      {/* Aquisição — de onde vieram as agências */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatTile label={`Agências do evento · ${plabel}`} value={fmt(eventoP.length)}
+                  sub={`${fmt(eventoTotal.length)} no total`} accent="#EE4A34" />
+        <StatTile label="Do evento que usaram" value={fmt(eventoAtivas)}
+                  sub={`${pctEventoAtivas}% abriram ao menos um caso`} accent="#0E9E7A" />
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-5">
+        <ChartCard title={`Origem das agências · ${plabel}`}>
+          <HBars data={origemData} color="#5B57E8" />
+        </ChartCard>
+        <ChartCard title={`Campanhas · ${plabel}`}>
+          <HBars data={campanhaData} color="#EE4A34" />
+        </ChartCard>
       </div>
 
       {/* Séries temporais */}

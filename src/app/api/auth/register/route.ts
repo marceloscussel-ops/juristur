@@ -6,7 +6,7 @@ import { isValidCpfCnpj } from '@/lib/document'
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, cnpj, email, phone, password } = await request.json()
+    const { name, cnpj, email, phone, password, origem, origemCampanha } = await request.json()
 
     if (!name || !email || !phone || !password) {
       return NextResponse.json({ error: 'Todos os campos são obrigatórios.' }, { status: 400 })
@@ -71,12 +71,19 @@ export async function POST(request: NextRequest) {
     // o checkout continua pedindo o documento real antes de assinar.
     const PLACEHOLDER_CNPJ = '00.000.000/0000-00'
 
+    // Origem de aquisição (ex.: QR code de evento). Limitada em tamanho por vir
+    // da query string, que é controlada pelo visitante.
+    const clean = (v: unknown, max = 60) =>
+      typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null
+
     const { error: agencyError } = await admin.from('agencies').upsert({
       id: authData.user.id,
       name,
       cnpj: cnpjDigits || PLACEHOLDER_CNPJ,
       email,
       phone: phone ? normalizePhone(phone) : null,
+      origem:          clean(origem, 30),
+      origem_campanha: clean(origemCampanha),
     }, { onConflict: 'id' })
 
     if (agencyError) {

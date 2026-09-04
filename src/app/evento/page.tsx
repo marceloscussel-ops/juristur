@@ -74,7 +74,7 @@ export default function EventoPage() {
             <p className="j-h3 mb-1">Crie sua conta agora</p>
             <p className="j-caption">Leva menos de um minuto — e já dá para testar aqui mesmo.</p>
           </div>
-          <SignupForm submitLabel="Começar teste grátis" />
+          <SignupForm submitLabel="Começar teste grátis" origem="evento" />
         </div>
 
         <p className="text-center j-caption mt-5">

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import OAuthButtons from '@/components/OAuthButtons'
@@ -20,11 +20,14 @@ interface Props {
   redirectTo?: string
   /** Rótulo do botão principal. */
   submitLabel?: string
+  /** Canal de aquisição a registrar na agência (ex.: 'evento'). */
+  origem?: string
 }
 
 export default function SignupForm({
   redirectTo  = '/bem-vindo',
   submitLabel = 'Criar conta grátis',
+  origem,
 }: Props) {
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '' })
   const [showPassword, setShowPassword] = useState(false)
@@ -32,6 +35,21 @@ export default function SignupForm({
   const [loading, setLoading] = useState(false)
   const router   = useRouter()
   const supabase = createClient()
+
+  // utm_campaign identifica QUAL ação trouxe o cadastro (ex.: nome do evento).
+  // Lido no cliente para a página poder continuar estática.
+  const [campanha, setCampanha] = useState<string | null>(null)
+  useEffect(() => {
+    const utm = new URLSearchParams(window.location.search).get('utm_campaign')
+    if (utm) setCampanha(utm.slice(0, 60))
+  }, [])
+
+  // O cadastro por Google não passa pelo /api/auth/register, então a origem
+  // viaja na URL de retorno e é gravada no passo /bem-vindo.
+  const oauthNext = origem
+    ? `${redirectTo}${redirectTo.includes('?') ? '&' : '?'}origem=${encodeURIComponent(origem)}` +
+      (campanha ? `&campanha=${encodeURIComponent(campanha)}` : '')
+    : redirectTo
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = e.target
@@ -61,6 +79,8 @@ export default function SignupForm({
           email:    form.email,
           phone:    form.phone.replace(/\D/g, ''),
           password: form.password,
+          origem:   origem ?? null,
+          origemCampanha: campanha,
         }),
       })
       const data = await res.json()
@@ -147,7 +167,7 @@ export default function SignupForm({
       </form>
 
       <div className="mt-4">
-        <OAuthButtons next={redirectTo} />
+        <OAuthButtons next={oauthNext} />
       </div>
     </>
   )

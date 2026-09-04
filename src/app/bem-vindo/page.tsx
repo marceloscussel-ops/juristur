@@ -10,7 +10,12 @@ import WhatsappStep from '@/components/WhatsappStep'
  * com Google não tem telefone — e é por ele que avisamos que a análise ficou
  * pronta —, então pedimos só esse campo antes de seguir.
  */
-export default async function BemVindoPage() {
+interface Props {
+  searchParams: Promise<{ origem?: string; campanha?: string }>
+}
+
+export default async function BemVindoPage({ searchParams }: Props) {
+  const { origem, campanha } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -20,9 +25,21 @@ export default async function BemVindoPage() {
 
   const { data: agency } = await supabase
     .from('agencies')
-    .select('name, phone')
+    .select('name, phone, origem')
     .eq('id', user.id)
     .maybeSingle()
+
+  // Cadastro por Google não passa pelo /api/auth/register: a origem chega aqui
+  // pela URL. Só grava se ainda não houver — não sobrescreve a aquisição real.
+  if (origem && agency && !agency.origem) {
+    await supabase
+      .from('agencies')
+      .update({
+        origem:          origem.slice(0, 30),
+        origem_campanha: campanha ? campanha.slice(0, 60) : null,
+      })
+      .eq('id', user.id)
+  }
 
   if (agency?.phone) {
     // Já temos o canal de aviso. Quem já usou volta ao painel; quem acabou de
