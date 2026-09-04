@@ -88,9 +88,13 @@ export default async function DashboardPage({ searchParams }: Props) {
                 Abrir primeiro caso
               </Link>
               <p className="j-caption mt-4">
-                Primeira vez?{' '}
+                Quer ver funcionando?{' '}
+                <Link href="/casos/novo?exemplo=voo" className="text-indigo hover:underline">
+                  Teste com um caso de exemplo
+                </Link>
+                {' '}·{' '}
                 <Link href="/ajuda?secao=primeiros-passos" className="text-indigo hover:underline">
-                  Veja o passo a passo
+                  Passo a passo
                 </Link>
               </p>
             </>

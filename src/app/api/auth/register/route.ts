@@ -8,11 +8,15 @@ export async function POST(request: NextRequest) {
   try {
     const { name, cnpj, email, phone, password } = await request.json()
 
-    if (!name || !cnpj || !email || !phone || !password) {
+    if (!name || !email || !phone || !password) {
       return NextResponse.json({ error: 'Todos os campos são obrigatórios.' }, { status: 400 })
     }
 
-    if (!isValidCpfCnpj(cnpj)) {
+    // CPF/CNPJ não é pedido no cadastro (atrito alto — ninguém sabe de cabeça).
+    // Fica para o /perfil, e o checkout já bloqueia a assinatura enquanto o
+    // documento não for válido. Se vier informado, precisa ser válido.
+    const cnpjDigits = (cnpj ?? '').replace(/\D/g, '')
+    if (cnpjDigits && !isValidCpfCnpj(cnpjDigits)) {
       return NextResponse.json(
         { error: 'CPF ou CNPJ inválido. Confira os números digitados.' },
         { status: 400 }
@@ -32,7 +36,7 @@ export async function POST(request: NextRequest) {
       email,
       password,
       options: {
-        data: { name, cnpj, phone },
+        data: { name, cnpj: cnpjDigits || undefined, phone },
       },
     })
 
@@ -62,10 +66,15 @@ export async function POST(request: NextRequest) {
       serviceKey
     )
 
+    // `cnpj` é NOT NULL no banco: sem documento informado gravamos o mesmo
+    // placeholder usado pelo trigger de criação. `isValidCpfCnpj` o rejeita, então
+    // o checkout continua pedindo o documento real antes de assinar.
+    const PLACEHOLDER_CNPJ = '00.000.000/0000-00'
+
     const { error: agencyError } = await admin.from('agencies').upsert({
       id: authData.user.id,
       name,
-      cnpj,
+      cnpj: cnpjDigits || PLACEHOLDER_CNPJ,
       email,
       phone: phone ? normalizePhone(phone) : null,
     }, { onConflict: 'id' })

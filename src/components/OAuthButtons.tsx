@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 
-export default function OAuthButtons({ next }: { next?: string } = {}) {
+export default function OAuthButtons({ next = '/bem-vindo' }: { next?: string } = {}) {
   const supabase = createClient()
 
   async function signInWithGoogle() {

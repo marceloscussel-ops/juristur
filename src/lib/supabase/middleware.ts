@@ -30,7 +30,7 @@ export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   const isLawyerPath = pathname.startsWith('/lawyer')
-  const publicPaths  = ['/login', '/cadastro', '/', '/esqueci-senha', '/resetar-senha', '/auth/callback']
+  const publicPaths  = ['/login', '/cadastro', '/evento', '/', '/esqueci-senha', '/resetar-senha', '/auth/callback']
   const isPublicPath = publicPaths.some(p => pathname === p || pathname.startsWith('/api/'))
 
   // Papel do usuário vem diretamente do JWT (app_metadata) — sem query ao banco
@@ -42,7 +42,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (user && (pathname === '/login' || pathname === '/cadastro')) {
+  if (user && (pathname === '/login' || pathname === '/cadastro' || pathname === '/evento')) {
     const url = request.nextUrl.clone()
     url.pathname = isLawyer ? '/lawyer/dashboard' : '/dashboard'
     return NextResponse.redirect(url)
