@@ -38,6 +38,19 @@ export default function EventoPage() {
   return (
     <div className="min-h-screen bg-surface">
 
+      {/*
+        Navegadores restauram a posição de rolagem por URL (scrollRestoration
+        'auto'). Quem já tinha aberto a página via QR code voltava a ela rolada,
+        com o logo e a chamada principal fora da tela. Roda durante o parse do
+        HTML — antes da restauração — para não haver salto visível.
+        Uma âncora explícita (ex.: /evento#cadastro) continua sendo respeitada.
+      */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: "try{if('scrollRestoration' in history){history.scrollRestoration='manual'}if(!location.hash){window.scrollTo(0,0)}}catch(e){}",
+        }}
+      />
+
       {/* ===== DOBRA: proposta + CTA visível sem rolar ===== */}
       <section
         className="px-5 pt-7 pb-9 text-center"
