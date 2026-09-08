@@ -1,14 +1,17 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Check, X, Sparkles, CreditCard, QrCode, FileText, Loader2, AlertCircle } from 'lucide-react'
+import { Check, X, Sparkles, CreditCard, QrCode, FileText, Loader2, AlertCircle, Gift } from 'lucide-react'
 import Link from 'next/link'
 import { PLANS, type PlanDef } from '@/lib/plans'
+import { UNAV_PROMO_MESES } from '@/lib/promo'
 import type { PaymentMethod } from '@/types'
 
 type Billing = 'mensal' | 'anual'
 
-export default function PlansClient({ whatsapp }: { whatsapp: string }) {
+export default function PlansClient({
+  whatsapp, promoUnav = false,
+}: { whatsapp: string; promoUnav?: boolean }) {
   const [billing, setBilling] = useState<Billing>('anual')
   const [modalPlan, setModalPlan] = useState<PlanDef | null>(null)
 
@@ -30,7 +33,11 @@ export default function PlansClient({ whatsapp }: { whatsapp: string }) {
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
         {PLANS.map(plan => {
           const preco = billing === 'anual' ? plan.anual : plan.mensal
-          const nota  = billing === 'anual' ? 'cobrado anualmente · economize 20%' : 'no plano mensal'
+          const nota  = billing === 'anual'
+            ? promoUnav
+              ? `cobrado anualmente · ${UNAV_PROMO_MESES} meses de acesso`
+              : 'cobrado anualmente · economize 20%'
+            : 'no plano mensal'
           return (
             <div
               key={plan.id}
@@ -90,7 +97,7 @@ export default function PlansClient({ whatsapp }: { whatsapp: string }) {
       </div>
 
       {modalPlan && (
-        <SubscribeModal plan={modalPlan} billing={billing} whatsapp={whatsapp} onClose={() => setModalPlan(null)} />
+        <SubscribeModal plan={modalPlan} billing={billing} whatsapp={whatsapp} promoUnav={promoUnav} onClose={() => setModalPlan(null)} />
       )}
     </>
   )
@@ -118,8 +125,8 @@ interface MethodOption {
 }
 
 function SubscribeModal({
-  plan, billing, whatsapp, onClose,
-}: { plan: PlanDef; billing: Billing; whatsapp: string; onClose: () => void }) {
+  plan, billing, whatsapp, promoUnav, onClose,
+}: { plan: PlanDef; billing: Billing; whatsapp: string; promoUnav: boolean; onClose: () => void }) {
   const [method, setMethod]   = useState<PaymentMethod>('card')
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState<React.ReactNode>('')
@@ -210,6 +217,15 @@ function SubscribeModal({
             ? 'Plano anual — escolha como quer pagar.'
             : 'Plano mensal — escolha a forma de pagamento.'}
         </p>
+
+        {billing === 'anual' && promoUnav && (
+          <div className="mt-3 rounded-lg border border-indigo/30 bg-indigo-50/60 px-3 py-2 flex items-center gap-2">
+            <Gift className="w-4 h-4 text-indigo shrink-0" />
+            <span className="text-[13px] text-ink-80">
+              Promoção UNAV: <strong>{UNAV_PROMO_MESES} meses de acesso</strong> pelo preço de 12.
+            </span>
+          </div>
+        )}
 
         <div className="mt-5 space-y-2.5">
           {options.map(opt => {

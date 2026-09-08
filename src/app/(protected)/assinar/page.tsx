@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import PlansClient from '@/components/PlansClient'
 import { getTrialInfo, PLAN_LABELS } from '@/lib/plans'
+import { isUnavPromoEligible, UNAV_PROMO_MESES, UNAV_PROMO } from '@/lib/promo'
 import type { AgencyPlan } from '@/types'
-import { CheckCircle2 } from 'lucide-react'
+import { CheckCircle2, Gift } from 'lucide-react'
 
 export default async function AssinarPage() {
   const supabase = await createClient()
@@ -10,11 +11,13 @@ export default async function AssinarPage() {
 
   const { data: agency } = await supabase
     .from('agencies')
-    .select('plan, subscription_status, trial_ends_at, created_at, access_until')
+    .select('plan, subscription_status, trial_ends_at, created_at, access_until, origem_campanha')
     .eq('id', user!.id)
     .single()
 
   const trial = agency ? getTrialInfo(agency) : null
+  // Cadastrou-se pelo link do evento dentro do prazo → 14 meses no plano anual.
+  const promoUnav = isUnavPromoEligible(agency)
   const whatsapp = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? ''
 
   const statusLine = (() => {
@@ -33,6 +36,23 @@ export default async function AssinarPage() {
         <p className="j-body text-ink-80 mt-2">{statusLine}</p>
       </div>
 
+      {/* Promoção do evento — só aparece para quem tem direito */}
+      {promoUnav && !trial?.isActive && (
+        <div className="max-w-xl mx-auto mb-6 rounded-xl border border-indigo/30 bg-indigo-50/60 p-4 flex items-start gap-3">
+          <Gift className="w-5 h-5 text-indigo shrink-0 mt-0.5" />
+          <div>
+            <p className="text-[15px] font-bold text-ink mb-0.5">
+              Você tem {UNAV_PROMO.mesesBonus} meses extras no plano anual
+            </p>
+            <p className="j-body text-ink-80">
+              Cortesia do evento UNAV 2026: ao assinar o plano anual, sua agência
+              recebe <strong>{UNAV_PROMO_MESES} meses de acesso pelo preço de {12}</strong>.
+              O bônus é aplicado automaticamente na confirmação do pagamento.
+            </p>
+          </div>
+        </div>
+      )}
+
       {trial?.isActive ? (
         <div className="j-card max-w-md mx-auto text-center py-10">
           <CheckCircle2 className="w-10 h-10 text-teal mx-auto mb-3" />
@@ -40,7 +60,7 @@ export default async function AssinarPage() {
           <p className="j-caption mt-1">Sua agência já tem acesso completo. Obrigado por confiar no TurisGuard!</p>
         </div>
       ) : (
-        <PlansClient whatsapp={whatsapp} />
+        <PlansClient whatsapp={whatsapp} promoUnav={promoUnav} />
       )}
 
       <p className="text-center j-caption mt-8">

@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { env } from '@/lib/env'
+import { mesesPlanoAnual } from '@/lib/promo'
 
 export const maxDuration = 60
 
@@ -112,20 +113,25 @@ export async function POST(request: NextRequest) {
   const isMonthly = Boolean(p?.subscription ?? sub?.id)
 
   if (GRANT.has(body.event)) {
+    const { data: current } = await supabase
+      .from('agencies')
+      .select('access_until, origem_campanha, created_at')
+      .eq('id', agencyId)
+      .maybeSingle()
+
     let accessUntil: Date
     if (isMonthly) {
       // até o próximo vencimento + folga de 5 dias
       const base = p?.dueDate ? new Date(p.dueDate) : new Date()
       accessUntil = new Date(base.getTime() + 35 * 86_400_000)
     } else {
-      // anual: 12 meses a partir da confirmação
+      // Anual: 12 meses a partir da confirmação — ou 14 para quem se cadastrou
+      // pelo link do evento dentro do prazo (promoção UNAV 2026).
       accessUntil = new Date()
-      accessUntil.setMonth(accessUntil.getMonth() + 12)
+      accessUntil.setMonth(accessUntil.getMonth() + mesesPlanoAnual(current))
     }
 
     // Só estende para frente — nunca encurta um acesso já concedido.
-    const { data: current } = await supabase
-      .from('agencies').select('access_until').eq('id', agencyId).maybeSingle()
     const currentMs = current?.access_until ? new Date(current.access_until).getTime() : 0
     if (accessUntil.getTime() > currentMs) {
       await supabase

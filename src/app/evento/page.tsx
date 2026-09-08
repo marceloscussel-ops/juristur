@@ -1,8 +1,16 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Zap, ShieldCheck, Scale, Check, ArrowRight } from 'lucide-react'
+import { Zap, ShieldCheck, Scale, Check, ArrowRight, Gift } from 'lucide-react'
 import TGLogo from '@/components/TGLogo'
 import SignupForm from '@/components/SignupForm'
+import { UNAV_PROMO, UNAV_PROMO_MESES, isUnavPromoAberta } from '@/lib/promo'
+import { formatDate } from '@/lib/datetime'
+
+// A promoção tem prazo: a página é regerada de hora em hora para parar de
+// anunciá-la assim que o prazo de cadastro terminar.
+export const revalidate = 3600
+
+const PRAZO_TEXTO = formatDate(UNAV_PROMO.cadastroAte)
 
 export const metadata: Metadata = {
   title:       'TurisGuard — 7 dias grátis para sua agência',
@@ -35,6 +43,8 @@ const PASSOS = [
 ]
 
 export default function EventoPage() {
+  const promoAberta = isUnavPromoAberta()
+
   return (
     <div className="min-h-screen bg-surface">
 
@@ -70,6 +80,20 @@ export default function EventoPage() {
               7 dias grátis · sem cartão
             </span>
           </div>
+
+          {promoAberta && (
+            <div
+              className="mt-4 rounded-xl px-4 py-3 flex items-start gap-2.5 text-left"
+              style={{ background: 'rgba(14,158,122,.14)', border: '1px solid rgba(14,158,122,.4)' }}
+            >
+              <Gift className="w-4 h-4 shrink-0 mt-0.5" style={{ color: '#4ED8AE' }} />
+              <p className="text-[13px] leading-relaxed" style={{ color: 'rgba(255,255,255,.86)' }}>
+                <strong style={{ color: '#4ED8AE' }}>Exclusivo UNAV 2026:</strong>{' '}
+                cadastre-se por aqui até {PRAZO_TEXTO} e leve{' '}
+                <strong>{UNAV_PROMO_MESES} meses pelo preço de 12</strong> no plano anual.
+              </p>
+            </div>
+          )}
 
           <h1
             className="mt-3 text-white"
@@ -178,6 +202,11 @@ export default function EventoPage() {
             <div className="text-center mb-5">
               <p className="j-h3 mb-1">Comece agora, é grátis</p>
               <p className="j-caption">7 dias para testar · sem cartão de crédito</p>
+              {promoAberta && (
+                <p className="j-caption mt-2 text-teal font-semibold">
+                  Cadastrando por aqui, você garante os {UNAV_PROMO.mesesBonus} meses extras no plano anual
+                </p>
+              )}
             </div>
             <SignupForm submitLabel="Começar teste grátis" origem="evento" />
           </div>
