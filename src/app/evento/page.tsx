@@ -208,7 +208,16 @@ export default function EventoPage() {
                 </p>
               )}
             </div>
-            <SignupForm submitLabel="Começar teste grátis" origem="evento" />
+            {/*
+              Enquanto a promoção estiver aberta, esta página marca a campanha
+              do evento por padrão: quem digita o endereço à mão (em vez de
+              escanear o QR) não perde a promoção anunciada aqui em cima.
+            */}
+            <SignupForm
+              submitLabel="Começar teste grátis"
+              origem="evento"
+              campanhaPadrao={promoAberta ? UNAV_PROMO.campanha : undefined}
+            />
           </div>
 
           {/* Reforço final */}

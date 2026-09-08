@@ -22,12 +22,19 @@ interface Props {
   submitLabel?: string
   /** Canal de aquisição a registrar na agência (ex.: 'evento'). */
   origem?: string
+  /**
+   * Campanha a usar quando a URL não traz `utm_campaign` — caso de quem digita
+   * o endereço à mão em vez de escanear o QR code. Um utm_campaign na URL
+   * sempre tem prioridade sobre este valor.
+   */
+  campanhaPadrao?: string
 }
 
 export default function SignupForm({
   redirectTo  = '/bem-vindo',
   submitLabel = 'Criar conta grátis',
   origem,
+  campanhaPadrao,
 }: Props) {
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '' })
   const [showPassword, setShowPassword] = useState(false)
@@ -37,8 +44,10 @@ export default function SignupForm({
   const supabase = createClient()
 
   // utm_campaign identifica QUAL ação trouxe o cadastro (ex.: nome do evento).
-  // Lido no cliente para a página poder continuar estática.
-  const [campanha, setCampanha] = useState<string | null>(null)
+  // Lido no cliente para a página poder continuar estática. Sem ele, vale o
+  // padrão da página — quem digita o endereço à mão, em vez de escanear o QR,
+  // não fica de fora da campanha.
+  const [campanha, setCampanha] = useState<string | null>(campanhaPadrao ?? null)
   useEffect(() => {
     const utm = new URLSearchParams(window.location.search).get('utm_campaign')
     if (utm) setCampanha(utm.slice(0, 60))
