@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import PlansClient from '@/components/PlansClient'
 import { getTrialInfo, PLAN_LABELS } from '@/lib/plans'
 import { isUnavPromoEligible, UNAV_PROMO_MESES, UNAV_PROMO } from '@/lib/promo'
+import { isValidCpfCnpj } from '@/lib/document'
 import type { AgencyPlan } from '@/types'
 import { CheckCircle2, Gift } from 'lucide-react'
 
@@ -11,13 +12,16 @@ export default async function AssinarPage() {
 
   const { data: agency } = await supabase
     .from('agencies')
-    .select('plan, subscription_status, trial_ends_at, created_at, access_until, origem_campanha')
+    .select('plan, subscription_status, trial_ends_at, created_at, access_until, origem_campanha, cnpj')
     .eq('id', user!.id)
     .single()
 
   const trial = agency ? getTrialInfo(agency) : null
   // Cadastrou-se pelo link do evento dentro do prazo → 14 meses no plano anual.
   const promoUnav = isUnavPromoEligible(agency)
+  // O CPF/CNPJ não é pedido no cadastro: quando faltar, é coletado no próprio
+  // modal de pagamento, sem mandar a agência ao perfil no meio do fluxo.
+  const documentoPendente = !isValidCpfCnpj(agency?.cnpj)
   const whatsapp = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? ''
 
   const statusLine = (() => {
@@ -60,7 +64,7 @@ export default async function AssinarPage() {
           <p className="j-caption mt-1">Sua agência já tem acesso completo. Obrigado por confiar no TurisGuard!</p>
         </div>
       ) : (
-        <PlansClient whatsapp={whatsapp} promoUnav={promoUnav} />
+        <PlansClient whatsapp={whatsapp} promoUnav={promoUnav} documentoPendente={documentoPendente} />
       )}
 
       <p className="text-center j-caption mt-8">

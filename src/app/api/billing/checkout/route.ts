@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
-    const { cycle, method } = await request.json()
+    const { cycle, method, cnpj } = await request.json()
     if (!CYCLES.includes(cycle) || !METHODS.includes(method)) {
       return NextResponse.json({ error: 'Plano ou forma de pagamento inválidos.' }, { status: 400 })
     }
@@ -55,14 +55,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Sua assinatura já está ativa.' }, { status: 409 })
     }
 
-    if (!hasValidCnpj(agency.cnpj)) {
-      return NextResponse.json(
-        { error: 'Complete o CNPJ da agência no perfil antes de assinar.', code: 'invalid_cnpj' },
-        { status: 422 },
-      )
+    // O CPF/CNPJ não é pedido no cadastro (atrito alto) e o Asaas o exige. Em vez
+    // de mandar a agência ao perfil no meio do pagamento, ele é informado no
+    // próprio modal e gravado aqui, na mesma requisição.
+    let documento = agency.cnpj
+    if (!hasValidCnpj(documento)) {
+      const informado = String(cnpj ?? '').replace(/\D/g, '')
+
+      if (!informado) {
+        return NextResponse.json(
+          { error: 'Informe o CPF ou CNPJ da agência para emitir a cobrança.', code: 'cnpj_required' },
+          { status: 422 },
+        )
+      }
+      if (!hasValidCnpj(informado)) {
+        return NextResponse.json(
+          { error: 'CPF ou CNPJ inválido. Confira os números digitados.', code: 'cnpj_invalid' },
+          { status: 422 },
+        )
+      }
+
+      const { error: docError } = await serviceClient()
+        .from('agencies')
+        .update({ cnpj: informado })
+        .eq('id', agency.id)
+
+      if (docError) {
+        console.error('[billing/checkout] falha ao gravar documento:', docError.message)
+        return NextResponse.json({ error: 'Não foi possível salvar o documento.' }, { status: 500 })
+      }
+      documento = informado
     }
 
-    const customerId = await ensureCustomer(agency)
+    const customerId = await ensureCustomer({ ...agency, cnpj: documento })
 
     const result =
       cycle === 'mensal'

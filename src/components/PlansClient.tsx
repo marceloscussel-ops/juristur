@@ -2,16 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import { Check, X, Sparkles, CreditCard, QrCode, FileText, Loader2, AlertCircle, Gift } from 'lucide-react'
-import Link from 'next/link'
 import { PLANS, type PlanDef } from '@/lib/plans'
 import { UNAV_PROMO_MESES } from '@/lib/promo'
+import { formatCpfCnpj, isValidCpfCnpj } from '@/lib/document'
 import type { PaymentMethod } from '@/types'
 
 type Billing = 'mensal' | 'anual'
 
 export default function PlansClient({
-  whatsapp, promoUnav = false,
-}: { whatsapp: string; promoUnav?: boolean }) {
+  whatsapp, promoUnav = false, documentoPendente = false,
+}: { whatsapp: string; promoUnav?: boolean; documentoPendente?: boolean }) {
   const [billing, setBilling] = useState<Billing>('anual')
   const [modalPlan, setModalPlan] = useState<PlanDef | null>(null)
 
@@ -97,7 +97,14 @@ export default function PlansClient({
       </div>
 
       {modalPlan && (
-        <SubscribeModal plan={modalPlan} billing={billing} whatsapp={whatsapp} promoUnav={promoUnav} onClose={() => setModalPlan(null)} />
+        <SubscribeModal
+          plan={modalPlan}
+          billing={billing}
+          whatsapp={whatsapp}
+          promoUnav={promoUnav}
+          documentoPendente={documentoPendente}
+          onClose={() => setModalPlan(null)}
+        />
       )}
     </>
   )
@@ -125,11 +132,18 @@ interface MethodOption {
 }
 
 function SubscribeModal({
-  plan, billing, whatsapp, promoUnav, onClose,
-}: { plan: PlanDef; billing: Billing; whatsapp: string; promoUnav: boolean; onClose: () => void }) {
+  plan, billing, whatsapp, promoUnav, documentoPendente, onClose,
+}: {
+  plan: PlanDef; billing: Billing; whatsapp: string
+  promoUnav: boolean; documentoPendente: boolean; onClose: () => void
+}) {
   const [method, setMethod]   = useState<PaymentMethod>('card')
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState<React.ReactNode>('')
+  // Documento pedido aqui quando falta, para não interromper o pagamento.
+  const [pedirDoc, setPedirDoc] = useState(documentoPendente)
+  const [doc, setDoc]           = useState('')
+  const [docErro, setDocErro]   = useState('')
 
   // Ao voltar do Asaas pelo botão do navegador, a página é restaurada do bfcache
   // com o estado congelado (botão preso em "Iniciando…"). Reseta nesse caso.
@@ -157,23 +171,38 @@ function SubscribeModal({
 
   async function handleContinue() {
     setError('')
+    setDocErro('')
+
+    // Validação local antes de ir ao servidor, para o erro aparecer no campo.
+    if (pedirDoc) {
+      if (!doc.trim()) {
+        setDocErro('Informe o CPF ou CNPJ da agência.')
+        return
+      }
+      if (!isValidCpfCnpj(doc)) {
+        setDocErro('CPF ou CNPJ inválido. Confira os números digitados.')
+        return
+      }
+    }
+
     setLoading(true)
     try {
       const res  = await fetch('/api/billing/checkout', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ cycle: billing, method }),
+        body:    JSON.stringify({
+          cycle:  billing,
+          method,
+          ...(pedirDoc ? { cnpj: doc.replace(/\D/g, '') } : {}),
+        }),
       })
       const data = await res.json()
 
       if (!res.ok) {
-        if (data.code === 'invalid_cnpj') {
-          setError(
-            <>
-              Complete o CNPJ da sua agência no{' '}
-              <Link href="/perfil" className="underline font-medium">perfil</Link> antes de assinar.
-            </>
-          )
+        // O servidor é a autoridade sobre o documento: se pedir, mostra o campo.
+        if (data.code === 'cnpj_required' || data.code === 'cnpj_invalid') {
+          setPedirDoc(true)
+          setDocErro(data.error || 'Informe um CPF ou CNPJ válido.')
         } else {
           setError(data.error || 'Não foi possível iniciar o pagamento.')
         }
@@ -224,6 +253,28 @@ function SubscribeModal({
             <span className="text-[13px] text-ink-80">
               Promoção UNAV: <strong>{UNAV_PROMO_MESES} meses de acesso</strong> pelo preço de 12.
             </span>
+          </div>
+        )}
+
+        {pedirDoc && (
+          <div className="mt-5">
+            <label className="j-label" htmlFor="doc-cobranca">
+              CPF ou CNPJ da agência
+            </label>
+            <input
+              id="doc-cobranca"
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              value={doc}
+              onChange={e => { setDoc(formatCpfCnpj(e.target.value)); setDocErro('') }}
+              disabled={loading}
+              className={`j-input font-mono ${docErro ? 'j-input-error' : ''}`}
+              placeholder="00.000.000/0000-00"
+            />
+            <p className={`j-hint ${docErro ? 'j-hint-error' : ''}`}>
+              {docErro || 'Necessário para emitir a cobrança. Fica salvo no seu perfil.'}
+            </p>
           </div>
         )}
 
