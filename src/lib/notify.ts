@@ -85,6 +85,28 @@ export async function notifyAnalysisFailed(caseId: string, agencyId: string, err
   try { await sendText(ADMIN_PHONE, message) } catch { /* silencioso */ }
 }
 
+/**
+ * Alerta o admin quando uma conta foi excluída (LGPD) mas a assinatura no Asaas
+ * não pôde ser cancelada. A exclusão segue em frente — o direito do titular vem
+ * primeiro —, então o cancelamento precisa ser feito à mão para não cobrar uma
+ * conta que não existe mais.
+ */
+export async function notifyAdminDeletionIssue(email: string, subscriptionId: string) {
+  if (!ADMIN_PHONE) return
+
+  const message = [
+    `⚠️ *TurisGuard — cancelar assinatura à mão*`,
+    ``,
+    `A conta *${email}* foi excluída (LGPD), mas o cancelamento da assinatura no Asaas falhou.`,
+    ``,
+    `Assinatura: ${subscriptionId}`,
+    ``,
+    `Cancele no painel do Asaas para não seguir cobrando.`,
+  ].join('\n')
+
+  try { await sendText(ADMIN_PHONE, message) } catch { /* silencioso */ }
+}
+
 /** Notifica o advogado via WhatsApp sobre nova análise aguardando revisão. */
 export async function notifyLawyerNewCase(
   lawyerPhone: string,

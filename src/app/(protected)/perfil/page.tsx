@@ -6,6 +6,7 @@ import { Building2, Mail, Phone, Shield, Save, CheckCircle, AlertCircle, Loader2
 import { getTrialInfo, PLAN_LABELS } from '@/lib/plans'
 import { formatCpfCnpj, isValidCpfCnpj } from '@/lib/document'
 import { formatDateLong } from '@/lib/datetime'
+import PrivacySection from '@/components/PrivacySection'
 import type { AgencyPlan } from '@/types'
 
 function formatPhone(value: string) {
@@ -315,6 +316,9 @@ export default function PerfilPage() {
           </button>
         </form>
       </div>
+
+      {/* Direitos do titular dos dados (LGPD) */}
+      <PrivacySection />
     </div>
   )
 }
