@@ -1,5 +1,6 @@
 import {
   PlusCircle, ShieldAlert, MessageSquare, Layers, Paperclip, Scale, CreditCard, UserCircle,
+  ShieldCheck,
   type LucideIcon,
 } from 'lucide-react'
 import { MAX_FOLLOWUP_QUESTIONS } from '@/types'
@@ -93,10 +94,17 @@ export const funcionalidades: HelpFeature[] = [
     titulo:    'Perfil',
     descricao: 'Atualize os dados da agência e o número de WhatsApp que recebe os avisos, e acompanhe o status do seu plano.',
   },
+  {
+    icon:      ShieldCheck,
+    titulo:    'Meus dados e privacidade',
+    descricao: 'No perfil você pode baixar todos os seus dados em um arquivo ou excluir a conta definitivamente, conforme a LGPD.',
+  },
 ]
 
 /** 3 — Perguntas frequentes, agrupadas por tema. */
-export const faqGrupos = ['Uso', 'Análise & IA', 'Advogado & Suporte', 'Plano & Cobrança'] as const
+export const faqGrupos = [
+  'Uso', 'Análise & IA', 'Advogado & Suporte', 'Plano & Cobrança', 'Privacidade e dados',
+] as const
 
 export const faq: HelpFaq[] = [
   {
@@ -153,5 +161,25 @@ export const faq: HelpFaq[] = [
     grupo:    'Plano & Cobrança',
     pergunta: 'Meu período gratuito acabou. E agora?',
     resposta: 'Para continuar usando, acesse "Planos" e assine o plano que preferir. Seus casos e análises anteriores continuam disponíveis.',
+  },
+  {
+    grupo:    'Privacidade e dados',
+    pergunta: 'Como excluo minha conta?',
+    resposta: 'Vá em "Perfil", role até "Meus dados e privacidade" e clique em Excluir. Você precisa digitar EXCLUIR para confirmar. A exclusão é imediata e não tem como desfazer — recomendamos baixar seus dados antes.',
+  },
+  {
+    grupo:    'Privacidade e dados',
+    pergunta: 'O que é apagado quando excluo a conta?',
+    resposta: 'O cadastro da agência, o acesso à plataforma, todos os casos, análises e mensagens, e os documentos anexados. Se houver assinatura ativa, ela é cancelada — o tempo restante já pago não é reembolsado.',
+  },
+  {
+    grupo:    'Privacidade e dados',
+    pergunta: 'Fica guardado algum dado depois da exclusão?',
+    resposta: 'Apenas os registros fiscais dos pagamentos, que a lei obriga a manter. Eles ficam sem vínculo com a sua agência, ou seja, sem dados pessoais — apenas o histórico da transação.',
+  },
+  {
+    grupo:    'Privacidade e dados',
+    pergunta: 'Posso baixar tudo o que tenho na plataforma?',
+    resposta: 'Sim. Em "Perfil", na seção "Meus dados e privacidade", use "Baixar meus dados". Você recebe um arquivo com o cadastro, os casos, as análises e as mensagens.',
   },
 ]
