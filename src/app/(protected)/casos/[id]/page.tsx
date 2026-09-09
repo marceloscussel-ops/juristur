@@ -11,7 +11,7 @@ import CaseEscalate from '@/components/CaseEscalate'
 import { getTrialInfo, getEscalationInfo } from '@/lib/plans'
 import { formatDateTimeLong } from '@/lib/datetime'
 import { Case } from '@/types'
-import { ArrowLeft, Paperclip, Clock } from 'lucide-react'
+import { ArrowLeft, Paperclip, Clock, PlusCircle } from 'lucide-react'
 
 const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '5511999999999'
 
@@ -56,12 +56,19 @@ export default async function CasoPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className={`max-w-3xl mx-auto animate-fade-in ${analysis ? 'pb-40 print:pb-0' : ''}`}>
-      <div className="flex items-center justify-between mb-6 print:hidden">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6 print:hidden">
         <Link href="/dashboard" className="inline-flex items-center gap-1.5 j-caption text-indigo hover:text-ink transition-colors no-underline">
           <ArrowLeft className="w-3.5 h-3.5" />
           Voltar para meus casos
         </Link>
-        {analysis && <PrintButton />}
+        {/* Atalho para registrar outra situação sem passar pela lista de casos */}
+        <div className="flex items-center gap-2">
+          {analysis && <PrintButton />}
+          <Link href="/casos/novo" className="btn btn-outline no-underline">
+            <PlusCircle className="w-4 h-4" />
+            Novo caso
+          </Link>
+        </div>
       </div>
 
       {/* Card do caso */}
