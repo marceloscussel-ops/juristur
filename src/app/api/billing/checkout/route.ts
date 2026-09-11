@@ -44,10 +44,7 @@ export async function POST(request: NextRequest) {
     if (!CYCLES.includes(cycle) || !METHODS.includes(method)) {
       return NextResponse.json({ error: 'Plano ou forma de pagamento inválidos.' }, { status: 400 })
     }
-    // Mensal é assinatura recorrente → só cartão.
-    if (cycle === 'mensal' && method !== 'card') {
-      return NextResponse.json({ error: 'O plano mensal está disponível apenas no cartão de crédito.' }, { status: 400 })
-    }
+    // Mensal: cartão = assinatura recorrente; PIX = cobrança avulsa de 1 mês.
 
     const { data: agency, error } = await supabase
       .from('agencies')

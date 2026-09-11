@@ -171,12 +171,14 @@ export async function POST(request: NextRequest) {
 
     await grant(current?.billing_cycle === 'mensal')
   } else if (GRANT.has(body.event)) {
-    // Cobranças confirmadas — inclui as renovações mensais. Se vier a assinatura,
-    // guarda (garante que renovações futuras resolvam a agência).
+    // Cobranças confirmadas — renovação mensal (cartão) ou PIX avulso de 1 mês.
+    // O ciclo vem do billing_cycle (fonte de verdade); a assinatura, quando existe,
+    // também sinaliza mensal e é guardada para resolver renovações futuras.
     if (p?.subscription) {
       await supabase.from('agencies').update({ asaas_subscription_id: p.subscription }).eq('id', agencyId)
     }
-    await grant(Boolean(p?.subscription), p?.dueDate)
+    const isMonthly = current?.billing_cycle === 'mensal' || Boolean(p?.subscription)
+    await grant(isMonthly, p?.dueDate)
   } else if (body.event === 'SUBSCRIPTION_DELETED') {
     // Cancelamento: para de renovar, mas mantém o acesso até o fim do ciclo pago
     // (access_until preservado). O gate corta sozinho quando access_until vence.

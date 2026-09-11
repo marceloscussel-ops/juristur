@@ -159,13 +159,23 @@ export async function createCheckout(
   }
 
   let payload: Record<string, unknown>
-  if (cycle === 'mensal') {
+  if (cycle === 'mensal' && method === 'card') {
+    // Mensal no cartão: assinatura recorrente (renova automático).
     payload = {
       ...base,
       billingTypes: ['CREDIT_CARD'],
       chargeTypes: ['RECURRENT'],
       items: [{ name: `TurisGuard ${plan.nome}`, quantity: 1, value: plan.mensal }],
       subscription: { cycle: 'MONTHLY', nextDueDate: dueDate(0) },
+    }
+  } else if (cycle === 'mensal') {
+    // Mensal no PIX: cobrança avulsa de 1 mês (recorrência por PIX não existe no
+    // checkout do Asaas; o cliente paga um PIX a cada mês).
+    payload = {
+      ...base,
+      billingTypes: ['PIX'],
+      chargeTypes: ['DETACHED'],
+      items: [{ name: `TurisGuard ${plan.nome} (1 mês)`, quantity: 1, value: plan.mensal }],
     }
   } else if (method === 'card') {
     payload = {

@@ -192,7 +192,8 @@ function SubscribeModal({
 
   const anualTotal = plan.anual * 12 // R$ 948
 
-  // Mensal é assinatura recorrente → só cartão. Anual aceita cartão (12×) ou PIX à vista.
+  // Mensal: cartão renova automático; PIX é avulso de 1 mês (paga a cada mês).
+  // Anual: cartão em 12× ou PIX à vista.
   const options: MethodOption[] = billing === 'anual'
     ? [
         { id: 'card', label: 'Cartão de crédito', desc: `12× de R$ ${plan.anual} (total R$ ${anualTotal})`, icon: <CreditCard className="w-5 h-5" /> },
@@ -200,6 +201,7 @@ function SubscribeModal({
       ]
     : [
         { id: 'card', label: 'Cartão de crédito', desc: `R$ ${plan.mensal}/mês · renova automático`, icon: <CreditCard className="w-5 h-5" /> },
+        { id: 'pix',  label: 'PIX',               desc: `R$ ${plan.mensal}/mês · você paga a cada mês`,     icon: <QrCode className="w-5 h-5" /> },
       ]
 
   async function handleContinue() {
