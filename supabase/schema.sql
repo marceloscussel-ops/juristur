@@ -55,6 +55,13 @@ ALTER TABLE agencies ADD COLUMN IF NOT EXISTS asaas_payment_id      TEXT;  -- pl
 ALTER TABLE agencies ADD COLUMN IF NOT EXISTS billing_cycle         TEXT;  -- 'mensal' | 'anual'
 ALTER TABLE agencies ADD COLUMN IF NOT EXISTS access_until          TIMESTAMPTZ; -- fim do acesso pago
 
+-- Endereço (para pré-carregar o checkout do Asaas — evita o cliente redigitar)
+ALTER TABLE agencies ADD COLUMN IF NOT EXISTS cep              TEXT;
+ALTER TABLE agencies ADD COLUMN IF NOT EXISTS endereco         TEXT;  -- logradouro
+ALTER TABLE agencies ADD COLUMN IF NOT EXISTS endereco_numero  TEXT;
+ALTER TABLE agencies ADD COLUMN IF NOT EXISTS bairro           TEXT;  -- province no Asaas
+ALTER TABLE agencies ADD COLUMN IF NOT EXISTS cidade           TEXT;
+
 -- Casos
 CREATE TABLE IF NOT EXISTS cases (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),

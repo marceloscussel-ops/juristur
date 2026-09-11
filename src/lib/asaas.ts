@@ -119,14 +119,32 @@ export interface CheckoutResult {
   checkoutId:  string
 }
 
+/** Dados do pagador para pré-carregar o checkout — o Asaas exige TODOS juntos. */
+export interface AsaasCustomerData {
+  name:          string
+  cpfCnpj:       string
+  email:         string
+  phone:         string   // 11 dígitos, sem DDI
+  address:       string   // logradouro
+  addressNumber: string
+  postalCode:    string   // CEP
+  province:      string   // bairro
+  city?:         string
+}
+
 /**
  * Cria uma sessão de checkout conforme o plano e a forma de pagamento.
  *   - mensal        → RECURRENT (assinatura; recorrência no Asaas Checkout exige cartão)
  *   - anual + card  → DETACHED+INSTALLMENT (até 12×; INSTALLMENT exige DETACHED junto)
  *   - anual + pix   → DETACHED à vista (exige chave PIX cadastrada na conta Asaas)
+ *
+ * `customerData` (opcional) pré-carrega os dados do pagador na página do Asaas.
+ * Só é enviado quando temos o pacote COMPLETO (o Asaas recusa dados parciais);
+ * sem ele, a página coleta tudo normalmente.
  */
 export async function createCheckout(
   agencyId: string, cycle: BillingCycle, method: 'card' | 'pix',
+  customerData?: AsaasCustomerData,
 ): Promise<CheckoutResult> {
   const plan = essentialPlan()
   const base = {
@@ -137,6 +155,7 @@ export async function createCheckout(
       cancelUrl:  `${appUrl()}/assinar`,
       expiredUrl: `${appUrl()}/assinar`,
     },
+    ...(customerData ? { customerData } : {}),
   }
 
   let payload: Record<string, unknown>

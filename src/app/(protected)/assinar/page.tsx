@@ -12,7 +12,7 @@ export default async function AssinarPage() {
 
   const { data: agency } = await supabase
     .from('agencies')
-    .select('plan, subscription_status, trial_ends_at, created_at, access_until, origem_campanha, cnpj')
+    .select('plan, subscription_status, trial_ends_at, created_at, access_until, origem_campanha, cnpj, cep, endereco, endereco_numero, bairro')
     .eq('id', user!.id)
     .single()
 
@@ -22,6 +22,11 @@ export default async function AssinarPage() {
   // O CPF/CNPJ não é pedido no cadastro: quando faltar, é coletado no próprio
   // modal de pagamento, sem mandar a agência ao perfil no meio do fluxo.
   const documentoPendente = !isValidCpfCnpj(agency?.cnpj)
+  // Endereço para pré-carregar o checkout do Asaas. Quando falta, é coletado no
+  // modal (CEP + número), evitando o cliente redigitar tudo na página do Asaas.
+  const enderecoPendente =
+    (agency?.cep ?? '').replace(/\D/g, '').length !== 8 ||
+    !agency?.endereco || !agency?.endereco_numero || !agency?.bairro
   const whatsapp = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? ''
 
   const statusLine = (() => {
@@ -64,7 +69,7 @@ export default async function AssinarPage() {
           <p className="j-caption mt-1">Sua agência já tem acesso completo. Obrigado por confiar no TurisGuard!</p>
         </div>
       ) : (
-        <PlansClient whatsapp={whatsapp} promoUnav={promoUnav} documentoPendente={documentoPendente} />
+        <PlansClient whatsapp={whatsapp} promoUnav={promoUnav} documentoPendente={documentoPendente} enderecoPendente={enderecoPendente} />
       )}
 
       <p className="text-center j-caption mt-8">

@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createCheckout, serviceClient } from '@/lib/asaas'
+import { createCheckout, serviceClient, type AsaasCustomerData } from '@/lib/asaas'
 import { hasActiveAccess } from '@/lib/plans'
 import { isValidCpfCnpj } from '@/lib/document'
 import type { BillingCycle } from '@/types'
@@ -27,13 +27,20 @@ function hasValidCnpj(cnpj?: string | null): boolean {
   return isValidCpfCnpj(cnpj)
 }
 
+/** Telefone BR para o Asaas: 10–11 dígitos sem DDI. null se inválido. */
+function brPhone(stored?: string | null): string | null {
+  let d = (stored ?? '').replace(/\D/g, '')
+  if (d.startsWith('55') && d.length >= 12) d = d.slice(2)
+  return d.length === 10 || d.length === 11 ? d : null
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
-    const { cycle, method, cnpj } = await request.json()
+    const { cycle, method, cnpj, address } = await request.json()
     if (!CYCLES.includes(cycle) || !METHODS.includes(method)) {
       return NextResponse.json({ error: 'Plano ou forma de pagamento inválidos.' }, { status: 400 })
     }
@@ -44,7 +51,7 @@ export async function POST(request: NextRequest) {
 
     const { data: agency, error } = await supabase
       .from('agencies')
-      .select('id, name, cnpj, email, phone, asaas_customer_id, subscription_status, access_until')
+      .select('id, name, cnpj, email, phone, subscription_status, access_until, cep, endereco, endereco_numero, bairro, cidade')
       .eq('id', user.id)
       .single()
 
@@ -88,9 +95,43 @@ export async function POST(request: NextRequest) {
       documento = informado
     }
 
-    void documento // documento fica no cadastro; o Asaas Checkout coleta o CPF do pagador na página
+    // Endereço para PRÉ-CARREGAR o checkout (o Asaas exige o pacote completo).
+    // Usa o que já está no cadastro; se o modal enviou um novo (CEP resolvido +
+    // número), grava. É best-effort: sem endereço completo, a página do Asaas
+    // coleta os dados normalmente — nunca bloqueia o pagamento.
+    let cep      = (agency.cep ?? '').replace(/\D/g, '')
+    let endereco = agency.endereco ?? ''
+    let numero   = agency.endereco_numero ?? ''
+    let bairro   = agency.bairro ?? ''
+    let cidade   = agency.cidade ?? ''
+    const enderecoOk = () => cep.length === 8 && !!endereco.trim() && !!numero.trim() && !!bairro.trim()
 
-    const result = await createCheckout(agency.id, cycle, method as Method)
+    if (!enderecoOk() && address) {
+      cep      = String(address.cep ?? '').replace(/\D/g, '')
+      endereco = String(address.logradouro ?? '').trim()
+      numero   = String(address.numero ?? '').trim()
+      bairro   = String(address.bairro ?? '').trim()
+      cidade   = String(address.cidade ?? '').trim()
+      if (enderecoOk()) {
+        await serviceClient()
+          .from('agencies')
+          .update({ cep, endereco, endereco_numero: numero, bairro, cidade })
+          .eq('id', agency.id)
+      }
+    }
+
+    // Monta o customerData só quando temos tudo (Asaas recusa dados parciais).
+    const phone = brPhone(agency.phone)
+    let customerData: AsaasCustomerData | undefined
+    if (phone && enderecoOk()) {
+      customerData = {
+        name: agency.name, cpfCnpj: documento, email: agency.email, phone,
+        address: endereco, addressNumber: numero, postalCode: cep, province: bairro,
+        ...(cidade ? { city: cidade } : {}),
+      }
+    }
+
+    const result = await createCheckout(agency.id, cycle, method as Method, customerData)
 
     // Guarda o checkoutId + ciclo para reconciliar no webhook (CHECKOUT_PAID).
     // Status segue 'trial' até o pagamento ser confirmado.
