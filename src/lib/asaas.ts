@@ -151,6 +151,9 @@ export async function createCheckout(
     externalReference: agencyId,
     minutesToExpire: 60,
     callback: {
+      // autoRedirect: leva o cliente de volta ao TurisGuard após o pagamento, em
+      // vez de deixá-lo na tela "acompanhar seu pedido" do Asaas.
+      autoRedirect: true,
       successUrl: `${appUrl()}/assinar/sucesso`,
       cancelUrl:  `${appUrl()}/assinar`,
       expiredUrl: `${appUrl()}/assinar`,
