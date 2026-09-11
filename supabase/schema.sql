@@ -49,6 +49,7 @@ UPDATE agencies
 
 -- Cobrança Asaas (idempotente para bancos já existentes)
 ALTER TABLE agencies ADD COLUMN IF NOT EXISTS asaas_customer_id     TEXT;
+ALTER TABLE agencies ADD COLUMN IF NOT EXISTS asaas_checkout_id     TEXT;  -- sessão de checkout (Asaas Checkout)
 ALTER TABLE agencies ADD COLUMN IF NOT EXISTS asaas_subscription_id TEXT;  -- plano mensal (assinatura)
 ALTER TABLE agencies ADD COLUMN IF NOT EXISTS asaas_payment_id      TEXT;  -- plano anual (cobrança avulsa)
 ALTER TABLE agencies ADD COLUMN IF NOT EXISTS billing_cycle         TEXT;  -- 'mensal' | 'anual'

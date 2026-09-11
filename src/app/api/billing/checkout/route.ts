@@ -1,29 +1,26 @@
 /**
  * POST /api/billing/checkout
  *
- * Cria a cobrança no Asaas conforme o plano e a forma de pagamento escolhidos
- * e devolve a URL da fatura hospedada (invoiceUrl) para o front redirecionar.
- * A ATIVAÇÃO do acesso acontece só no webhook (fonte de verdade) — aqui apenas
- * registramos os ids e o ciclo escolhido.
+ * Cria uma SESSÃO de checkout no Asaas (Asaas Checkout) e devolve a URL para o
+ * front redirecionar. A cobrança só nasce quando o cliente paga na página do
+ * Asaas — abandono não gera cobrança. A ativação do acesso acontece no webhook
+ * (CHECKOUT_PAID); aqui só guardamos o checkoutId e o ciclo escolhido.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import {
-  ensureCustomer,
-  createMonthlySubscription,
-  createAnnualCardPayment,
-  createAnnualUpfrontPayment,
-  serviceClient,
-} from '@/lib/asaas'
+import { createCheckout, serviceClient } from '@/lib/asaas'
 import { hasActiveAccess } from '@/lib/plans'
 import { isValidCpfCnpj } from '@/lib/document'
-import type { BillingCycle, PaymentMethod } from '@/types'
+import type { BillingCycle } from '@/types'
 
 export const maxDuration = 30
 
-const CYCLES:  BillingCycle[]  = ['mensal', 'anual']
-const METHODS: PaymentMethod[] = ['card', 'pix', 'boleto']
+const CYCLES:  BillingCycle[] = ['mensal', 'anual']
+// Boleto saiu: o Asaas Checkout suporta só cartão e PIX. Mensal só no cartão
+// (recorrência no checkout exige cartão); PIX fica no anual à vista.
+const METHODS = ['card', 'pix'] as const
+type Method = (typeof METHODS)[number]
 
 /** Documento válido = CPF ou CNPJ com dígitos verificadores corretos. */
 function hasValidCnpj(cnpj?: string | null): boolean {
@@ -39,6 +36,10 @@ export async function POST(request: NextRequest) {
     const { cycle, method, cnpj } = await request.json()
     if (!CYCLES.includes(cycle) || !METHODS.includes(method)) {
       return NextResponse.json({ error: 'Plano ou forma de pagamento inválidos.' }, { status: 400 })
+    }
+    // Mensal é assinatura recorrente → só cartão.
+    if (cycle === 'mensal' && method !== 'card') {
+      return NextResponse.json({ error: 'O plano mensal está disponível apenas no cartão de crédito.' }, { status: 400 })
     }
 
     const { data: agency, error } = await supabase
@@ -87,27 +88,22 @@ export async function POST(request: NextRequest) {
       documento = informado
     }
 
-    const customerId = await ensureCustomer({ ...agency, cnpj: documento })
+    void documento // documento fica no cadastro; o Asaas Checkout coleta o CPF do pagador na página
 
-    const result =
-      cycle === 'mensal'
-        ? await createMonthlySubscription(customerId, agency.id, method)
-        : method === 'card'
-          ? await createAnnualCardPayment(customerId, agency.id)
-          : await createAnnualUpfrontPayment(customerId, agency.id, method)
+    const result = await createCheckout(agency.id, cycle, method as Method)
 
-    // Persiste ids + ciclo (status segue 'trial' até o webhook confirmar o pagamento).
+    // Guarda o checkoutId + ciclo para reconciliar no webhook (CHECKOUT_PAID).
+    // Status segue 'trial' até o pagamento ser confirmado.
     await serviceClient()
       .from('agencies')
       .update({
         plan: 'essencial',
         billing_cycle: cycle,
-        asaas_subscription_id: result.subscriptionId ?? null,
-        asaas_payment_id: result.paymentId ?? null,
+        asaas_checkout_id: result.checkoutId,
       })
       .eq('id', agency.id)
 
-    return NextResponse.json({ invoiceUrl: result.invoiceUrl })
+    return NextResponse.json({ invoiceUrl: result.checkoutUrl })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Erro ao iniciar o pagamento.'
     console.error('[billing/checkout]', msg)

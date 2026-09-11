@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { env } from '@/lib/env'
 import { mesesPlanoAnual } from '@/lib/promo'
+import { getCheckout } from '@/lib/asaas'
 
 export const maxDuration = 60
 
@@ -25,10 +26,20 @@ interface AsaasPayment {
   externalReference?: string
 }
 
+interface AsaasCheckout {
+  id?:                string
+  customer?:          string
+  subscription?:      string
+  installment?:       string
+  status?:            string
+  externalReference?: string
+}
+
 interface AsaasWebhook {
   event:         string
   payment?:      AsaasPayment
   subscription?: { id?: string; customer?: string; externalReference?: string }
+  checkout?:     AsaasCheckout
 }
 
 function db() {
@@ -44,22 +55,22 @@ const REVOKE = new Set([
   'PAYMENT_CHARGEBACK_DISPUTE',
 ])
 
-/** Resolve a agência pelo externalReference, cliente ou assinatura Asaas. */
+/** Resolve a agência por externalReference, checkout, cliente ou assinatura. */
 async function findAgencyId(
-  supabase: ReturnType<typeof db>, ext?: string, customer?: string, subscription?: string,
+  supabase: ReturnType<typeof db>,
+  keys: { ext?: string; checkoutId?: string; customer?: string; subscription?: string },
 ): Promise<string | null> {
-  if (ext) return ext
-  if (customer) {
-    const { data } = await supabase
-      .from('agencies').select('id').eq('asaas_customer_id', customer).maybeSingle()
-    if (data) return data.id
+  if (keys.ext) return keys.ext
+  const byCol = async (col: string, val?: string) => {
+    if (!val) return null
+    const { data } = await supabase.from('agencies').select('id').eq(col, val).maybeSingle()
+    return data?.id ?? null
   }
-  if (subscription) {
-    const { data } = await supabase
-      .from('agencies').select('id').eq('asaas_subscription_id', subscription).maybeSingle()
-    if (data) return data.id
-  }
-  return null
+  return (
+    (await byCol('asaas_checkout_id', keys.checkoutId)) ??
+    (await byCol('asaas_customer_id', keys.customer)) ??
+    (await byCol('asaas_subscription_id', keys.subscription))
+  )
 }
 
 export async function POST(request: NextRequest) {
@@ -77,25 +88,27 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = db()
-  const p = body.payment
+  const p  = body.payment
   const sub = body.subscription
-  const dedupeId = p?.id ?? sub?.id ?? null
-  const agencyId = await findAgencyId(
-    supabase,
-    p?.externalReference ?? sub?.externalReference,
-    p?.customer ?? sub?.customer,
-    p?.subscription ?? sub?.id,
-  )
+  const co = body.checkout
+  const dedupeId = p?.id ?? co?.id ?? sub?.id ?? null
+
+  const agencyId = await findAgencyId(supabase, {
+    ext:          p?.externalReference ?? co?.externalReference ?? sub?.externalReference,
+    checkoutId:   co?.id,
+    customer:     p?.customer ?? co?.customer ?? sub?.customer,
+    subscription: p?.subscription ?? co?.subscription ?? sub?.id,
+  })
 
   // Idempotência: grava o evento; se já existe (dedupe index), sai sem reprocessar.
   const { error: insertErr } = await supabase.from('billing_events').insert({
     agency_id: agencyId,
     event: body.event,
     asaas_payment_id: dedupeId,
-    asaas_subscription_id: p?.subscription ?? sub?.id ?? null,
+    asaas_subscription_id: p?.subscription ?? co?.subscription ?? sub?.id ?? null,
     billing_type: p?.billingType ?? null,
     value: p?.value ?? null,
-    status: p?.status ?? null,
+    status: p?.status ?? co?.status ?? null,
     raw: body,
   })
   if (insertErr) {
@@ -109,29 +122,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
-  // Assinatura mensal quando há vínculo de subscription; senão é o plano anual (avulso).
-  const isMonthly = Boolean(p?.subscription ?? sub?.id)
+  // Estado atual da agência (uma leitura só).
+  const { data: current } = await supabase
+    .from('agencies')
+    .select('access_until, origem_campanha, created_at, billing_cycle')
+    .eq('id', agencyId)
+    .maybeSingle()
 
-  if (GRANT.has(body.event)) {
-    const { data: current } = await supabase
-      .from('agencies')
-      .select('access_until, origem_campanha, created_at')
-      .eq('id', agencyId)
-      .maybeSingle()
-
+  // Concede/estende o acesso; só estende para frente (nunca encurta).
+  const grant = async (isMonthly: boolean, dueDate?: string) => {
     let accessUntil: Date
     if (isMonthly) {
-      // até o próximo vencimento + folga de 5 dias
-      const base = p?.dueDate ? new Date(p.dueDate) : new Date()
-      accessUntil = new Date(base.getTime() + 35 * 86_400_000)
+      const base = dueDate ? new Date(dueDate) : new Date()
+      accessUntil = new Date(base.getTime() + 35 * 86_400_000) // vencimento + folga
     } else {
-      // Anual: 12 meses a partir da confirmação — ou 14 para quem se cadastrou
-      // pelo link do evento dentro do prazo (promoção UNAV 2026).
+      // Anual: 12 meses da confirmação — ou 14 para cadastro pelo link do evento
+      // dentro do prazo (promoção UNAV 2026).
       accessUntil = new Date()
       accessUntil.setMonth(accessUntil.getMonth() + mesesPlanoAnual(current))
     }
-
-    // Só estende para frente — nunca encurta um acesso já concedido.
     const currentMs = current?.access_until ? new Date(current.access_until).getTime() : 0
     if (accessUntil.getTime() > currentMs) {
       await supabase
@@ -139,6 +148,35 @@ export async function POST(request: NextRequest) {
         .update({ subscription_status: 'active', plan: 'essencial', access_until: accessUntil.toISOString() })
         .eq('id', agencyId)
     }
+  }
+
+  if (body.event === 'CHECKOUT_PAID') {
+    // Pagamento concluído na sessão de checkout — ativação primária. Guarda os ids
+    // gerados (assinatura/cliente) para renovações e cancelamento; concede pelo ciclo.
+    let subId  = co?.subscription ?? null
+    let custId = co?.customer ?? null
+    if (co?.id) {
+      try {
+        const info = await getCheckout(co.id)
+        subId  = info.subscription ?? subId
+        custId = info.customer ?? custId
+      } catch (e) {
+        console.warn('[billing/webhook] getCheckout falhou:', e instanceof Error ? e.message : e)
+      }
+    }
+    const patch: Record<string, unknown> = {}
+    if (subId)  patch.asaas_subscription_id = subId
+    if (custId) patch.asaas_customer_id = custId
+    if (Object.keys(patch).length) await supabase.from('agencies').update(patch).eq('id', agencyId)
+
+    await grant(current?.billing_cycle === 'mensal')
+  } else if (GRANT.has(body.event)) {
+    // Cobranças confirmadas — inclui as renovações mensais. Se vier a assinatura,
+    // guarda (garante que renovações futuras resolvam a agência).
+    if (p?.subscription) {
+      await supabase.from('agencies').update({ asaas_subscription_id: p.subscription }).eq('id', agencyId)
+    }
+    await grant(Boolean(p?.subscription), p?.dueDate)
   } else if (body.event === 'SUBSCRIPTION_DELETED') {
     // Cancelamento: para de renovar, mas mantém o acesso até o fim do ciclo pago
     // (access_until preservado). O gate corta sozinho quando access_until vence.
@@ -151,9 +189,8 @@ export async function POST(request: NextRequest) {
       .from('agencies')
       .update({ subscription_status: 'expired', access_until: new Date().toISOString() })
       .eq('id', agencyId)
-  } else if (body.event === 'PAYMENT_OVERDUE' && isMonthly) {
+  } else if (body.event === 'PAYMENT_OVERDUE' && Boolean(p?.subscription)) {
     // Mensal em atraso: corta o acesso (perde no máximo o ciclo corrente).
-    // No anual (cartão autorizado / PIX à vista) um overdue não derruba o acesso.
     await supabase
       .from('agencies')
       .update({ subscription_status: 'expired', access_until: new Date().toISOString() })

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Check, X, Sparkles, CreditCard, QrCode, FileText, Loader2, AlertCircle, Gift } from 'lucide-react'
+import { Check, X, Sparkles, CreditCard, QrCode, Loader2, AlertCircle, Gift } from 'lucide-react'
 import { PLANS, type PlanDef } from '@/lib/plans'
 import { UNAV_PROMO_MESES } from '@/lib/promo'
 import { formatCpfCnpj, isValidCpfCnpj } from '@/lib/document'
@@ -157,16 +157,14 @@ function SubscribeModal({
 
   const anualTotal = plan.anual * 12 // R$ 948
 
+  // Mensal é assinatura recorrente → só cartão. Anual aceita cartão (12×) ou PIX à vista.
   const options: MethodOption[] = billing === 'anual'
     ? [
-        { id: 'card',   label: 'Cartão de crédito', desc: `12× de R$ ${plan.anual} (total R$ ${anualTotal})`, icon: <CreditCard className="w-5 h-5" /> },
-        { id: 'pix',    label: 'PIX',               desc: `R$ ${anualTotal} à vista`,                          icon: <QrCode className="w-5 h-5" /> },
-        { id: 'boleto', label: 'Boleto',            desc: `R$ ${anualTotal} à vista`,                          icon: <FileText className="w-5 h-5" /> },
+        { id: 'card', label: 'Cartão de crédito', desc: `12× de R$ ${plan.anual} (total R$ ${anualTotal})`, icon: <CreditCard className="w-5 h-5" /> },
+        { id: 'pix',  label: 'PIX',               desc: `R$ ${anualTotal} à vista`,                          icon: <QrCode className="w-5 h-5" /> },
       ]
     : [
-        { id: 'card',   label: 'Cartão de crédito', desc: `R$ ${plan.mensal}/mês · renova automático`, icon: <CreditCard className="w-5 h-5" /> },
-        { id: 'pix',    label: 'PIX',               desc: `R$ ${plan.mensal}/mês`,                      icon: <QrCode className="w-5 h-5" /> },
-        { id: 'boleto', label: 'Boleto',            desc: `R$ ${plan.mensal}/mês`,                      icon: <FileText className="w-5 h-5" /> },
+        { id: 'card', label: 'Cartão de crédito', desc: `R$ ${plan.mensal}/mês · renova automático`, icon: <CreditCard className="w-5 h-5" /> },
       ]
 
   async function handleContinue() {
@@ -244,7 +242,7 @@ function SubscribeModal({
         <p className="j-caption mt-1">
           {billing === 'anual'
             ? 'Plano anual — escolha como quer pagar.'
-            : 'Plano mensal — escolha a forma de pagamento.'}
+            : 'Plano mensal — cobrança recorrente no cartão.'}
         </p>
 
         {billing === 'anual' && promoUnav && (

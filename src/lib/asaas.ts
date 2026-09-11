@@ -14,7 +14,7 @@
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { env } from '@/lib/env'
 import { PLANS, type PlanDef } from '@/lib/plans'
-import type { Agency, PaymentMethod } from '@/types'
+import type { Agency, PaymentMethod, BillingCycle } from '@/types'
 
 const DEFAULT_API_URL = 'https://api-sandbox.asaas.com/v3'
 
@@ -107,103 +107,84 @@ export async function ensureCustomer(agency: AgencyForBilling): Promise<string> 
   return created.id
 }
 
-// ─── Cobranças ────────────────────────────────────────────────────────────────
-
-const successUrl = () => `${appUrl()}/assinar/sucesso`
-
-/**
- * Cria uma cobrança/assinatura, opcionalmente com o `callback` de auto-redirect
- * pós-pagamento (successUrl).
- *
- * O Asaas valida que o domínio do successUrl bata EXATAMENTE com o cadastrado nos
- * dados comerciais da conta; um mismatch derruba a criação da cobrança com "É
- * necessário enviar uma URL que use o mesmo domínio...". Como o redirect é só UX
- * (o webhook é quem libera o acesso), ele:
- *   - só é enviado com ASAAS_SEND_CALLBACK=true;
- *   - se o Asaas recusar por domínio, refazemos SEM o callback — assim o redirect
- *     nunca bloqueia o checkout.
- */
-async function createBilling<T>(path: string, body: Record<string, unknown>): Promise<T> {
-  const post = (b: Record<string, unknown>) =>
-    asaasFetch<T>(path, { method: 'POST', body: JSON.stringify(b) })
-
-  if (env('ASAAS_SEND_CALLBACK') !== 'true') return post(body)
-
-  const withCallback = { ...body, callback: { successUrl: successUrl(), autoRedirect: true } }
-  try {
-    return await post(withCallback)
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : ''
-    if (/dom[ií]nio|url/i.test(msg)) return post(body) // domínio não bate: segue sem redirect
-    throw err
-  }
-}
+// ─── Checkout (Asaas Checkout) ─────────────────────────────────────────────────
+// A cobrança nasce SÓ quando o cliente paga na página hospedada — se abandonar,
+// nada é criado (sem vencimento, sem régua de cobrança, sem risco de emitir NF
+// sem pagamento). A página coleta os dados do pagador (nome, CPF, endereço,
+// cartão), então NÃO enviamos `customer`. Reconciliação: externalReference =
+// id da agência, e o checkoutId guardado na agência (ver webhook).
 
 export interface CheckoutResult {
-  invoiceUrl:      string
-  subscriptionId?: string
-  paymentId?:      string
+  checkoutUrl: string
+  checkoutId:  string
 }
 
-/** Plano mensal: assinatura recorrente. Devolve a fatura da 1ª cobrança. */
-export async function createMonthlySubscription(
-  customerId: string, agencyId: string, method: PaymentMethod,
+/**
+ * Cria uma sessão de checkout conforme o plano e a forma de pagamento.
+ *   - mensal        → RECURRENT (assinatura; recorrência no Asaas Checkout exige cartão)
+ *   - anual + card  → DETACHED+INSTALLMENT (até 12×; INSTALLMENT exige DETACHED junto)
+ *   - anual + pix   → DETACHED à vista (exige chave PIX cadastrada na conta Asaas)
+ */
+export async function createCheckout(
+  agencyId: string, cycle: BillingCycle, method: 'card' | 'pix',
 ): Promise<CheckoutResult> {
   const plan = essentialPlan()
-  const sub = await createBilling<{ id: string }>('/subscriptions', {
-    customer: customerId,
-    billingType: toBillingType(method),
-    value: plan.mensal,
-    cycle: 'MONTHLY',
-    nextDueDate: dueDate(0),
+  const base = {
     externalReference: agencyId,
-    description: `TurisGuard — Plano ${plan.nome} (mensal)`,
+    minutesToExpire: 60,
+    callback: {
+      successUrl: `${appUrl()}/assinar/sucesso`,
+      cancelUrl:  `${appUrl()}/assinar`,
+      expiredUrl: `${appUrl()}/assinar`,
+    },
+  }
+
+  let payload: Record<string, unknown>
+  if (cycle === 'mensal') {
+    payload = {
+      ...base,
+      billingTypes: ['CREDIT_CARD'],
+      chargeTypes: ['RECURRENT'],
+      items: [{ name: `TurisGuard ${plan.nome}`, quantity: 1, value: plan.mensal }],
+      subscription: { cycle: 'MONTHLY', nextDueDate: dueDate(0) },
+    }
+  } else if (method === 'card') {
+    payload = {
+      ...base,
+      billingTypes: ['CREDIT_CARD'],
+      chargeTypes: ['DETACHED', 'INSTALLMENT'],
+      items: [{ name: `TurisGuard ${plan.nome} (anual)`, quantity: 1, value: plan.anual * 12 }],
+      installment: { maxInstallmentCount: 12 },
+    }
+  } else {
+    payload = {
+      ...base,
+      billingTypes: ['PIX'],
+      chargeTypes: ['DETACHED'],
+      items: [{ name: `TurisGuard ${plan.nome} (anual)`, quantity: 1, value: plan.anual * 12 }],
+    }
+  }
+
+  const res = await asaasFetch<{ id: string; link: string }>('/checkouts', {
+    method: 'POST', body: JSON.stringify(payload),
   })
-
-  const payments = await asaasFetch<{ data: { invoiceUrl: string }[] }>(
-    `/subscriptions/${sub.id}/payments`,
-  )
-  const invoiceUrl = payments.data?.[0]?.invoiceUrl
-  if (!invoiceUrl) throw new Error('Assinatura criada sem fatura inicial')
-
-  return { invoiceUrl, subscriptionId: sub.id }
+  return { checkoutUrl: res.link, checkoutId: res.id }
 }
 
-/** Plano anual no cartão: cobrança única parcelada em 12×. */
-export async function createAnnualCardPayment(
-  customerId: string, agencyId: string,
-): Promise<CheckoutResult> {
-  const plan = essentialPlan()
-  const pay = await createBilling<{ id: string; invoiceUrl: string }>('/payments', {
-    customer: customerId,
-    billingType: 'CREDIT_CARD',
-    installmentCount: 12,
-    installmentValue: plan.anual,           // 12 × R$ 79
-    dueDate: dueDate(0),
-    externalReference: agencyId,
-    description: `TurisGuard — Plano ${plan.nome} (anual, 12×)`,
-  })
-  return { invoiceUrl: pay.invoiceUrl, paymentId: pay.id }
+export interface CheckoutInfo {
+  status?:            string
+  externalReference?: string | null
+  customer?:          string | null
+  subscription?:      string | null
+  installment?:       string | null
+}
+
+/** Lê uma sessão de checkout — após paga, expõe customer/subscription/installment. */
+export async function getCheckout(checkoutId: string): Promise<CheckoutInfo> {
+  return asaasFetch<CheckoutInfo>(`/checkouts/${checkoutId}`)
 }
 
 /** Cancela (deleta) uma assinatura no Asaas — não gera novas cobranças. */
 export async function deleteSubscription(subscriptionId: string): Promise<void> {
   await asaasFetch(`/subscriptions/${subscriptionId}`, { method: 'DELETE' })
-}
-
-/** Plano anual no PIX/boleto: cobrança única à vista (R$ 948). */
-export async function createAnnualUpfrontPayment(
-  customerId: string, agencyId: string, method: 'pix' | 'boleto',
-): Promise<CheckoutResult> {
-  const plan = essentialPlan()
-  const total = plan.anual * 12                // R$ 948 à vista
-  const pay = await createBilling<{ id: string; invoiceUrl: string }>('/payments', {
-    customer: customerId,
-    billingType: toBillingType(method),
-    value: total,
-    dueDate: dueDate(method === 'boleto' ? 3 : 0),
-    externalReference: agencyId,
-    description: `TurisGuard — Plano ${plan.nome} (anual, à vista)`,
-  })
-  return { invoiceUrl: pay.invoiceUrl, paymentId: pay.id }
 }
