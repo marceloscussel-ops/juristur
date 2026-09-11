@@ -184,9 +184,24 @@ export async function createCheckout(
     }
   }
 
-  const res = await asaasFetch<{ id: string; link: string }>('/checkouts', {
-    method: 'POST', body: JSON.stringify(payload),
-  })
+  const post = (b: Record<string, unknown>) =>
+    asaasFetch<{ id: string; link: string }>('/checkouts', { method: 'POST', body: JSON.stringify(b) })
+
+  let res: { id: string; link: string }
+  try {
+    res = await post(payload)
+  } catch (err) {
+    // Pré-carregamento é best-effort: se o Asaas recusar o customerData (telefone/
+    // endereço inválido), refaz sem ele — a página coleta os dados normalmente.
+    if (customerData) {
+      console.warn('[asaas] checkout com customerData falhou, refazendo sem:', err instanceof Error ? err.message : err)
+      const semDados = { ...payload }
+      delete semDados.customerData
+      res = await post(semDados)
+    } else {
+      throw err
+    }
+  }
   return { checkoutUrl: res.link, checkoutId: res.id }
 }
 

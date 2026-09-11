@@ -132,8 +132,6 @@ interface MethodOption {
   icon:  React.ReactNode
 }
 
-interface CepInfo { logradouro: string; bairro: string; cidade: string; uf: string }
-
 function SubscribeModal({
   plan, billing, whatsapp, promoUnav, documentoPendente, enderecoPendente, onClose,
 }: {
@@ -148,26 +146,35 @@ function SubscribeModal({
   const [doc, setDoc]           = useState('')
   const [docErro, setDocErro]   = useState('')
   // Endereço pedido aqui quando falta, para pré-carregar o checkout do Asaas.
-  const [cep, setCep]           = useState('')
-  const [numero, setNumero]     = useState('')
-  const [cepInfo, setCepInfo]   = useState<CepInfo | null>(null)
-  const [cepErro, setCepErro]   = useState('')
+  // Logradouro/bairro vêm do CEP mas são editáveis (cobre CEP sem esses dados).
+  const [cep, setCep]             = useState('')
+  const [numero, setNumero]       = useState('')
+  const [logradouro, setLogradouro] = useState('')
+  const [bairro, setBairro]       = useState('')
+  const [cidade, setCidade]       = useState('')
+  const [uf, setUf]               = useState('')
+  const [cepBuscado, setCepBuscado] = useState(false)
+  const [cepErro, setCepErro]     = useState('')
   const [cepLoading, setCepLoading] = useState(false)
 
   // Busca o endereço pelo CEP (ViaCEP) quando completa os 8 dígitos.
   async function buscarCep(valor: string) {
     const d = valor.replace(/\D/g, '')
-    setCepInfo(null)
     setCepErro('')
-    if (d.length !== 8) return
+    if (d.length !== 8) { setCepBuscado(false); return }
     setCepLoading(true)
     try {
       const r = await fetch(`https://viacep.com.br/ws/${d}/json/`)
       const j = await r.json()
-      if (j.erro) { setCepErro('CEP não encontrado.'); return }
-      setCepInfo({ logradouro: j.logradouro ?? '', bairro: j.bairro ?? '', cidade: j.localidade ?? '', uf: j.uf ?? '' })
+      if (j.erro) { setCepErro('CEP não encontrado.'); setCepBuscado(false); return }
+      setLogradouro(j.logradouro ?? '')
+      setBairro(j.bairro ?? '')
+      setCidade(j.localidade ?? '')
+      setUf(j.uf ?? '')
+      setCepBuscado(true)
     } catch {
-      setCepErro('Não foi possível buscar o CEP.')
+      setCepErro('Não foi possível buscar o CEP. Preencha o endereço manualmente.')
+      setCepBuscado(true) // libera os campos manuais
     } finally {
       setCepLoading(false)
     }
@@ -211,12 +218,12 @@ function SubscribeModal({
       }
     }
     if (enderecoPendente) {
-      if (cep.replace(/\D/g, '').length !== 8 || !cepInfo) {
-        setCepErro('Informe um CEP válido.')
+      if (cep.replace(/\D/g, '').length !== 8) {
+        setCepErro('Informe um CEP válido (8 dígitos).')
         return
       }
-      if (!numero.trim()) {
-        setCepErro('Informe o número do endereço.')
+      if (!logradouro.trim() || !bairro.trim() || !numero.trim()) {
+        setCepErro('Preencha rua, número e bairro.')
         return
       }
     }
@@ -230,13 +237,13 @@ function SubscribeModal({
           cycle:  billing,
           method,
           ...(pedirDoc ? { cnpj: doc.replace(/\D/g, '') } : {}),
-          ...(enderecoPendente && cepInfo ? {
+          ...(enderecoPendente ? {
             address: {
               cep:        cep.replace(/\D/g, ''),
               numero:     numero.trim(),
-              logradouro: cepInfo.logradouro,
-              bairro:     cepInfo.bairro,
-              cidade:     cepInfo.cidade,
+              logradouro: logradouro.trim(),
+              bairro:     bairro.trim(),
+              cidade:     cidade.trim(),
             },
           } : {}),
         }),
@@ -333,7 +340,7 @@ function SubscribeModal({
                 onChange={e => {
                   const d = e.target.value.replace(/\D/g, '').slice(0, 8)
                   setCep(d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d)
-                  if (d.length === 8) buscarCep(d)
+                  if (d.length === 8) buscarCep(d); else setCepErro('')
                 }}
                 disabled={loading}
                 className={`j-input font-mono w-[45%] ${cepErro ? 'j-input-error' : ''}`}
@@ -348,11 +355,40 @@ function SubscribeModal({
                 placeholder="Número"
               />
             </div>
+
+            {cepBuscado && (
+              <div className="mt-2 space-y-2">
+                <input
+                  type="text"
+                  value={logradouro}
+                  onChange={e => { setLogradouro(e.target.value); setCepErro('') }}
+                  disabled={loading}
+                  className="j-input"
+                  placeholder="Rua / logradouro"
+                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={bairro}
+                    onChange={e => { setBairro(e.target.value); setCepErro('') }}
+                    disabled={loading}
+                    className="j-input flex-1"
+                    placeholder="Bairro"
+                  />
+                  <input
+                    type="text"
+                    value={cidade && uf ? `${cidade}/${uf}` : cidade}
+                    disabled
+                    className="j-input flex-1 opacity-70"
+                    placeholder="Cidade"
+                  />
+                </div>
+              </div>
+            )}
+
             <p className={`j-hint ${cepErro ? 'j-hint-error' : ''}`}>
-              {cepErro
-                || (cepLoading ? 'Buscando endereço…'
-                  : cepInfo ? `${cepInfo.logradouro ? cepInfo.logradouro + ', ' : ''}${cepInfo.bairro ? cepInfo.bairro + ' — ' : ''}${cepInfo.cidade}/${cepInfo.uf}`
-                  : 'Para não redigitar seus dados na próxima tela. Fica salvo no seu perfil.')}
+              {cepErro || (cepLoading ? 'Buscando endereço…'
+                : 'Para não redigitar seus dados na tela do Asaas. Fica salvo no seu perfil.')}
             </p>
           </div>
         )}
