@@ -15,6 +15,9 @@ function getServiceClient() {
 // Vercel Pro permite até 300s — necessário para Claude + RAG em casos com arquivos
 export const maxDuration = 300
 
+/** Teto de casos por agência por dia. Guarda-corpo contra abuso/loop, não cota de plano. */
+const MAX_CASES_PER_DAY = 50
+
 export async function GET() {
   try {
     const supabase = await createClient()
@@ -67,9 +70,9 @@ export async function POST(request: NextRequest) {
       .eq('agency_id', user.id)
       .gte('created_at', today)
 
-    if ((todayCount ?? 0) >= 10) {
+    if ((todayCount ?? 0) >= MAX_CASES_PER_DAY) {
       return NextResponse.json(
-        { error: 'Limite diário de 10 casos atingido. Tente novamente amanhã.' },
+        { error: `Limite diário de ${MAX_CASES_PER_DAY} casos atingido. Tente novamente amanhã.` },
         { status: 429 }
       )
     }
