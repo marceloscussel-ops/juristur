@@ -107,6 +107,32 @@ export async function notifyAdminDeletionIssue(email: string, subscriptionId: st
   try { await sendText(ADMIN_PHONE, message) } catch { /* silencioso */ }
 }
 
+/** Notifica o advogado que a agência pediu atendimento humano em um caso. */
+export async function notifyLawyerEscalation(
+  lawyerPhone: string,
+  caseId:      string,
+  agencyName:  string,
+  category:    string,
+) {
+  const shortCode = caseId.slice(0, 6).toUpperCase()
+  const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://juristur.vercel.app'
+
+  const message = [
+    `🙋 *Pedido de atendimento — TurisGuard*`,
+    ``,
+    `🏢 Agência: ${agencyName}`,
+    `📁 Categoria: ${category}`,
+    `🔑 Código: ${shortCode}`,
+    ``,
+    `A agência pediu para falar com um advogado sobre este caso, pelo WhatsApp.`,
+    ``,
+    `Ver o caso:`,
+    `${appUrl}/lawyer/casos/${caseId}`,
+  ].join('\n')
+
+  try { await sendText(lawyerPhone, message) } catch { /* silencioso */ }
+}
+
 /** Notifica o advogado via WhatsApp sobre nova análise aguardando revisão. */
 export async function notifyLawyerNewCase(
   lawyerPhone: string,

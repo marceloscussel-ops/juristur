@@ -20,6 +20,7 @@ import { extractTextFromFile } from '@/lib/extract-text'
 import { analyzeCase, analyzeCaseRevision, followUpCase, ConversationMessage } from '@/lib/claude'
 import { findSimilarCases, formatSimilarCases } from '@/lib/ai/rag'
 import { notifyAgencyCaseReady } from '@/lib/notify'
+import { getTrialInfo, getEscalationInfo } from '@/lib/plans'
 import { env } from '@/lib/env'
 import { normalizePhone } from '@/lib/phone'
 import { MAX_FOLLOWUP_QUESTIONS } from '@/types'
@@ -222,6 +223,94 @@ async function handleLawyerCommand(phone: string, rawText: string) {
   }
 }
 
+// ─── Escalação para advogado (menu impresso no fim da análise) ────────────────
+
+/**
+ * Lê a resposta ao menu "Deseja falar com um advogado?".
+ *
+ * Aceita só os números do menu (e a forma com emoji). Palavras como "sim"/"não"
+ * ficam de fora de propósito: depois de uma resposta de follow-up o bot pergunta
+ * "tem mais alguma dúvida?", e ali um "sim" significa outra coisa — escalar por
+ * engano consumiria uma escalada da cota da agência.
+ */
+function parseEscalationChoice(text: string): 'yes' | 'no' | null {
+  const t = text.trim()
+  if (t === '1' || t === '1️⃣') return 'yes'
+  if (t === '2' || t === '2️⃣') return 'no'
+  return null
+}
+
+/**
+ * Registra o pedido de atendimento humano. Mesmas regras de cota do
+ * POST /api/cases/[id]/escalate, que é a via web do mesmo fluxo.
+ */
+async function handleEscalation(
+  phone:  string,
+  caseId: string,
+  agency: { id: string; name: string },
+) {
+  const db = getServiceClient()
+
+  const { data: caseRow } = await db
+    .from('cases')
+    .select('id, category, escalated_at')
+    .eq('id', caseId)
+    .eq('agency_id', agency.id)
+    .single()
+
+  if (!caseRow) {
+    await sendText(phone, '⚠️ Não encontrei esse caso. Acesse a plataforma web para falar com um advogado.')
+    return
+  }
+
+  // Já escalado antes: não consome cota de novo
+  if (caseRow.escalated_at) {
+    await sendText(phone, '✅ Este caso já está na fila do advogado. Em breve falamos com você por aqui.')
+    return
+  }
+
+  const { data: agencyRow } = await db
+    .from('agencies')
+    .select('subscription_status, trial_ends_at, created_at')
+    .eq('id', agency.id)
+    .single()
+
+  const { count } = await db
+    .from('cases')
+    .select('id', { count: 'exact', head: true })
+    .eq('agency_id', agency.id)
+    .not('escalated_at', 'is', null)
+
+  const info = getEscalationInfo(getTrialInfo(agencyRow ?? {}), count ?? 0)
+
+  if (!info.canEscalate) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.turisguard.com'
+    const motivo = info.reason === 'trial_expired'
+      ? 'Seu período gratuito terminou.'
+      : `Você já usou suas ${info.total} escaladas gratuitas.`
+    await sendText(phone,
+      `⚠️ ${motivo}\n\nAssine um plano para falar com um advogado sobre este caso:\n${appUrl}/assinar`
+    )
+    return
+  }
+
+  await db.from('cases').update({ escalated_at: new Date().toISOString() }).eq('id', caseId)
+
+  await sendText(phone,
+    '✅ Certo! Encaminhei seu caso para um advogado.\n\n' +
+    'O atendimento continua por aqui mesmo, neste número. ' +
+    'Enquanto isso, pode seguir tirando dúvidas sobre a análise.'
+  )
+
+  const { data: lwSettings } = await db
+    .from('lawyer_settings').select('lawyer_phone').single()
+
+  if (lwSettings?.lawyer_phone) {
+    const { notifyLawyerEscalation } = await import('@/lib/notify')
+    await notifyLawyerEscalation(lwSettings.lawyer_phone, caseId, agency.name, caseRow.category ?? '')
+  }
+}
+
 // ─── Follow-up após análise ───────────────────────────────────────────────────
 
 async function handleFollowUp(phone: string, caseId: string, question: string) {
@@ -353,12 +442,17 @@ async function handleAwaitingFiles(
   sessionId: string,
   agencyId:  string,
   msg:       ZApiMessage,
-  sessionData: { category?: string; description?: string; fileUrls?: Array<{ url: string; name: string; type: string }> }
+  sessionData: { category?: string; description?: string; fileUrls?: Array<{ url: string; name: string; type: string }> },
+  existingCaseId: string | null
 ) {
   const supabase    = getServiceClient()
   const msgText     = msg.text?.message?.toLowerCase().trim() ?? ''
   const isDone      = ['pronto', 'não', 'nao', 'ok', 'sim'].includes(msgText)
   const currentFiles = sessionData.fileUrls ?? []
+
+  // Fonte única do id do caso: a coluna `case_id` da sessão. O caso pode já ter
+  // sido criado pelo primeiro upload de arquivo; senão, nasce na análise.
+  let caseId = existingCaseId ?? undefined
 
   // Recebeu arquivo (Z-API sempre envia type="ReceivedCallback" — detecta pelo campo presente)
   if (msg.document || msg.image) {
@@ -372,8 +466,6 @@ async function handleAwaitingFiles(
       : { url: msg.image!.imageUrl, name: `imagem-${Date.now()}.jpg`, type: msg.image!.mimeType }
 
     // Precisamos de um caseId para o upload — criamos o caso agora se ainda não existe
-    let caseId = sessionData.fileUrls?.length === 0 ? undefined : (sessionData as Record<string, unknown>).caseId as string | undefined
-
     if (!caseId) {
       const { data: newCase } = await supabase
         .from('cases')
@@ -423,11 +515,11 @@ async function handleAwaitingFiles(
 
     // Resgata texto extraído dos arquivos já salvos
     const filesContent: string[] = []
-    if (currentFiles.length > 0) {
+    if (caseId) {
       const { data: dbFiles } = await supabase
         .from('case_files')
         .select('file_name, extracted_text')
-        .eq('case_id', (sessionData as Record<string, unknown>).caseId ?? '')
+        .eq('case_id', caseId)
       for (const f of dbFiles ?? []) {
         if (f.extracted_text) filesContent.push(`[${f.file_name}]\n${f.extracted_text}`)
       }
@@ -439,7 +531,6 @@ async function handleAwaitingFiles(
     const result       = await analyzeCase(description, category, filesContent.join('\n\n---\n\n'), ragContext)
 
     // Salva caso (se ainda não foi criado pelo upload de arquivo)
-    let caseId = (sessionData as Record<string, unknown>).caseId as string | undefined
     if (!caseId) {
       const { data: newCase } = await supabase
         .from('cases')
@@ -491,7 +582,9 @@ async function handleAwaitingFiles(
       '❓ Ficou com alguma dúvida sobre a análise? Me pergunte agora!\n\n' +
       '_Para iniciar um novo caso, digite *novo caso*._'
     )
-    await updateSession(sessionId, 'follow_up')
+    // Grava o case_id na sessão: sem ele o follow-up não sabe sobre qual caso
+    // a agência está perguntando e a conversa morre em "Sessão inválida".
+    await updateSession(sessionId, 'follow_up', undefined, caseId)
 
   } catch (err) {
     console.error('[whatsapp/webhook] análise error:', err)
@@ -613,7 +706,7 @@ export async function POST(request: NextRequest) {
         break
 
       case 'awaiting_files':
-        await handleAwaitingFiles(phone, session.id, agency.id, body, sessionData)
+        await handleAwaitingFiles(phone, session.id, agency.id, body, sessionData, session.case_id)
         break
 
       case 'processing':
@@ -627,11 +720,27 @@ export async function POST(request: NextRequest) {
         if (isNewCase) {
           await closeSession(session.id)
           await handleNoSession(phone, agency)
-        } else if (session.case_id) {
-          await handleFollowUp(phone, session.case_id, text)
-        } else {
+          break
+        }
+
+        // Rede de segurança: sessões antigas, salvas antes de gravarmos o case_id
+        if (!session.case_id) {
           await sendText(phone, '⚠️ Sessão inválida. Para começar um novo caso, digite *novo caso*.')
           await closeSession(session.id)
+          break
+        }
+
+        // Menu do fim da análise: 1 = falar com advogado, 2 = por enquanto não
+        const choice = parseEscalationChoice(text)
+        if (choice === 'yes') {
+          await handleEscalation(phone, session.case_id, agency)
+        } else if (choice === 'no') {
+          await sendText(phone,
+            'Tudo bem! 👍 Se mudar de ideia, é só digitar *1* para falar com um advogado.\n\n' +
+            '_Ficou alguma dúvida sobre a análise? Pode perguntar. Para um novo caso, digite *novo caso*._'
+          )
+        } else {
+          await handleFollowUp(phone, session.case_id, text)
         }
         break
       }
