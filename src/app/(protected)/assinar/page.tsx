@@ -5,6 +5,7 @@ import { isUnavPromoEligible, UNAV_PROMO_MESES, UNAV_PROMO } from '@/lib/promo'
 import { isValidCpfCnpj } from '@/lib/document'
 import type { AgencyPlan } from '@/types'
 import { CheckCircle2, Gift } from 'lucide-react'
+import { WHATSAPP_NUMBER } from '@/lib/whatsapp/public-number'
 
 export default async function AssinarPage() {
   const supabase = await createClient()
@@ -27,7 +28,7 @@ export default async function AssinarPage() {
   const enderecoPendente =
     (agency?.cep ?? '').replace(/\D/g, '').length !== 8 ||
     !agency?.endereco || !agency?.endereco_numero || !agency?.bairro
-  const whatsapp = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? ''
+  const whatsapp = WHATSAPP_NUMBER
 
   const statusLine = (() => {
     if (!trial) return 'Escolha o plano ideal para a sua agência.'

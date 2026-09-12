@@ -12,8 +12,7 @@ import { getTrialInfo, getEscalationInfo } from '@/lib/plans'
 import { formatDateTimeLong } from '@/lib/datetime'
 import { Case } from '@/types'
 import { ArrowLeft, Paperclip, Clock, PlusCircle } from 'lucide-react'
-
-const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '5511999999999'
+import { whatsappLink } from '@/lib/whatsapp/public-number'
 
 export default async function CasoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -33,10 +32,9 @@ export default async function CasoPage({ params }: { params: Promise<{ id: strin
   const analysis = (caseData.case_analyses ?? []).find(a => a.review_status === 'approved') ?? null
   const files = caseData.case_files ?? []
 
-  const whatsappMessage = encodeURIComponent(
+  const whatsappUrl = whatsappLink(
     `Olá! Preciso de assistência jurídica. Tenho um caso sobre: ${caseData.title} (categoria: ${caseData.category})`
   )
-  const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappMessage}`
 
   // Cota de escaladas gratuitas (período de teste)
   const { data: agency } = await supabase

@@ -1,12 +1,10 @@
 import { Suspense } from 'react'
 import { LifeBuoy } from 'lucide-react'
 import HelpTabs from '@/components/HelpTabs'
-
-const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '5511999999999'
+import { whatsappLink } from '@/lib/whatsapp/public-number'
 
 export default function AjudaPage() {
-  const supportMessage = encodeURIComponent('Olá! Preciso de ajuda com o TurisGuard.')
-  const supportUrl     = `https://wa.me/${WHATSAPP_NUMBER}?text=${supportMessage}`
+  const supportUrl = whatsappLink('Olá! Preciso de ajuda com o TurisGuard.')
 
   return (
     <div className="max-w-3xl mx-auto animate-fade-in">

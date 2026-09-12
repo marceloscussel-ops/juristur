@@ -1,9 +1,10 @@
 import {
   PlusCircle, ShieldAlert, MessageSquare, Layers, Paperclip, Scale, CreditCard, UserCircle,
-  ShieldCheck,
+  ShieldCheck, MessageCircle,
   type LucideIcon,
 } from 'lucide-react'
 import { MAX_FOLLOWUP_QUESTIONS } from '@/types'
+import { formatWhatsappNumber } from '@/lib/whatsapp/public-number'
 
 // Conteúdo da Central de Ajuda. É só dado — edite os textos aqui sem mexer no layout.
 
@@ -85,6 +86,11 @@ export const funcionalidades: HelpFeature[] = [
     descricao: 'Quando precisar de atendimento humano, escale o caso para um advogado. A conversa continua pelo WhatsApp.',
   },
   {
+    icon:      MessageCircle,
+    titulo:    'Abrir casos pelo WhatsApp',
+    descricao: `Você não precisa entrar na plataforma para abrir um caso: mande o relato por mensagem ou áudio para ${formatWhatsappNumber()} e a análise volta na própria conversa. O número da sua agência precisa ser o mesmo cadastrado no perfil — é por ele que identificamos quem está falando.`,
+  },
+  {
     icon:      CreditCard,
     titulo:    'Planos e cobrança',
     descricao: 'Gerencie seu plano em "Planos": mensal (assinatura recorrente) ou anual (à vista, cartão em até 12x, PIX ou boleto).',
@@ -116,6 +122,11 @@ export const faq: HelpFaq[] = [
     grupo:    'Uso',
     pergunta: 'Posso anexar documentos?',
     resposta: 'Sim. Você pode anexar arquivos (como contratos, e-mails e comprovantes) ao criar o caso. A IA lê o conteúdo e usa na análise.',
+  },
+  {
+    grupo:    'Uso',
+    pergunta: 'Dá para usar o TurisGuard pelo WhatsApp?',
+    resposta: `Dá. Salve o número ${formatWhatsappNumber()} e mande o caso por mensagem ou áudio — a análise volta na própria conversa, e o caso aparece normalmente aqui no painel. Escreva do mesmo número cadastrado no perfil da agência: é por ele que identificamos quem está falando.`,
   },
   {
     grupo:    'Uso',

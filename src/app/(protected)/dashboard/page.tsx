@@ -7,6 +7,7 @@ import ClickableRow from '@/components/ClickableRow'
 import { Case, CASE_CATEGORIES } from '@/types'
 import { formatDate } from '@/lib/datetime'
 import { ChevronRight, FolderOpen, PlusCircle } from 'lucide-react'
+import WhatsappCta from '@/components/WhatsappCta'
 
 /** Severidade a exibir: só de análise aprovada (a agência não vê pendências). */
 function caseSeverity(c: Case) {
@@ -146,6 +147,11 @@ export default async function DashboardPage({ searchParams }: Props) {
           </table>
         </div>
       )}
+
+      {/* Descoberta do canal WhatsApp. Fica no fim para não empurrar a lista. */}
+      <div className="mt-6">
+        <WhatsappCta />
+      </div>
     </div>
   )
 }
