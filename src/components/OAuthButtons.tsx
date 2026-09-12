@@ -7,7 +7,7 @@ export default function OAuthButtons({ next = '/bem-vindo' }: { next?: string } 
 
   async function signInWithGoogle() {
     const redirectTo = next
-      ? `${window.location.origin}/auth/callback?next=${next}`
+      ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
       : `${window.location.origin}/auth/callback`
     await supabase.auth.signInWithOAuth({
       provider: 'google',

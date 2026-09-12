@@ -14,6 +14,7 @@
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { env } from '@/lib/env'
 import { PLANS, type PlanDef } from '@/lib/plans'
+import { appUrl } from '@/lib/urls'
 import type { Agency, PaymentMethod, BillingCycle } from '@/types'
 
 const DEFAULT_API_URL = 'https://api-sandbox.asaas.com/v3'
@@ -24,10 +25,6 @@ function apiBase(): string {
 
 export function serviceClient() {
   return createServiceClient(env('NEXT_PUBLIC_SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'))
-}
-
-function appUrl(): string {
-  return env('NEXT_PUBLIC_APP_URL') || 'https://www.turisguard.com'
 }
 
 /** Mapeia a forma de pagamento da nossa UI para o billingType do Asaas. */

@@ -21,6 +21,7 @@ import { analyzeCase, analyzeCaseRevision, followUpCase, ConversationMessage } f
 import { findSimilarCases, formatSimilarCases } from '@/lib/ai/rag'
 import { notifyAgencyCaseReady } from '@/lib/notify'
 import { getTrialInfo, getEscalationInfo } from '@/lib/plans'
+import { appUrl, caseUrl } from '@/lib/urls'
 import { env } from '@/lib/env'
 import { normalizePhone } from '@/lib/phone'
 import { MAX_FOLLOWUP_QUESTIONS } from '@/types'
@@ -284,12 +285,11 @@ async function handleEscalation(
   const info = getEscalationInfo(getTrialInfo(agencyRow ?? {}), count ?? 0)
 
   if (!info.canEscalate) {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.turisguard.com'
     const motivo = info.reason === 'trial_expired'
       ? 'Seu período gratuito terminou.'
       : `Você já usou suas ${info.total} escaladas gratuitas.`
     await sendText(phone,
-      `⚠️ ${motivo}\n\nAssine um plano para falar com um advogado sobre este caso:\n${appUrl}/assinar`
+      `⚠️ ${motivo}\n\nAssine um plano para falar com um advogado sobre este caso:\n${appUrl()}/assinar`
     )
     return
   }
@@ -584,7 +584,8 @@ async function handleAwaitingFiles(
       await sendText(phone,
         '✅ Recebi seu caso e a análise já foi gerada.\n\n' +
         'Ela está passando pela revisão de um advogado. Assim que for liberada, ' +
-        'eu envio o parecer completo aqui mesmo. 🕐'
+        'eu envio o parecer completo aqui mesmo. 🕐' +
+        (caseId ? `\n\n📄 Acompanhar na plataforma:\n${caseUrl(caseId)}` : '')
       )
       await closeSession(sessionId)
       return
@@ -596,6 +597,9 @@ async function handleAwaitingFiles(
 
     await sendText(phone,
       '❓ Ficou com alguma dúvida sobre a análise? Me pergunte agora!\n\n' +
+      (caseId
+        ? `📄 Ver este caso na plataforma — histórico completo, anexos e mais opções:\n${caseUrl(caseId)}\n\n`
+        : '') +
       '_Para iniciar um novo caso, digite *novo caso*._'
     )
     // Grava o case_id na sessão: sem ele o follow-up não sabe sobre qual caso
@@ -672,10 +676,9 @@ export async function POST(request: NextRequest) {
     // Busca agência pelo telefone
     const agency = await findAgencyByPhone(phone)
     if (!agency) {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://juristur.vercel.app'
       await sendText(phone,
         `👋 Olá! Seu número não está cadastrado na plataforma TurisGuard.\n\n` +
-        `Para usar este serviço, acesse o link abaixo e cadastre sua agência:\n${appUrl}/cadastro`
+        `Para usar este serviço, acesse o link abaixo e cadastre sua agência:\n${appUrl()}/cadastro`
       )
       return NextResponse.json({ ok: true })
     }

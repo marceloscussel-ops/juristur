@@ -2,6 +2,7 @@ import { sendText, sendTextParts } from '@/lib/whatsapp/sender'
 import { sendTransactional } from '@/lib/whatsapp/transactional'
 import { formatAnalysis } from '@/lib/whatsapp/formatter'
 import { openFollowUpSession } from '@/lib/whatsapp/session'
+import { appUrl, caseUrl } from '@/lib/urls'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { env } from '@/lib/env'
 
@@ -49,8 +50,7 @@ export async function notifyAgencyCaseReady(caseId: string) {
     }
 
     const shortCode = caseId.slice(0, 6).toUpperCase()
-    const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://juristur.vercel.app'
-    const link      = `${appUrl}/casos/${caseId}`
+    const link      = caseUrl(caseId)
     const desc      = (caseRow.description ?? '').trim().replace(/\s+/g, ' ')
     const shortDesc = desc.length > 120 ? desc.slice(0, 117).trimEnd() + '…' : desc
 
@@ -102,10 +102,12 @@ async function deliverAnalysisOnWhatsapp(
   await sendText(phone, '✅ *Boa notícia!* Um advogado revisou e liberou a análise do seu caso.')
   await sendTextParts(phone, formatAnalysis(analysis.ai_response, category || undefined))
 
+  const link = `📄 Ver este caso na plataforma — histórico completo, anexos e mais opções:\n${caseUrl(caseId)}`
+
   await sendText(phone, opened
     ? '❓ Ficou com alguma dúvida sobre a análise? Me pergunte agora!\n\n' +
-      '_Para iniciar um novo caso, digite *novo caso*._'
-    : '_O parecer completo também está na plataforma, em Meus casos._'
+      `${link}\n\n_Para iniciar um novo caso, digite *novo caso*._`
+    : link
   )
 }
 
@@ -160,7 +162,6 @@ export async function notifyLawyerEscalation(
   category:    string,
 ) {
   const shortCode = caseId.slice(0, 6).toUpperCase()
-  const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://juristur.vercel.app'
 
   const message = [
     `🙋 *Pedido de atendimento — TurisGuard*`,
@@ -172,7 +173,7 @@ export async function notifyLawyerEscalation(
     `A agência pediu para falar com um advogado sobre este caso, pelo WhatsApp.`,
     ``,
     `Ver o caso:`,
-    `${appUrl}/lawyer/casos/${caseId}`,
+    `${appUrl()}/lawyer/casos/${caseId}`,
   ].join('\n')
 
   try { await sendText(lawyerPhone, message) } catch { /* silencioso */ }
@@ -188,7 +189,6 @@ export async function notifyLawyerNewCase(
   isComplement = false,
 ) {
   const shortCode = caseId.slice(0, 6).toUpperCase()
-  const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://juristur.vercel.app'
 
   const preview = analysisText.length > 1500
     ? analysisText.slice(0, 1500) + '\n[... continua na plataforma]'
@@ -213,7 +213,7 @@ export async function notifyLawyerNewCase(
     `─────────────────────────`,
     ``,
     `Revisar na plataforma:`,
-    `${appUrl}/lawyer/casos/${caseId}`,
+    `${appUrl()}/lawyer/casos/${caseId}`,
     ``,
     `Ou responda aqui para decidir:`,
     `✅ APROVAR ${shortCode}`,

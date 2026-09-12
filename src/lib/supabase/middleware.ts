@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { getTrialInfo } from '@/lib/plans'
 import { isAdmin } from '@/lib/admin'
+import { safeNextPath } from '@/lib/urls'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -36,15 +37,21 @@ export async function updateSession(request: NextRequest) {
   // Papel do usuário vem diretamente do JWT (app_metadata) — sem query ao banco
   const isLawyer = user?.app_metadata?.role === 'lawyer'
 
+  // Guarda o destino em ?next= para o login devolver a pessoa ao lugar certo.
+  // Sem isto, quem abre um link de caso (por exemplo o que mandamos no
+  // WhatsApp) sem sessão ativa cai no dashboard e tem de procurar o caso.
   if (!user && !isPublicPath) {
     const url = request.nextUrl.clone()
+    const next = `${pathname}${request.nextUrl.search}`
     url.pathname = '/login'
+    url.search = ''
+    url.searchParams.set('next', next)
     return NextResponse.redirect(url)
   }
 
   if (user && (pathname === '/login' || pathname === '/cadastro' || pathname === '/evento')) {
-    const url = request.nextUrl.clone()
-    url.pathname = isLawyer ? '/lawyer/dashboard' : '/dashboard'
+    const next = safeNextPath(request.nextUrl.searchParams.get('next'))
+    const url  = new URL(next ?? (isLawyer ? '/lawyer/dashboard' : '/dashboard'), request.url)
     return NextResponse.redirect(url)
   }
 

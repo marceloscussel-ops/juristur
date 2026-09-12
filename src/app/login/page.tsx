@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { safeNextPath } from '@/lib/urls'
 import { Eye, EyeOff } from 'lucide-react'
 import TGLogo from '@/components/TGLogo'
 import OAuthButtons from '@/components/OAuthButtons'
@@ -17,6 +18,14 @@ export default function LoginPage() {
   const router = useRouter()
   const supabase = createClient()
 
+  // Destino pedido antes do login (o middleware põe em ?next=). Lido do
+  // window em vez de useSearchParams para a página seguir estática — o hook
+  // exigiria envolver tudo num Suspense.
+  const [next, setNext] = useState<string | null>(null)
+  useEffect(() => {
+    setNext(safeNextPath(new URLSearchParams(window.location.search).get('next')))
+  }, [])
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
@@ -28,7 +37,7 @@ export default function LoginPage() {
       return
     }
     const isLawyer = data.user?.app_metadata?.role === 'lawyer'
-    router.push(isLawyer ? '/lawyer/dashboard' : '/dashboard')
+    router.push(next ?? (isLawyer ? '/lawyer/dashboard' : '/dashboard'))
     router.refresh()
   }
 
@@ -97,7 +106,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <OAuthButtons />
+          <OAuthButtons next={next ?? '/bem-vindo'} />
         </div>
 
         <p className="text-center j-caption mt-5">
