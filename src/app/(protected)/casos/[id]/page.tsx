@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import StatusBadge from '@/components/StatusBadge'
-import PrintButton from '@/components/PrintButton'
+import DownloadPdfButton from '@/components/DownloadPdfButton'
 import LegalResponse from '@/components/LegalResponse'
 import CaseRefresh from '@/components/CaseRefresh'
 import CaseFollowUp from '@/components/CaseFollowUp'
@@ -63,7 +63,7 @@ export default async function CasoPage({ params }: { params: Promise<{ id: strin
         </Link>
         {/* Atalho para registrar outra situação sem passar pela lista de casos */}
         <div className="flex items-center gap-2">
-          {analysis && <PrintButton />}
+          {analysis && <DownloadPdfButton caseId={caseData.id} />}
           <Link href="/casos/novo" className="btn btn-outline no-underline">
             <PlusCircle className="w-4 h-4" />
             Novo caso

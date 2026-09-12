@@ -380,13 +380,15 @@ code, kbd, pre {
   }
 }
 
-/* ── Estilos de impressão ── */
+/* ── Estilos de impressão ──
+   O PDF oficial vem pronto do servidor (botão "Baixar PDF"). Estas regras
+   existem só para quem usa Ctrl+P: antes havia um `body > * { display: none }`
+   apoiado numa classe .print-area inexistente — a página saía em branco. */
 @media print {
-  body > * { display: none !important; }
-  .print-area { display: block !important; }
-  nav, .print\:hidden { display: none !important; }
-  @page { margin: 2cm; size: A4; }
-  body { font-size: 12pt; color: #000; background: #fff; }
+  nav, footer, .print\:hidden { display: none !important; }
+  @page { margin: 1.8cm; size: A4; }
+  body { font-size: 11pt; color: #000; background: #fff; }
+  main { max-width: none !important; padding: 0 !important; margin: 0 !important; }
   .j-card { border: 1px solid #ccc; box-shadow: none; break-inside: avoid; }
   a { text-decoration: none; color: inherit; }
 }
