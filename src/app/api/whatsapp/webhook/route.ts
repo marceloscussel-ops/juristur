@@ -34,6 +34,9 @@ interface ZApiMessage {
   phone:     string
   fromMe?:   boolean
   type:      string
+  /** Id da mensagem na Z-API. `id` é queda de segurança caso o campo mude. */
+  messageId?: string
+  id?:        string
   text?:     { message: string }
   audio?:    { audioUrl: string; mimeType: string }
   // Z-API envia PTT (voice note) com campos alternativos
@@ -51,6 +54,42 @@ function getServiceClient() {
   )
 }
 
+
+/**
+ * Porteiro contra reentrega da Z-API, que reenvia o webhook quando não recebe
+ * resposta a tempo — e o nosso só responde depois de transcrever, consultar o
+ * Claude e enviar tudo, o que passa do limite dela em perguntas por áudio.
+ *
+ * O INSERT é a trava, não um SELECT anterior: as duas execuções podem consultar
+ * antes de qualquer uma gravar. Quem perde a corrida leva 23505 e para aqui.
+ *
+ * Na dúvida, processa. Se a tabela ainda não existe (migração não aplicada) ou
+ * o banco oscila, seguir em frente e arriscar uma duplicata é melhor do que
+ * engolir a mensagem de um cliente.
+ */
+async function isDuplicateDelivery(msg: ZApiMessage): Promise<boolean> {
+  const messageId = msg.messageId ?? msg.id
+
+  if (!messageId) {
+    console.warn('[whatsapp/webhook] payload sem messageId/id — sem proteção contra reentrega:',
+      Object.keys(msg).join(','))
+    return false
+  }
+
+  const { error } = await getServiceClient()
+    .from('whatsapp_processed_messages')
+    .insert({ message_id: messageId })
+
+  if (!error) return false
+
+  if (error.code === '23505') {
+    console.log(`[whatsapp/webhook] reentrega ignorada: ${messageId}`)
+    return true
+  }
+
+  console.error('[whatsapp/webhook] dedup indisponível:', error.message)
+  return false
+}
 
 /** Busca agência pelo número de telefone cadastrado. */
 async function findAgencyByPhone(phone: string) {
@@ -637,6 +676,9 @@ export async function POST(request: NextRequest) {
 
     const phone = normalizePhone(body.phone)
     if (!phone) return NextResponse.json({ ok: true })
+
+    // Antes de qualquer trabalho: esta mensagem já foi processada?
+    if (await isDuplicateDelivery(body)) return NextResponse.json({ ok: true, duplicate: true })
 
     // Verifica se é o advogado enviando um comando (APROVAR / REVISAR)
     const supabaseService = getServiceClient()

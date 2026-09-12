@@ -89,6 +89,7 @@ export async function GET(req: NextRequest) {
       ['case_messages', 'content'],
       ['case_analyses', 'review_status'],
       ['case_analyses', 'severity'],
+      ['whatsapp_processed_messages', 'message_id'],
     ]
     for (const [table, col] of schema) {
       const { error } = await admin.from(table).select(col, { head: true }).limit(1)
