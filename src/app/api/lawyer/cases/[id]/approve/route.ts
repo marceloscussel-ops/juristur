@@ -33,7 +33,8 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
 
   await auth.db.from('cases').update({ status: 'concluido' }).eq('id', caseId)
 
-  // Avisa a agência que a análise foi liberada (origem web → notifica; whatsapp → suprime)
+  // Entrega a análise à agência (origem whatsapp → parecer inline na conversa;
+  // web → aviso curto com link)
   await notifyAgencyCaseReady(caseId)
 
   return NextResponse.json({ ok: true })

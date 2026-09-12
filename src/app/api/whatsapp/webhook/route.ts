@@ -12,7 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { getSession, createSession, updateSession, closeSession } from '@/lib/whatsapp/session'
+import { getSession, createSession, updateSession, closeSession, touchSession } from '@/lib/whatsapp/session'
 import { sendText, sendTextParts } from '@/lib/whatsapp/sender'
 import { categoryMenu, parseCategory, formatAnalysis } from '@/lib/whatsapp/formatter'
 import { transcribeAudio } from '@/lib/whatsapp/transcriber'
@@ -547,14 +547,17 @@ async function handleAwaitingFiles(
       caseId = newCase?.id
     }
 
-    if (caseId) {
-      // Verifica auto_approve do advogado
-      const { data: lwSettings } = await supabase
-        .from('lawyer_settings')
-        .select('auto_approve, lawyer_phone')
-        .single()
+    // O auto_approve do advogado decide se a análise vai direto ao cliente ou
+    // fica retida esperando revisão. Fica fora do `if (caseId)` porque governa
+    // também a entrega, logo abaixo.
+    const { data: lwSettings } = await supabase
+      .from('lawyer_settings')
+      .select('auto_approve, lawyer_phone')
+      .single()
 
-      const autoApprove  = lwSettings?.auto_approve ?? true
+    const autoApprove = lwSettings?.auto_approve ?? true
+
+    if (caseId) {
       const reviewStatus = autoApprove ? 'approved' : 'pending'
 
       await supabase.from('case_analyses').insert({
@@ -572,6 +575,19 @@ async function handleAwaitingFiles(
         const { notifyLawyerNewCase } = await import('@/lib/notify')
         await notifyLawyerNewCase(lwSettings.lawyer_phone, caseId, agencyRow?.name ?? 'Agência', category, result.text)
       }
+    }
+
+    // Revisão manual ligada: a análise NÃO vai para o cliente agora. Ela fica
+    // retida e é entregue por notifyAgencyCaseReady quando o advogado aprovar —
+    // que é também quem reabre a sessão em follow-up.
+    if (!autoApprove) {
+      await sendText(phone,
+        '✅ Recebi seu caso e a análise já foi gerada.\n\n' +
+        'Ela está passando pela revisão de um advogado. Assim que for liberada, ' +
+        'eu envio o parecer completo aqui mesmo. 🕐'
+      )
+      await closeSession(sessionId)
+      return
     }
 
     // Envia resposta formatada para WhatsApp
@@ -727,6 +743,16 @@ export async function POST(request: NextRequest) {
         if (!session.case_id) {
           await sendText(phone, '⚠️ Sessão inválida. Para começar um novo caso, digite *novo caso*.')
           await closeSession(session.id)
+          break
+        }
+
+        // Conversa viva: renova o relógio para a sessão não expirar no meio
+        await touchSession(session.id)
+
+        if (!text) {
+          await sendText(phone,
+            'Me mande sua dúvida em texto ou em áudio 🎙️ que eu respondo sobre a análise.'
+          )
           break
         }
 

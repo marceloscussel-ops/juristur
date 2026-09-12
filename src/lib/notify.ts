@@ -1,5 +1,7 @@
-import { sendText } from '@/lib/whatsapp/sender'
+import { sendText, sendTextParts } from '@/lib/whatsapp/sender'
 import { sendTransactional } from '@/lib/whatsapp/transactional'
+import { formatAnalysis } from '@/lib/whatsapp/formatter'
+import { openFollowUpSession } from '@/lib/whatsapp/session'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { env } from '@/lib/env'
 
@@ -10,14 +12,16 @@ function getServiceClient() {
 }
 
 /**
- * Avisa a agência (cliente) via WhatsApp que a análise do caso foi concluída
- * e está liberada na plataforma.
+ * Avisa a agência (cliente) que a análise do caso foi liberada.
  *
- * Idempotência de canal: casos com origem `whatsapp` recebem a análise inline
- * na própria conversa, então esta notificação separada é suprimida para eles —
- * ela existe para o cliente que NÃO está olhando (caso criado na web e liberado
- * depois pela revisão do advogado). Falha de envio é silenciosa: nunca deve
- * derrubar a conclusão do caso.
+ * O canal depende da origem do caso:
+ *  - `whatsapp`: entrega o parecer INLINE na conversa. Quando a revisão manual
+ *    está ligada, a análise fica retida durante o atendimento e só chega aqui,
+ *    depois do aval do advogado — por isso a sessão também é reaberta em
+ *    follow-up, para as perguntas de acompanhamento continuarem funcionando.
+ *  - `web`: manda um aviso curto com link, para o cliente que não está olhando.
+ *
+ * Falha de envio é silenciosa: nunca deve derrubar a conclusão do caso.
  */
 export async function notifyAgencyCaseReady(caseId: string) {
   try {
@@ -25,12 +29,11 @@ export async function notifyAgencyCaseReady(caseId: string) {
 
     const { data: caseRow } = await db
       .from('cases')
-      .select('description, agency_id, origin')
+      .select('description, category, agency_id, origin')
       .eq('id', caseId)
       .single()
 
-    // Origem WhatsApp já recebeu a análise na conversa — não duplica o aviso.
-    if (!caseRow || caseRow.origin === 'whatsapp') return
+    if (!caseRow) return
 
     const { data: agency } = await db
       .from('agencies')
@@ -39,6 +42,11 @@ export async function notifyAgencyCaseReady(caseId: string) {
       .single()
 
     if (!agency?.phone) return // sem WhatsApp cadastrado não há como avisar
+
+    if (caseRow.origin === 'whatsapp') {
+      await deliverAnalysisOnWhatsapp(caseId, caseRow.agency_id, caseRow.category ?? '', agency.phone)
+      return
+    }
 
     const shortCode = caseId.slice(0, 6).toUpperCase()
     const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://juristur.vercel.app'
@@ -62,6 +70,43 @@ export async function notifyAgencyCaseReady(caseId: string) {
       ].join('\n'),
     })
   } catch { /* silencioso */ }
+}
+
+/**
+ * Entrega o parecer aprovado na própria conversa do WhatsApp e devolve a pessoa
+ * ao estado de follow-up, como se a análise tivesse saído na hora.
+ */
+async function deliverAnalysisOnWhatsapp(
+  caseId:   string,
+  agencyId: string,
+  category: string,
+  phone:    string,
+) {
+  const db = getServiceClient()
+
+  const { data: analysis } = await db
+    .from('case_analyses')
+    .select('ai_response')
+    .eq('case_id', caseId)
+    .eq('review_status', 'approved')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single()
+
+  if (!analysis?.ai_response) return
+
+  // Abre a sessão ANTES de enviar: se a pessoa responder na hora, o webhook já
+  // encontra o estado certo. Pode não abrir, se houver outra conversa em curso.
+  const opened = await openFollowUpSession(phone, agencyId, caseId)
+
+  await sendText(phone, '✅ *Boa notícia!* Um advogado revisou e liberou a análise do seu caso.')
+  await sendTextParts(phone, formatAnalysis(analysis.ai_response, category || undefined))
+
+  await sendText(phone, opened
+    ? '❓ Ficou com alguma dúvida sobre a análise? Me pergunte agora!\n\n' +
+      '_Para iniciar um novo caso, digite *novo caso*._'
+    : '_O parecer completo também está na plataforma, em Meus casos._'
+  )
 }
 
 /** Alerta o admin via WhatsApp quando uma análise de IA falha. */
