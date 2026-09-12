@@ -450,6 +450,20 @@ export default function HomePage() {
                 <span style={{ fontFamily: D.display, fontWeight: 700, fontSize: 17, color: '#fff' }}>TurisGuard</span>
               </div>
               <p style={{ fontSize: 13.5, lineHeight: 1.6, margin: 0, color: '#6E7E98' }}>Orientação jurídica por IA para agências de turismo brasileiras, com escalada para advogado.</p>
+              <a
+                href="https://www.instagram.com/turisguard"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="TurisGuard no Instagram, @turisguard"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 9, marginTop: 18, fontSize: 13.5, fontWeight: 600, color: '#9FACC0', textDecoration: 'none', background: 'rgba(255,255,255,.05)', border: '1px solid #16202F', padding: '9px 14px', borderRadius: 10 }}
+              >
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
+                  <rect x="2.5" y="2.5" width="19" height="19" rx="5.5" />
+                  <circle cx="12" cy="12" r="4.2" />
+                  <circle cx="17.5" cy="6.5" r="1.15" fill="currentColor" stroke="none" />
+                </svg>
+                @turisguard
+              </a>
             </div>
             <div className="lp-footer-links" style={{ display: 'flex', gap: 56, flexWrap: 'wrap' }}>
               <div>
