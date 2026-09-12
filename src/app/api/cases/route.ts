@@ -6,6 +6,7 @@ import { findSimilarCases, formatSimilarCases } from '@/lib/ai/rag'
 import { notifyAnalysisFailed, notifyLawyerNewCase, notifyAgencyCaseReady } from '@/lib/notify'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { env } from '@/lib/env'
+import { ensureAgency } from '@/lib/agency'
 
 function getServiceClient() {
   return createServiceClient(env('NEXT_PUBLIC_SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'))
@@ -74,21 +75,43 @@ export async function POST(request: NextRequest) {
     }
 
     // 1. Criar o caso
-    const { data: caseData, error: caseError } = await supabase
+    const newCase = {
+      agency_id:   user.id,
+      title:       title || null,
+      description,
+      category,
+      status:      'em_analise',
+      origin:      'web',
+    }
+
+    let { data: caseData, error: caseError } = await supabase
       .from('cases')
-      .insert({
-        agency_id:   user.id,
-        title:       title || null,
-        description,
-        category,
-        status:      'em_analise',
-        origin:      'web',
-      })
+      .insert(newCase)
       .select()
       .single()
 
+    // 23503 = o usuário está autenticado mas não tem linha em `agencies`, então
+    // a foreign key `cases_agency_id_fkey` barra o insert. Repara e tenta uma vez.
+    if (caseError?.code === '23503') {
+      console.error('[cases POST] agência ausente, reparando:', JSON.stringify(caseError))
+      const repaired = await ensureAgency(user)
+
+      if (!repaired) {
+        return NextResponse.json(
+          { error: 'Não conseguimos vincular sua conta a uma agência. Fale com o suporte.' },
+          { status: 500 }
+        )
+      }
+
+      ;({ data: caseData, error: caseError } = await supabase
+        .from('cases')
+        .insert(newCase)
+        .select()
+        .single())
+    }
+
     if (caseError || !caseData) {
-      console.error('[cases POST] insert error:', caseError)
+      console.error('[cases POST] insert error:', JSON.stringify(caseError))
       return NextResponse.json({ error: 'Erro ao criar caso. Tente novamente.' }, { status: 500 })
     }
 

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { normalizePhone, isValidBrazilianMobile } from '@/lib/phone'
 import { isValidCpfCnpj } from '@/lib/document'
+import { isPhoneTaken } from '@/lib/agency'
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,6 +28,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'WhatsApp inválido. Informe com DDI e DDD. Ex: +55 (51) 99999-9999' },
         { status: 400 }
+      )
+    }
+
+    // `agencies.phone` é UNIQUE (o webhook do WhatsApp acha a agência pelo
+    // número). Barra aqui, antes do signUp: se deixássemos passar, o usuário do
+    // Auth seria criado sem a agência correspondente e todo caso aberto por ele
+    // quebraria na foreign key.
+    if (await isPhoneTaken(phone)) {
+      return NextResponse.json(
+        { error: 'Este WhatsApp já está cadastrado em outra conta. Use outro número ou faça login.' },
+        { status: 409 }
       )
     }
 
@@ -76,7 +88,7 @@ export async function POST(request: NextRequest) {
     const clean = (v: unknown, max = 60) =>
       typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null
 
-    const { error: agencyError } = await admin.from('agencies').upsert({
+    const agencyRow = {
       id: authData.user.id,
       name,
       cnpj: cnpjDigits || PLACEHOLDER_CNPJ,
@@ -84,11 +96,28 @@ export async function POST(request: NextRequest) {
       phone: phone ? normalizePhone(phone) : null,
       origem:          clean(origem, 30),
       origem_campanha: clean(origemCampanha),
-    }, { onConflict: 'id' })
+    }
+
+    const { error: agencyError } = await admin.from('agencies').upsert(agencyRow, { onConflict: 'id' })
 
     if (agencyError) {
       console.error('[register] agencyError:', JSON.stringify(agencyError))
-      return NextResponse.json({ error: `Agência: ${agencyError.message} (code: ${agencyError.code})` }, { status: 500 })
+
+      // Corrida com outro cadastro no mesmo número: grava sem telefone para a
+      // conta não nascer sem agência. O WhatsApp é reconfigurável no /perfil.
+      if (agencyError.code === '23505') {
+        const { error: retryError } = await admin
+          .from('agencies')
+          .upsert({ ...agencyRow, phone: null }, { onConflict: 'id' })
+
+        if (!retryError) return NextResponse.json({ success: true })
+        console.error('[register] agencyError (retry sem telefone):', JSON.stringify(retryError))
+      }
+
+      return NextResponse.json(
+        { error: 'Não conseguimos concluir o cadastro. Tente novamente em instantes.' },
+        { status: 500 }
+      )
     }
 
     return NextResponse.json({ success: true })

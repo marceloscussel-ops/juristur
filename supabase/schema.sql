@@ -295,7 +295,18 @@ RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER SET search_path = public
 AS $$
+DECLARE
+  v_phone TEXT := NEW.raw_user_meta_data->>'phone';
 BEGIN
+  -- `phone` é UNIQUE: se o número já é de outra agência, grava NULL em vez de
+  -- deixar a violação derrubar o insert. Sem a linha em `agencies` o usuário
+  -- entra na plataforma mas todo caso quebra na foreign key de `cases`.
+  IF v_phone IS NOT NULL AND EXISTS (
+    SELECT 1 FROM public.agencies a WHERE a.phone = v_phone AND a.id <> NEW.id
+  ) THEN
+    v_phone := NULL;
+  END IF;
+
   -- Novos cadastros: 7 dias de acesso gratuito. Agências do piloto (30 dias)
   -- mantêm o trial_ends_at já gravado na criação.
   INSERT INTO public.agencies (id, name, cnpj, email, phone, subscription_status, trial_ends_at)
@@ -304,11 +315,11 @@ BEGIN
     COALESCE(NEW.raw_user_meta_data->>'name',  'Agência sem nome'),
     COALESCE(NEW.raw_user_meta_data->>'cnpj',  '00.000.000/0000-00'),
     NEW.email,
-    NEW.raw_user_meta_data->>'phone',
+    v_phone,
     'trial',
     now() + INTERVAL '7 days'
   )
-  ON CONFLICT DO NOTHING;
+  ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
 END;
 $$;

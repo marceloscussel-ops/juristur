@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import StatusBadge from '@/components/StatusBadge'
 import SeverityBadge from '@/components/SeverityBadge'
 import DashboardFilters from '@/components/DashboardFilters'
+import ClickableRow from '@/components/ClickableRow'
 import { Case, CASE_CATEGORIES } from '@/types'
 import { formatDate } from '@/lib/datetime'
 import { ChevronRight, FolderOpen, PlusCircle } from 'lucide-react'
@@ -117,7 +118,7 @@ export default async function DashboardPage({ searchParams }: Props) {
               {typedCases.map(c => {
                 const sev = caseSeverity(c)
                 return (
-                <tr key={c.id}>
+                <ClickableRow key={c.id} href={`/casos/${c.id}`}>
                   <td className="font-medium">
                     <Link href={`/casos/${c.id}`} className="no-underline text-ink hover:text-indigo transition-colors block">
                       {c.title ?? c.category}
@@ -134,11 +135,11 @@ export default async function DashboardPage({ searchParams }: Props) {
                   </td>
                   <td><StatusBadge status={c.status} /></td>
                   <td className="text-right">
-                    <Link href={`/casos/${c.id}`} className="no-underline">
+                    <Link href={`/casos/${c.id}`} aria-label="Abrir caso" className="no-underline">
                       <ChevronRight className="w-4 h-4 text-ink-40 inline hover:text-indigo transition-colors" />
                     </Link>
                   </td>
-                </tr>
+                </ClickableRow>
                 )
               })}
             </tbody>
