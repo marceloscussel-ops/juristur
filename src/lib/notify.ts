@@ -154,6 +154,42 @@ export async function notifyAdminDeletionIssue(email: string, subscriptionId: st
   try { await sendText(ADMIN_PHONE, message) } catch { /* silencioso */ }
 }
 
+/**
+ * Dá as boas-vindas à agência no WhatsApp, logo depois do cadastro.
+ *
+ * Serve a dois propósitos além da cortesia: revela o canal de WhatsApp (que a
+ * agência não teria como descobrir sozinha) e prova, na hora, que o número
+ * informado no cadastro realmente recebe as nossas mensagens — é por ele que
+ * avisamos quando a análise fica pronta.
+ *
+ * Deve ser chamada UMA vez por conta, quando o telefone é gravado pela primeira
+ * vez. Falha de envio é silenciosa: nunca deve derrubar um cadastro.
+ */
+export async function notifyWelcome(phone: string, agencyName: string) {
+  if (!phone) return
+
+  try {
+    await sendTransactional({
+      to:           phone,
+      templateName: 'welcome',
+      params:       [agencyName, appUrl()],
+      text: [
+        `👋 *Bem-vindo ao TurisGuard, ${agencyName}!*`,
+        ``,
+        `Sua conta já está ativa. Além da plataforma, você pode usar o TurisGuard *por aqui mesmo*:`,
+        ``,
+        `• Mande o caso por mensagem ou áudio`,
+        `• A análise volta nesta conversa`,
+        ``,
+        `Salve este número para não perder o canal.`,
+        ``,
+        `Acessar a plataforma:`,
+        appUrl(),
+      ].join('\n'),
+    })
+  } catch { /* silencioso */ }
+}
+
 /** Notifica o advogado que a agência pediu atendimento humano em um caso. */
 export async function notifyLawyerEscalation(
   lawyerPhone: string,

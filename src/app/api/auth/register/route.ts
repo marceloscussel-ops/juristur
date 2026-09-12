@@ -4,6 +4,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { normalizePhone, isValidBrazilianMobile } from '@/lib/phone'
 import { isValidCpfCnpj } from '@/lib/document'
 import { isPhoneTaken } from '@/lib/agency'
+import { notifyWelcome } from '@/lib/notify'
 
 export async function POST(request: NextRequest) {
   try {
@@ -119,6 +120,10 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       )
     }
+
+    // Abre o canal: revela o WhatsApp do TurisGuard e confirma que o número
+    // informado recebe as nossas mensagens. Silencioso se falhar.
+    if (agencyRow.phone) await notifyWelcome(agencyRow.phone, name)
 
     return NextResponse.json({ success: true })
   } catch {

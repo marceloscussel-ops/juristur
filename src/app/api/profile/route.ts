@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { normalizePhone } from '@/lib/phone'
 import { isValidCpfCnpj } from '@/lib/document'
+import { notifyWelcome } from '@/lib/notify'
 
 export async function GET() {
   try {
@@ -37,6 +38,13 @@ export async function PATCH(request: NextRequest) {
     // Normaliza para formato Z-API (sem o nono dígito)
     const phoneDigits = phone ? normalizePhone(phone) : null
 
+    // Telefone que estava gravado antes desta edição. Serve só para decidir se
+    // esta é a PRIMEIRA vez que a conta ganha um WhatsApp — é o caso do cadastro
+    // via Google, que só informa o número no /bem-vindo. Sem essa checagem, toda
+    // edição de perfil dispararia outra mensagem de boas-vindas.
+    const { data: before } = await supabase
+      .from('agencies').select('phone').eq('id', user.id).maybeSingle()
+
     const update: { name: string; phone: string | null; cnpj?: string } = {
       name: name.trim(),
       phone: phoneDigits || null,
@@ -54,6 +62,8 @@ export async function PATCH(request: NextRequest) {
       }
       return NextResponse.json({ error: 'Erro ao salvar.' }, { status: 500 })
     }
+
+    if (!before?.phone && phoneDigits) await notifyWelcome(phoneDigits, name.trim())
 
     return NextResponse.json({ success: true })
   } catch {
