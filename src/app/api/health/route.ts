@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient as createAdmin } from '@supabase/supabase-js'
+import { createClient as createAdmin, type SupabaseClient } from '@supabase/supabase-js'
 import { env } from '@/lib/env'
+import { normalizePhone } from '@/lib/phone'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,6 +32,58 @@ function dangerousCharsDetail(name: string): string | null {
     }
   }
   return bad.length ? bad.join(',') : null
+}
+
+/**
+ * Consistência dos dados que o produto assume verdadeira e que nenhuma
+ * constraint garante. Ambos os checks nasceram de incidente real:
+ *
+ * - agência órfã: usuário no Auth sem linha em `agencies`. A pessoa navega
+ *   normalmente e só descobre ao abrir o primeiro caso, quando o insert bate na
+ *   foreign key e a tela mostra um erro genérico.
+ * - telefone duplicado: `agencies.phone` é UNIQUE, mas só como string — o mesmo
+ *   WhatsApp gravado em formatos diferentes (`5551998344269` e `555198344269`)
+ *   passa pela constraint e deixa o webhook ambíguo: quem recebe a resposta
+ *   depende do formato que a Z-API mandar.
+ */
+async function dataChecks(admin: SupabaseClient): Promise<Check[]> {
+  const out: Check[] = []
+
+  const { data: ags, error: agsErr } = await admin.from('agencies').select('id, phone')
+  if (agsErr) {
+    return [{ name: 'data:consistencia', ok: false, detail: agsErr.message }]
+  }
+
+  const { data: authData, error: authErr } = await admin.auth.admin.listUsers({ perPage: 1000 })
+  if (authErr) {
+    out.push({ name: 'data:agencias-orfas', ok: false, detail: authErr.message })
+  } else {
+    const withAgency = new Set(ags.map(a => a.id))
+    const orphans = authData.users.filter(
+      u => !withAgency.has(u.id) && u.app_metadata?.role !== 'lawyer'
+    )
+    out.push({
+      name:   'data:agencias-orfas',
+      ok:     orphans.length === 0,
+      detail: orphans.length ? `${orphans.length}: ${orphans.map(u => u.id).join(', ')}` : undefined,
+    })
+  }
+
+  const byNumber = new Map<string, string[]>()
+  for (const a of ags) {
+    if (!a.phone) continue
+    const key = normalizePhone(a.phone)
+    if (!key) continue
+    byNumber.set(key, [...(byNumber.get(key) ?? []), a.id])
+  }
+  const dups = Array.from(byNumber.entries()).filter(([, ids]) => ids.length > 1)
+  out.push({
+    name:   'data:telefones-duplicados',
+    ok:     dups.length === 0,
+    detail: dups.length ? dups.map(([n, ids]) => `${n} -> ${ids.join(' e ')}`).join('; ') : undefined,
+  })
+
+  return out
 }
 
 export async function GET(req: NextRequest) {
@@ -75,8 +128,10 @@ export async function GET(req: NextRequest) {
   if (url && svc) {
     const admin = createAdmin(url, svc)
 
-    const { error: reachErr } = await admin
-      .from('agencies').select('id', { head: true, count: 'exact' }).limit(1)
+    // Sem `count: 'exact'`: combinado com `head` ele devolve 206 e a lib
+    // reportava erro de mensagem vazia mesmo com o banco respondendo — o health
+    // acusava 503 justamente quando alguém vinha diagnosticar um incidente.
+    const { error: reachErr } = await admin.from('agencies').select('id', { head: true }).limit(1)
     checks.push({ name: 'db:reachable', ok: !reachErr, detail: reachErr?.message })
 
     // Colunas/tabelas cuja ausência = migração não rodada
@@ -95,6 +150,8 @@ export async function GET(req: NextRequest) {
       const { error } = await admin.from(table).select(col, { head: true }).limit(1)
       checks.push({ name: `schema:${table}.${col}`, ok: !error, detail: error?.message })
     }
+
+    for (const check of await dataChecks(admin)) checks.push(check)
   } else {
     checks.push({ name: 'db:reachable', ok: false, detail: 'sem URL ou service key' })
   }
