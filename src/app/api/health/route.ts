@@ -4,6 +4,10 @@ import { env } from '@/lib/env'
 import { normalizePhone } from '@/lib/phone'
 
 export const dynamic = 'force-dynamic'
+// `dynamic` torna a ROTA dinâmica, mas não impede o cache de `fetch` que o
+// Next instala por baixo. Sem isto o health servia leitura velha do Auth:
+// acusou duas agências órfãs já removidas, com checkedAt posterior à remoção.
+export const fetchCache = 'force-no-store'
 
 /**
  * /api/health — auto-verificação de configuração e schema.
@@ -126,7 +130,13 @@ export async function GET(req: NextRequest) {
   const url = env('NEXT_PUBLIC_SUPABASE_URL')
   const svc = env('SUPABASE_SERVICE_ROLE_KEY')
   if (url && svc) {
-    const admin = createAdmin(url, svc)
+    // Leitura sempre fresca. Um endpoint de diagnóstico que responde de cache
+    // pode jurar que está tudo bem com dado vencido — e é nele que a gente
+    // confia durante um incidente, quando o resto já está sob suspeita.
+    const admin = createAdmin(url, svc, {
+      auth:   { persistSession: false, autoRefreshToken: false },
+      global: { fetch: (input, init) => fetch(input, { ...init, cache: 'no-store' }) },
+    })
 
     // Sem `count: 'exact'`: combinado com `head` ele devolve 206 e a lib
     // reportava erro de mensagem vazia mesmo com o banco respondendo — o health
