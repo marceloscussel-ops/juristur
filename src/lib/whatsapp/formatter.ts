@@ -62,8 +62,8 @@ export function formatAnalysis(aiResponse: string, caseTitle?: string): string[]
 
   const body   = markdownToWhatsApp(aiResponse)
   const footer = `\n━━━━━━━━━━━━━━━━━━━━━━
-Deseja falar com um advogado sobre este caso?
-1️⃣ Sim, quero contratar atendimento
+Deseja solicitar defesa para este caso? Um advogado assume o atendimento.
+1️⃣ Sim, quero solicitar defesa
 2️⃣ Não, por enquanto`
 
   const full = `${header}\n\n${body}${footer}`

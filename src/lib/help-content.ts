@@ -48,8 +48,8 @@ export const passos: HelpStep[] = [
     descricao: 'Esqueceu de mencionar um detalhe? Adicione um complemento (uma vez por caso). O relato original é preservado e a IA reanalisa considerando a nova informação.',
   },
   {
-    titulo:    'Fale com um advogado, se precisar',
-    descricao: 'Para atendimento humano sobre o caso, use "Escalar para advogado" e a conversa segue pelo WhatsApp.',
+    titulo:    'Solicite defesa, se precisar',
+    descricao: 'Para atendimento humano sobre o caso, use "Solicitar defesa": um advogado assume e a conversa segue pelo WhatsApp.',
   },
 ]
 
@@ -82,8 +82,8 @@ export const funcionalidades: HelpFeature[] = [
   },
   {
     icon:      Scale,
-    titulo:    'Escalar para advogado',
-    descricao: 'Quando precisar de atendimento humano, escale o caso para um advogado. A conversa continua pelo WhatsApp.',
+    titulo:    'Solicitar defesa',
+    descricao: 'Quando precisar de atendimento humano, solicite defesa: um advogado assume o caso e a conversa continua pelo WhatsApp.',
   },
   {
     icon:      MessageCircle,
@@ -151,12 +151,12 @@ export const faq: HelpFaq[] = [
   {
     grupo:    'Análise & IA',
     pergunta: 'A análise da IA substitui um advogado?',
-    resposta: 'Não. Ela oferece uma orientação inicial rápida e prática. Para atendimento humano sobre o caso, use "Escalar para advogado".',
+    resposta: 'Não. Ela oferece uma orientação inicial rápida e prática. Para atendimento humano sobre o caso, use "Solicitar defesa".',
   },
   {
     grupo:    'Advogado & Suporte',
     pergunta: 'Como falo com um advogado sobre o caso?',
-    resposta: 'Dentro do caso, use o botão "Escalar para advogado". A conversa segue pelo WhatsApp. No período gratuito há uma cota de escaladas.',
+    resposta: 'Use "Solicitar defesa" — na tela de ações ou dentro do caso. A conversa segue pelo WhatsApp. No período gratuito há uma cota de solicitações.',
   },
   {
     grupo:    'Advogado & Suporte',

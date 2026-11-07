@@ -206,7 +206,7 @@ export async function notifyLawyerEscalation(
     `📁 Categoria: ${category}`,
     `🔑 Código: ${shortCode}`,
     ``,
-    `A agência pediu para falar com um advogado sobre este caso, pelo WhatsApp.`,
+    `A agência solicitou defesa para este caso, pelo WhatsApp.`,
     ``,
     `Ver o caso:`,
     `${appUrl()}/lawyer/casos/${caseId}`,

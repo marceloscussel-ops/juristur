@@ -345,3 +345,62 @@ CREATE POLICY "case_files_upload" ON storage.objects
 DROP POLICY IF EXISTS "case_files_public_read" ON storage.objects;
 CREATE POLICY "case_files_public_read" ON storage.objects
   FOR SELECT USING (bucket_id = 'case-files');
+
+-- ============================================================
+-- Documentos gerados (contratos e outros documentos)
+--
+-- Tabela própria, e não uma linha em `cases`: documentos não têm
+-- análise, severidade nem revisão por advogado — reaproveitar
+-- `cases` jogaria lixo na fila do advogado. O painel da agência
+-- lista `cases` e `documents` juntos, ordenados por data; a
+-- separação é só de persistência.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS documents (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  agency_id   UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+  kind        TEXT NOT NULL DEFAULT 'contrato'
+                CHECK (kind IN ('contrato', 'outro')),
+  template_id TEXT,                           -- modelo base (kind='contrato')
+  doc_type    TEXT,                           -- rótulo do tipo (kind='outro')
+  title       TEXT,
+  prompt      TEXT,                           -- instruções/dados digitados
+  client_data JSONB NOT NULL DEFAULT '{}',    -- dados do consumidor extraídos
+  content     TEXT,                           -- documento gerado (markdown)
+  status      TEXT NOT NULL DEFAULT 'rascunho'
+                CHECK (status IN ('rascunho', 'confirmado', 'arquivado')),
+  tokens_used INT,
+  created_at  TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at  TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+-- Arquivos enviados como fonte de dados do documento (RG, CPF, voucher...)
+CREATE TABLE IF NOT EXISTS document_files (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  document_id    UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+  file_url       TEXT NOT NULL,
+  file_name      TEXT NOT NULL,
+  file_type      TEXT NOT NULL,
+  extracted_text TEXT,
+  created_at     TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS documents_agency_id_idx   ON documents(agency_id);
+CREATE INDEX IF NOT EXISTS documents_created_at_idx  ON documents(agency_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS document_files_doc_id_idx ON document_files(document_id);
+
+ALTER TABLE documents      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE document_files ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "documents_own" ON documents;
+CREATE POLICY "documents_own" ON documents
+  FOR ALL USING (auth.uid() = agency_id);
+
+DROP POLICY IF EXISTS "document_files_own" ON document_files;
+CREATE POLICY "document_files_own" ON document_files
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM documents
+      WHERE documents.id = document_files.document_id
+        AND documents.agency_id = auth.uid()
+    )
+  );

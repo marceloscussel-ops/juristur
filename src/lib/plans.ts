@@ -13,7 +13,7 @@ import type { AgencyPlan } from '@/types'
 /** Dias de acesso gratuito concedidos a novos cadastros. */
 export const TRIAL_DAYS = 7
 
-/** Escaladas para advogado incluídas sem custo durante o período gratuito. */
+/** Solicitações de defesa (advogado) incluídas sem custo no período gratuito. */
 export const TRIAL_ESCALATIONS = 2
 
 export interface PlanDef {
@@ -54,7 +54,7 @@ export const PLANS: PlanDef[] = [
       'Tudo do Essential',
       'Até 3 usuários',
       'Exportação de orientações',
-      '2 escaladas para advogado / mês',
+      '2 solicitações de defesa / mês',
     ],
   },
   {
@@ -67,7 +67,7 @@ export const PLANS: PlanDef[] = [
     features: [
       'Tudo do Professional',
       'Até 5 usuários',
-      '4 escaladas para advogado / mês',
+      '4 solicitações de defesa / mês',
       'Resposta humana em até 2h úteis',
       'Gestor de conta dedicado',
     ],
@@ -163,9 +163,9 @@ export interface EscalationInfo {
 }
 
 /**
- * Calcula a cota de escaladas de uma agência.
+ * Calcula a cota de solicitações de defesa de uma agência.
  * - Assinante ativo: sem bloqueio (cobrança será implementada depois).
- * - Período gratuito: TRIAL_ESCALATIONS escaladas incluídas.
+ * - Período gratuito: TRIAL_ESCALATIONS solicitações incluídas.
  * - Período expirado: bloqueado (precisa assinar).
  */
 export function getEscalationInfo(trial: TrialInfo, used: number): EscalationInfo {

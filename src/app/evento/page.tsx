@@ -31,8 +31,8 @@ const BENEFICIOS = [
   },
   {
     icon:   Scale,
-    titulo: 'Advogado quando precisar',
-    texto:  'Caso delicado? Escale para atendimento humano na própria plataforma.',
+    titulo: 'Defesa quando precisar',
+    texto:  'Caso delicado? Solicite defesa e um advogado assume na própria plataforma.',
   },
 ]
 

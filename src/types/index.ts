@@ -158,3 +158,88 @@ export interface RagCase {
   actual_outcome:         string | null
   created_at:             string
 }
+
+// ─── Documentos gerados (contratos e outros) ──────────────────────────────────
+
+/**
+ * As ações oferecidas na tela inicial. `duvida` é o fluxo de casos já existente;
+ * `contrato` e `documento` geram documentos; `defesa` é a escalada para um
+ * advogado (antes "falar com um advogado").
+ */
+export type ActionKind = 'contrato' | 'documento' | 'duvida' | 'defesa'
+
+/** Natureza do documento gerado. `contrato` parte de um modelo base. */
+export type DocumentKind = 'contrato' | 'outro'
+
+export type DocumentStatus = 'rascunho' | 'confirmado' | 'arquivado'
+
+/** Tipos sugeridos para "outros documentos" (campo livre, estes são atalhos). */
+export const DOCUMENT_TYPES = [
+  'E-mail ao cliente',
+  'E-mail ao fornecedor',
+  'Termo de ciência',
+  'Formalização financeira',
+  'Notificação extrajudicial',
+  'Declaração',
+  'Outro',
+] as const
+
+export type DocumentType = (typeof DOCUMENT_TYPES)[number]
+
+/**
+ * Dados do consumidor usados para preencher o contrato. Todos opcionais: a
+ * agência pode gerar um contrato com lacunas para preencher à mão depois.
+ */
+export interface ClientData {
+  nome?:          string
+  nacionalidade?: string
+  cpf?:           string
+  rg?:            string
+  endereco?:      string
+  email?:         string
+  telefone?:      string
+  /** Campos extras que a IA extraiu e não se encaixam acima. */
+  [key: string]: string | undefined
+}
+
+export interface AgencyDocument {
+  id:          string
+  agency_id:   string
+  kind:        DocumentKind
+  template_id: string | null
+  doc_type:    string | null
+  title:       string | null
+  prompt:      string | null
+  client_data: ClientData
+  content:     string | null
+  status:      DocumentStatus
+  tokens_used: number | null
+  created_at:  string
+  updated_at:  string
+  document_files?: DocumentFile[]
+}
+
+export interface DocumentFile {
+  id:             string
+  document_id:    string
+  file_url:       string
+  file_name:      string
+  file_type:      string
+  extracted_text: string | null
+  created_at:     string
+}
+
+/**
+ * Linha do painel unificado: casos e documentos na mesma lista, ordenados por
+ * data. `kind` diz de qual tabela veio e qual rótulo mostrar.
+ */
+export interface PanelItem {
+  id:         string
+  kind:       'duvida' | 'contrato' | 'documento'
+  title:      string
+  subtitle:   string
+  href:       string
+  status:     CaseStatus | DocumentStatus
+  severity:   Severity | null
+  created_at: string
+}

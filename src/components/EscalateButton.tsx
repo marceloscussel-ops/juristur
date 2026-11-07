@@ -32,7 +32,7 @@ const HOVER_BG: Record<EscalateVariant, string> = {
 export default function EscalateButton({ href, onClick, variant = 'primary', className = '' }: Props) {
   const style = VARIANTS[variant]
 
-  const label = variant === 'outline' ? 'Escalar caso' : 'Falar com um advogado'
+  const label = 'Solicitar defesa'
 
   const inner = variant === 'primary' ? (
     <>

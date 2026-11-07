@@ -263,15 +263,15 @@ async function handleLawyerCommand(phone: string, rawText: string) {
   }
 }
 
-// ─── Escalação para advogado (menu impresso no fim da análise) ────────────────
+// ─── Solicitação de defesa (menu impresso no fim da análise) ─────────────────
 
 /**
- * Lê a resposta ao menu "Deseja falar com um advogado?".
+ * Lê a resposta ao menu "Deseja solicitar defesa para este caso?".
  *
  * Aceita só os números do menu (e a forma com emoji). Palavras como "sim"/"não"
  * ficam de fora de propósito: depois de uma resposta de follow-up o bot pergunta
- * "tem mais alguma dúvida?", e ali um "sim" significa outra coisa — escalar por
- * engano consumiria uma escalada da cota da agência.
+ * "tem mais alguma dúvida?", e ali um "sim" significa outra coisa — solicitar
+ * defesa por engano consumiria uma solicitação da cota da agência.
  */
 function parseEscalationChoice(text: string): 'yes' | 'no' | null {
   const t = text.trim()
@@ -299,13 +299,13 @@ async function handleEscalation(
     .single()
 
   if (!caseRow) {
-    await sendText(phone, '⚠️ Não encontrei esse caso. Acesse a plataforma web para falar com um advogado.')
+    await sendText(phone, '⚠️ Não encontrei esse caso. Acesse a plataforma web para solicitar defesa.')
     return
   }
 
   // Já escalado antes: não consome cota de novo
   if (caseRow.escalated_at) {
-    await sendText(phone, '✅ Este caso já está na fila do advogado. Em breve falamos com você por aqui.')
+    await sendText(phone, '✅ A defesa deste caso já foi solicitada. Em breve falamos com você por aqui.')
     return
   }
 
@@ -326,9 +326,9 @@ async function handleEscalation(
   if (!info.canEscalate) {
     const motivo = info.reason === 'trial_expired'
       ? 'Seu período gratuito terminou.'
-      : `Você já usou suas ${info.total} escaladas gratuitas.`
+      : `Você já usou suas ${info.total} solicitações de defesa gratuitas.`
     await sendText(phone,
-      `⚠️ ${motivo}\n\nAssine um plano para falar com um advogado sobre este caso:\n${appUrl()}/assinar`
+      `⚠️ ${motivo}\n\nAssine um plano para solicitar defesa neste caso:\n${appUrl()}/assinar`
     )
     return
   }
@@ -336,7 +336,7 @@ async function handleEscalation(
   await db.from('cases').update({ escalated_at: new Date().toISOString() }).eq('id', caseId)
 
   await sendText(phone,
-    '✅ Certo! Encaminhei seu caso para um advogado.\n\n' +
+    '✅ Defesa solicitada! Encaminhei seu caso para um advogado.\n\n' +
     'O atendimento continua por aqui mesmo, neste número. ' +
     'Enquanto isso, pode seguir tirando dúvidas sobre a análise.'
   )
@@ -801,13 +801,13 @@ export async function POST(request: NextRequest) {
           break
         }
 
-        // Menu do fim da análise: 1 = falar com advogado, 2 = por enquanto não
+        // Menu do fim da análise: 1 = solicitar defesa, 2 = por enquanto não
         const choice = parseEscalationChoice(text)
         if (choice === 'yes') {
           await handleEscalation(phone, session.case_id, agency)
         } else if (choice === 'no') {
           await sendText(phone,
-            'Tudo bem! 👍 Se mudar de ideia, é só digitar *1* para falar com um advogado.\n\n' +
+            'Tudo bem! 👍 Se mudar de ideia, é só digitar *1* para solicitar defesa.\n\n' +
             '_Ficou alguma dúvida sobre a análise? Pode perguntar. Para um novo caso, digite *novo caso*._'
           )
         } else {

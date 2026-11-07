@@ -9,7 +9,7 @@ import '@/styles/landing.css'
 const faqData = [
   {
     q: 'O TurisGuard substitui um advogado?',
-    a: 'Não. As orientações são informativas, geradas por IA com base na legislação, e não constituem parecer jurídico (Provimento OAB). Para decisões com risco relevante, você escala o caso para um advogado de verdade direto na plataforma.',
+    a: 'Não. As orientações são informativas, geradas por IA com base na legislação, e não constituem parecer jurídico (Provimento OAB). Para decisões com risco relevante, você usa o Solicitar Defesa e um advogado de verdade assume o caso, direto na plataforma.',
   },
   {
     q: 'De onde vem a informação jurídica?',
@@ -20,8 +20,8 @@ const faqData = [
     a: 'Não. Você descreve a situação em português comum e recebe uma orientação clara, com os próximos passos práticos para a sua agência.',
   },
   {
-    q: 'Como funciona a escalada para advogado?',
-    a: 'Quando a IA sinaliza um caso complexo — ou quando você preferir —, o caso é encaminhado para atendimento humano, com resposta em até 2h úteis* nos planos com escalada inclusa.',
+    q: 'Como funciona o Solicitar Defesa?',
+    a: 'Quando a IA sinaliza um caso complexo — ou quando você preferir —, você solicita defesa e o caso é encaminhado para atendimento humano, com resposta em até 2h úteis* nos planos com defesa inclusa.',
   },
   {
     q: 'Meus dados e os dos clientes ficam seguros?',
@@ -116,7 +116,7 @@ export default function HomePage() {
                     <circle cx="12" cy="10.5" r="2.1" fill="#AF2719"/>
                     <path d="M8.4 15.5 C8.8 13.6 10.2 12.8 12 12.8 C13.8 12.8 15.2 13.6 15.6 15.5" stroke="#AF2719" strokeWidth="1.5" strokeLinecap="round"/>
                   </svg>
-                  <span style={{ fontSize: 12.5, fontWeight: 600, color: '#AF2719' }}>Quer confirmar com um advogado? Escale em 1 clique.</span>
+                  <span style={{ fontSize: 12.5, fontWeight: 600, color: '#AF2719' }}>Quer confirmar com um advogado? Solicite defesa em 1 clique.</span>
                 </div>
               </div>
             </div>
@@ -167,7 +167,7 @@ export default function HomePage() {
             {[
               { num: '01', numColor: '#9DA1FB', title: 'Pergunte em português comum', desc: 'Descreva a situação do jeito que ela aconteceu. Sem formulários jurídicos, sem termos técnicos.' },
               { num: '02', numColor: '#9DA1FB', title: 'Receba uma orientação fundamentada', desc: 'Resposta clara, com os próximos passos e a base legal citada — gerada com IA e fundamentada em casos reais já resolvidos.' },
-              { num: '03', numColor: '#FB6A57', title: 'Escale para um advogado, se precisar', desc: 'Caso sério ou na dúvida? Encaminhe para atendimento humano com um clique e tenha respaldo profissional.' },
+              { num: '03', numColor: '#FB6A57', title: 'Solicite defesa, se precisar', desc: 'Caso sério ou na dúvida? Um advogado assume o atendimento com um clique e você tem respaldo profissional.' },
             ].map(step => (
               <div key={step.num} style={{ background: '#fff', border: '1px solid #E6EAF0', borderRadius: 18, padding: 30 }}>
                 <span style={{ fontFamily: D.mono, fontSize: 13, fontWeight: 600, color: step.numColor }}>{step.num}</span>
@@ -190,7 +190,7 @@ export default function HomePage() {
             {[
               { bg: '#EAFBF5', icon: <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M12 3 L20 6 V12 C20 17 16.5 19.8 12 21.5 C7.5 19.8 4 17 4 12 V6 Z" stroke="#067F64" strokeWidth="1.8" strokeLinejoin="round"/><path d="M9 11.5l2 2 4-4.5" stroke="#067F64" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>, title: 'Base legal sempre citada', desc: 'Toda orientação mostra de onde veio — Lei 11.771/08, ANAC ou CDC.' },
               { bg: '#FFF8EB', icon: <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 10h16M4 14h10" stroke="#C26F07" strokeWidth="1.8" strokeLinecap="round"/><circle cx="17" cy="17" r="4" stroke="#C26F07" strokeWidth="1.8"/><path d="M15.5 17h3M17 15.5v3" stroke="#C26F07" strokeWidth="1.6" strokeLinecap="round"/></svg>, title: 'Base de casos reais + IA', desc: 'Orientações geradas com IA e enriquecidas por processos já resolvidos no setor de turismo.' },
-              { bg: '#FFF1EF', icon: <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="3" stroke="#D33420" strokeWidth="1.8"/><path d="M3.5 19c.5-3 2.7-4.5 5.5-4.5s5 1.5 5.5 4.5" stroke="#D33420" strokeWidth="1.8" strokeLinecap="round"/><path d="M16 8.5c1.6.3 2.7 1.4 2.7 3M15 14.8c2.3.2 3.8 1.6 4.2 4.2" stroke="#D33420" strokeWidth="1.8" strokeLinecap="round"/></svg>, title: 'Escalada para advogado real', desc: 'Quando a IA não basta, fale com um profissional — sem trocar de ferramenta.' },
+              { bg: '#FFF1EF', icon: <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="3" stroke="#D33420" strokeWidth="1.8"/><path d="M3.5 19c.5-3 2.7-4.5 5.5-4.5s5 1.5 5.5 4.5" stroke="#D33420" strokeWidth="1.8" strokeLinecap="round"/><path d="M16 8.5c1.6.3 2.7 1.4 2.7 3M15 14.8c2.3.2 3.8 1.6 4.2 4.2" stroke="#D33420" strokeWidth="1.8" strokeLinecap="round"/></svg>, title: 'Solicitar Defesa', desc: 'Quando a IA não basta, um advogado de verdade assume o caso — sem trocar de ferramenta.' },
               { bg: '#EEF0FF', icon: <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="3" stroke="#4842D4" strokeWidth="1.8"/><path d="M8 9h8M8 13h8M8 17h5" stroke="#4842D4" strokeWidth="1.8" strokeLinecap="round"/></svg>, title: 'Histórico de casos', desc: 'Cada consulta vira um registro consultável, com ID e fundamentação.' },
               { bg: '#EAFBF5', icon: <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M12 7v5l3 2" stroke="#067F64" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="12" r="9" stroke="#067F64" strokeWidth="1.8"/></svg>, title: 'Resposta em segundos', desc: 'Sem esperar dias por um parecer para uma dúvida que precisa de resposta agora.' },
               { bg: '#FFF8EB', icon: <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M12 3 L20 6 V12 C20 17 16.5 19.8 12 21.5 C7.5 19.8 4 17 4 12 V6 Z" stroke="#C26F07" strokeWidth="1.8" strokeLinejoin="round"/><path d="M12 9v4" stroke="#C26F07" strokeWidth="2" strokeLinecap="round"/><circle cx="12" cy="16.2" r="0.6" fill="#C26F07"/></svg>, title: 'Severidade do caso', desc: 'Cada caso é classificado por risco — leve, médio ou elevado — para você priorizar e saber quando chamar um advogado.' },
@@ -294,19 +294,19 @@ export default function HomePage() {
               <div>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: D.mono, fontSize: 12, fontWeight: 600, letterSpacing: '1px', color: '#AF2719', background: '#fff', border: '1px solid #FFC0B7', borderRadius: 999, padding: '6px 13px', textTransform: 'uppercase' }}>Atendimento humano</span>
                 <h2 className="lp-h2" style={{ fontFamily: D.display, fontWeight: 700, fontSize: 34, lineHeight: 1.12, letterSpacing: '-.8px', color: '#0B121C', margin: '18px 0 14px', textWrap: 'balance' } as React.CSSProperties}>Quando a IA não basta, fale com um advogado de verdade.</h2>
-                <p style={{ fontSize: 16, lineHeight: 1.65, color: '#76221B', margin: '0 0 26px', maxWidth: 460 }}>Casos complexos, valores altos ou disputas em andamento não são para tentar adivinhar. Escale o caso e receba respaldo profissional — com todo o histórico já organizado.</p>
+                <p style={{ fontSize: 16, lineHeight: 1.65, color: '#76221B', margin: '0 0 26px', maxWidth: 460 }}>Casos complexos, valores altos ou disputas em andamento não são para tentar adivinhar. Solicite defesa e receba respaldo profissional — com todo o histórico já organizado.</p>
                 <a href="#precos" style={{ display: 'inline-flex', alignItems: 'center', gap: 11, background: '#D33420', color: '#fff', borderRadius: 13, padding: '15px 24px', fontWeight: 600, fontSize: 15, textDecoration: 'none', boxShadow: '0 12px 26px -10px rgba(211,52,32,.55)' }}>
                   <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path d="M12 3 L20 6 V12 C20 17 16.5 19.8 12 21.5 C7.5 19.8 4 17 4 12 V6 Z" stroke="#fff" strokeWidth="1.8" strokeLinejoin="round"/>
                     <circle cx="12" cy="10.5" r="2.2" fill="#fff"/>
                     <path d="M8.4 15.5 C8.8 13.6 10.2 12.8 12 12.8 C13.8 12.8 15.2 13.6 15.6 15.5" stroke="#fff" strokeWidth="1.6" strokeLinecap="round"/>
                   </svg>
-                  Conhecer a escalada
+                  Conhecer o Solicitar Defesa
                 </a>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {[
-                  { emoji: '⏱', title: 'Resposta em até 2h úteis*', sub: 'Nos planos com escalada inclusa.' },
+                  { emoji: '⏱', title: 'Resposta em até 2h úteis*', sub: 'Nos planos com defesa inclusa.' },
                   { emoji: '§', title: 'Advogados de turismo', sub: 'Especializados no setor, inscritos na OAB.' },
                   { emoji: '↪', title: 'Contexto já organizado', sub: 'O advogado recebe o caso com a base legal anexada.' },
                 ].map(item => (
@@ -449,7 +449,7 @@ export default function HomePage() {
                 </svg>
                 <span style={{ fontFamily: D.display, fontWeight: 700, fontSize: 17, color: '#fff' }}>TurisGuard</span>
               </div>
-              <p style={{ fontSize: 13.5, lineHeight: 1.6, margin: 0, color: '#6E7E98' }}>Orientação jurídica por IA para agências de turismo brasileiras, com escalada para advogado.</p>
+              <p style={{ fontSize: 13.5, lineHeight: 1.6, margin: 0, color: '#6E7E98' }}>Orientação jurídica por IA para agências de turismo brasileiras, com defesa por advogado quando precisar.</p>
               <a
                 href="https://www.instagram.com/turisguard"
                 target="_blank"

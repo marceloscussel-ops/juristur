@@ -24,7 +24,7 @@ export default function CaseEscalate({ caseId, whatsappUrl, alreadyEscalated, in
   const blocked = !escalated && !info.canEscalate
   const limited = info.total !== null  // período gratuito (assinante = ilimitado)
 
-  // Recomenda advogado para risco médio pra cima (enquanto não escalado)
+  // Recomenda defesa para risco médio pra cima (enquanto não escalado)
   const recommend = !escalated && (severity === 'medio' || severity === 'elevado' || severity === 'elevadissimo')
   const high = severity === 'elevado' || severity === 'elevadissimo'
 
@@ -40,14 +40,14 @@ export default function CaseEscalate({ caseId, whatsappUrl, alreadyEscalated, in
   if (blocked) {
     const msg = info.reason === 'trial_expired'
       ? 'Seu período gratuito terminou.'
-      : `Você usou suas ${info.total} escaladas gratuitas.`
+      : `Você usou suas ${info.total} solicitações de defesa gratuitas.`
     return (
       <div className="mt-5 rounded-xl border border-coral-200 bg-coral-50 p-4">
         <div className="flex items-start gap-2.5">
           <AlertTriangle className="w-4 h-4 text-coral shrink-0 mt-0.5" />
           <div>
             <p className="text-[13px] font-semibold text-coral-700">{msg}</p>
-            <p className="j-caption mt-0.5">Assine um plano para falar com um advogado sobre este caso.</p>
+            <p className="j-caption mt-0.5">Assine um plano para solicitar defesa neste caso.</p>
             <Link href="/assinar" className="btn btn-primary btn-sm no-underline mt-3 inline-flex">
               Ver planos
             </Link>
@@ -68,7 +68,7 @@ export default function CaseEscalate({ caseId, whatsappUrl, alreadyEscalated, in
             <strong className="font-semibold">
               {high ? 'Caso de risco elevado.' : 'Caso de risco médio.'}
             </strong>{' '}
-            Recomendamos confirmar este caso com um advogado antes de agir.
+            Recomendamos solicitar defesa antes de agir — um advogado assume o caso.
           </p>
         </div>
       )}
@@ -78,11 +78,11 @@ export default function CaseEscalate({ caseId, whatsappUrl, alreadyEscalated, in
       {escalated ? (
         <p className="j-caption mt-2 flex items-center justify-center gap-1.5">
           <CheckCircle2 className="w-3.5 h-3.5 text-teal" />
-          Caso escalado para atendimento humano
+          Defesa solicitada — um advogado vai assumir o caso
         </p>
       ) : limited ? (
         <p className="j-caption mt-2 text-center">
-          {remaining} de {info.total} escaladas gratuitas restantes
+          {remaining} de {info.total} solicitações de defesa gratuitas restantes
         </p>
       ) : null}
     </div>

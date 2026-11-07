@@ -11,7 +11,7 @@ import CaseEscalate from '@/components/CaseEscalate'
 import { getTrialInfo, getEscalationInfo } from '@/lib/plans'
 import { formatDateTimeLong } from '@/lib/datetime'
 import { Case } from '@/types'
-import { ArrowLeft, Paperclip, Clock, PlusCircle } from 'lucide-react'
+import { ArrowLeft, Paperclip, Clock, Plus } from 'lucide-react'
 import { whatsappLink } from '@/lib/whatsapp/public-number'
 
 export default async function CasoPage({ params }: { params: Promise<{ id: string }> }) {
@@ -62,9 +62,9 @@ export default async function CasoPage({ params }: { params: Promise<{ id: strin
         {/* Atalho para registrar outra situação sem passar pela lista de casos */}
         <div className="flex items-center gap-2">
           {analysis && <DownloadPdfButton caseId={caseData.id} />}
-          <Link href="/casos/novo" className="btn btn-outline no-underline">
-            <PlusCircle className="w-4 h-4" />
-            Novo caso
+          <Link href="/novo" className="btn btn-outline no-underline">
+            <Plus className="w-4 h-4" />
+            Nova ação
           </Link>
         </div>
       </div>

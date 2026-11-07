@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTrialInfo, getEscalationInfo } from '@/lib/plans'
 
 /**
- * Registra a escalada de um caso para atendimento humano, respeitando a cota
+ * Registra a solicitação de defesa de um caso (atendimento humano), respeitando a cota
  * de escaladas gratuitas do período de teste. Idempotente por caso.
  */
 export async function POST(
@@ -47,8 +47,8 @@ export async function POST(
 
   if (!info.canEscalate) {
     const error = info.reason === 'trial_expired'
-      ? 'Seu período gratuito terminou. Assine um plano para escalar casos.'
-      : `Você usou suas ${info.total} escaladas gratuitas. Assine um plano para continuar.`
+      ? 'Seu período gratuito terminou. Assine um plano para solicitar defesa.'
+      : `Você usou suas ${info.total} solicitações de defesa gratuitas. Assine um plano para continuar.`
     return NextResponse.json({ error, reason: info.reason }, { status: 402 })
   }
 

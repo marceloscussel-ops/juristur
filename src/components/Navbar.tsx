@@ -4,11 +4,11 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { LogOut, Menu, X, PlusCircle, UserCircle } from 'lucide-react'
+import { LogOut, Menu, X, Plus, UserCircle } from 'lucide-react'
 import TGLogo from '@/components/TGLogo'
 
 const navItems = [
-  { href: '/dashboard', label: 'Meus Casos' },
+  { href: '/dashboard', label: 'Painel'     },
   { href: '/assinar',   label: 'Planos'     },
   { href: '/perfil',    label: 'Perfil'      },
   { href: '/ajuda',     label: 'Ajuda'       },
@@ -49,9 +49,9 @@ export default function Navbar() {
 
       {/* Ações desktop */}
       <div className="hidden sm:flex items-center gap-2">
-        <Link href="/casos/novo" className="btn btn-accent btn-sm no-underline">
-          <PlusCircle className="w-3.5 h-3.5" />
-          Novo caso
+        <Link href="/novo" className="btn btn-accent btn-sm no-underline">
+          <Plus className="w-3.5 h-3.5" />
+          Nova ação
         </Link>
         <Link
           href="/perfil"
@@ -90,8 +90,8 @@ export default function Navbar() {
               {item.label}
             </Link>
           ))}
-          <Link href="/casos/novo" onClick={() => setMenuOpen(false)} className="j-nav-link block no-underline h-auto py-2.5 border-b-0">
-            + Novo caso
+          <Link href="/novo" onClick={() => setMenuOpen(false)} className="j-nav-link block no-underline h-auto py-2.5 border-b-0">
+            + Nova ação
           </Link>
           <button onClick={handleLogout} className="j-nav-link flex items-center gap-2 w-full text-left h-auto py-2.5 border-b-0">
             <LogOut className="w-4 h-4" /> Sair
