@@ -22,7 +22,7 @@ export default function LegalResponse({ content, complexity, severity, generated
     }}>
       {/* Dark header */}
       <div style={{
-        background: '#0B121C',
+        background: 'var(--gradient-hero)',
         backgroundImage: 'radial-gradient(120% 120% at 100% 0%, rgba(91,87,232,.35), transparent 55%)',
         padding: '16px 20px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
@@ -48,25 +48,25 @@ export default function LegalResponse({ content, complexity, severity, generated
       </div>
 
       {/* Body */}
-      <div style={{ background: '#FFFFFF', padding: 22 }}>
+      <div style={{ background: 'var(--j-card)', padding: 22 }}>
         <MarkdownRenderer content={content} />
 
         {/* OAB Disclaimer */}
         <div style={{
-          marginTop: 20, background: '#FFF8EB', border: '1px solid #FDD88A',
+          marginTop: 20, background: 'var(--j-tone-amber-bg)', border: '1px solid var(--j-tone-amber-border)',
           borderRadius: 12, padding: '14px 16px',
           display: 'flex', gap: 10, alignItems: 'flex-start',
         }}>
           <span style={{
-            flexShrink: 0, width: 20, height: 20, borderRadius: '50%', background: '#E8900C',
+            flexShrink: 0, width: 20, height: 20, borderRadius: '50%', background: 'var(--j-amber-solid)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 11, fontWeight: 800, color: '#FFFFFF', lineHeight: 1,
           }}>!</span>
           <div>
-            <p style={{ fontFamily: 'Inter,sans-serif', fontWeight: 600, fontSize: 12.5, color: '#7C420E', margin: '0 0 4px' }}>
+            <p style={{ fontFamily: 'Inter,sans-serif', fontWeight: 600, fontSize: 12.5, color: 'var(--j-tone-amber-text)', margin: '0 0 4px' }}>
               Aviso · Provimento OAB
             </p>
-            <p style={{ fontFamily: 'Inter,sans-serif', fontSize: 12.5, color: '#7C420E', margin: 0, lineHeight: 1.6 }}>
+            <p style={{ fontFamily: 'Inter,sans-serif', fontSize: 12.5, color: 'var(--j-tone-amber-text)', margin: 0, lineHeight: 1.6 }}>
               Orientação informativa gerada por IA com base na legislação vigente. Não constitui parecer jurídico nem
               substitui a avaliação de advogado(a) inscrito(a) na OAB. Para decisões com risco contratual ou financeiro
               relevante, escale para atendimento humano.
@@ -75,7 +75,7 @@ export default function LegalResponse({ content, complexity, severity, generated
         </div>
 
         {generatedAt && (
-          <p style={{ fontFamily: 'Inter,sans-serif', fontSize: 12, color: '#6E7E98', marginTop: 12, marginBottom: 0 }}>
+          <p style={{ fontFamily: 'Inter,sans-serif', fontSize: 12, color: 'var(--j-ink-40)', marginTop: 12, marginBottom: 0 }}>
             Gerada em {formatDateTimeLong(generatedAt)}
           </p>
         )}

@@ -89,7 +89,7 @@ export default function LawyerConfigPage() {
                 <button
                   type="button"
                   onClick={() => setAutoApprove(v => !v)}
-                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo ${autoApprove ? 'bg-indigo' : 'bg-ink-40'}`}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo ${autoApprove ? 'bg-indigo-solid' : 'bg-ink-40'}`}
                   role="switch"
                   aria-checked={autoApprove}
                 >

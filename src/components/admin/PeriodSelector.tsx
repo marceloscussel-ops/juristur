@@ -35,8 +35,8 @@ export default function PeriodSelector({ period, from, to }: {
   const pill = (active: boolean) =>
     `rounded-pill px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
       active
-        ? 'bg-indigo text-white'
-        : 'bg-white border border-[rgba(13,13,26,0.1)] text-ink-80 hover:border-indigo'
+        ? 'bg-indigo-solid text-white'
+        : 'bg-card border border-line-strong text-ink-80 hover:border-indigo'
     }`
 
   return (

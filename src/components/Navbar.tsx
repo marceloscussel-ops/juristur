@@ -6,6 +6,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { LogOut, Menu, X, Plus, UserCircle } from 'lucide-react'
 import TGLogo from '@/components/TGLogo'
+import ThemeToggle from '@/components/ThemeToggle'
 
 const navItems = [
   { href: '/dashboard', label: 'Painel'     },
@@ -49,6 +50,7 @@ export default function Navbar() {
 
       {/* Ações desktop */}
       <div className="hidden sm:flex items-center gap-2">
+        <ThemeToggle />
         <Link href="/novo" className="btn btn-accent btn-sm no-underline">
           <Plus className="w-3.5 h-3.5" />
           Nova ação
@@ -96,6 +98,14 @@ export default function Navbar() {
           <button onClick={handleLogout} className="j-nav-link flex items-center gap-2 w-full text-left h-auto py-2.5 border-b-0">
             <LogOut className="w-4 h-4" /> Sair
           </button>
+          <div className="mt-1 pt-3 border-t border-white/10">
+            <span className="block px-3.5 mb-2 text-white/40 text-[11px] font-semibold uppercase tracking-[0.12em]">
+              Tema
+            </span>
+            <div className="px-3.5 pb-1">
+              <ThemeToggle variant="segmented" onDark />
+            </div>
+          </div>
         </div>
       )}
     </nav>

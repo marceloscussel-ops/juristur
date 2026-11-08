@@ -112,13 +112,13 @@ export default async function LawyerDashboardPage({ searchParams }: Props) {
             href={opt.value === 'pendentes' ? '/lawyer/dashboard' : `/lawyer/dashboard?filtro=${opt.value}`}
             className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors no-underline border ${
               activeFilter === opt.value
-                ? 'bg-indigo text-white border-indigo'
-                : 'bg-white text-ink-40 border-[rgba(13,13,26,0.12)] hover:border-indigo hover:text-indigo'
+                ? 'bg-indigo-solid text-white border-indigo-solid'
+                : 'bg-card text-ink-40 border-line-strong hover:border-indigo hover:text-indigo'
             }`}
           >
             {opt.label}
             {opt.value === 'pendentes' && pendingCount > 0 && activeFilter !== 'pendentes' && (
-              <span className="ml-1.5 bg-indigo text-white text-[11px] font-bold px-1.5 py-0.5 rounded-full">
+              <span className="ml-1.5 bg-indigo-solid text-white text-[11px] font-bold px-1.5 py-0.5 rounded-full">
                 {pendingCount}
               </span>
             )}

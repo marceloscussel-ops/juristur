@@ -1,5 +1,13 @@
 import type { Config } from 'tailwindcss'
 
+/* As cores não são valores fixos: cada uma aponta para um token do tema
+   declarado em src/styles/juristur.css. Os tokens guardam canais RGB
+   soltos ("91 87 232"), então `rgb(var(--tg-x) / <alpha-value>)` mantém
+   os modificadores de opacidade do Tailwind funcionando (`bg-indigo/30`).
+   Trocar de tema claro para escuro é reescrever os tokens — nenhuma
+   classe muda. */
+const rgb = (token: string) => `rgb(var(${token}) / <alpha-value>)`
+
 const config: Config = {
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
@@ -9,57 +17,92 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // ─── Ink — Primária (BASE: 800) ───
+        // ─── Ink — texto (acompanha o tema: escuro no claro, claro no escuro) ───
         ink: {
-          DEFAULT: '#16202F',
-          900:     '#0B121C',
-          80:      'rgba(22,32,47,0.80)',
-          40:      'rgba(22,32,47,0.40)',
-          15:      'rgba(22,32,47,0.07)',
+          DEFAULT: rgb('--tg-fg'),
+          900:     rgb('--tg-fg-strong'),
+          80:      'var(--j-ink-80)',
+          40:      'var(--j-ink-40)',
+          15:      'var(--j-ink-15)',
         },
-        // ─── Indigo — Interação/CTAs (BASE: 500) ───
-        indigo: {
-          DEFAULT: '#5B57E8',
-          light:   '#4842D4',
-          pale:    '#EEF0FF',
-          50:      '#EEF0FF',
-          100:     '#DEE2FF',
-          300:     '#9DA1FB',
-          700:     '#3A35AC',
-        },
-        // ─── Amber — Alerta/Atenção (BASE: 500) ───
-        amber: {
-          DEFAULT: '#E8900C',
-          light:   '#FBC04D',
-          pale:    '#FFF8EB',
-          50:      '#FFF8EB',
-          200:     '#FDD88A',
-          700:     '#9A530A',
-          800:     '#7C420E',
-        },
-        // ─── Teal — Sucesso/Resolvido (BASE: 500) ───
-        teal: {
-          DEFAULT: '#0E9E7A',
-          pale:    '#EAFBF5',
-          50:      '#EAFBF5',
-          100:     '#C8F4E5',
-          700:     '#086552',
-        },
-        // ─── Coral — Risco/Escalada (BASE: 500) ───
-        coral: {
-          DEFAULT: '#EE4A34',
-          600:     '#D33420',
-          700:     '#AF2719',
-          pale:    '#FFF1EF',
-          50:      '#FFF1EF',
-          200:     '#FFC0B7',
-        },
-        // ─── Semânticas ───
-        success: '#16A34A',
-        danger:  '#DC2626',
-        warning: '#E8900C',
+
         // ─── Superfícies ───
-        surface: '#F7F9FB',
+        surface: rgb('--tg-surface'),   // fundo da página e poços internos
+        card:    rgb('--tg-card'),      // cartões, menus, modais
+        input:   rgb('--tg-input'),     // campos de formulário
+        nav:     rgb('--tg-nav'),       // barra de navegação (escura nos dois temas)
+
+        // ─── Inversão — botão primário, chip ativo, badge ink ───
+        inverse: {
+          DEFAULT: rgb('--tg-inverse'),
+          hover:   rgb('--tg-inverse-hover'),
+        },
+        'on-inverse': rgb('--tg-on-inverse'),
+
+        // ─── Linhas e véus ───
+        line: {
+          DEFAULT: 'var(--j-border)',
+          strong:  'var(--j-border-strong)',
+          hover:   'var(--j-border-hover)',
+        },
+        overlay: 'var(--j-overlay)',
+
+        // ─── Indigo — Interação/CTAs ───
+        // `indigo` é a versão legível (texto, borda, ícone) e clareia no
+        // tema escuro; `indigo-solid` é o preenchimento de CTA, igual nos
+        // dois temas porque leva texto branco por cima.
+        indigo: {
+          DEFAULT: rgb('--tg-indigo'),
+          solid:   rgb('--tg-indigo-solid'),
+          light:   rgb('--tg-indigo-light'),
+          pale:    rgb('--tg-indigo-pale'),
+          50:      rgb('--tg-indigo-pale'),
+          100:     rgb('--tg-indigo-100'),
+          300:     rgb('--tg-indigo-300'),
+          700:     rgb('--tg-indigo-700'),
+        },
+
+        // ─── Amber — Alerta/Atenção ───
+        amber: {
+          DEFAULT: rgb('--tg-amber'),
+          solid:   rgb('--tg-amber-solid'),
+          light:   rgb('--tg-amber-light'),
+          pale:    rgb('--tg-amber-pale'),
+          50:      rgb('--tg-amber-pale'),
+          200:     rgb('--tg-amber-200'),
+          700:     rgb('--tg-amber-700'),
+          800:     rgb('--tg-amber-800'),
+        },
+
+        // ─── Teal — Sucesso/Resolvido ───
+        teal: {
+          DEFAULT: rgb('--tg-teal'),
+          pale:    rgb('--tg-teal-pale'),
+          50:      rgb('--tg-teal-pale'),
+          100:     rgb('--tg-teal-100'),
+          700:     rgb('--tg-teal-700'),
+        },
+
+        // ─── Coral — Risco/Escalada ───
+        coral: {
+          DEFAULT: rgb('--tg-coral'),
+          solid:   rgb('--tg-coral-solid'),
+          600:     rgb('--tg-coral-600'),
+          700:     rgb('--tg-coral-700'),
+          pale:    rgb('--tg-coral-pale'),
+          50:      rgb('--tg-coral-pale'),
+          200:     rgb('--tg-coral-200'),
+        },
+
+        // ─── Semânticas ───
+        success: rgb('--tg-success'),
+        danger:  rgb('--tg-danger'),
+        warning: rgb('--tg-amber'),
+      },
+
+      // A classe `border` sem cor passa a usar a linha do tema.
+      borderColor: {
+        DEFAULT: 'var(--j-border)',
       },
 
       fontFamily: {
@@ -105,9 +148,10 @@ const config: Config = {
       },
 
       boxShadow: {
-        'focus-indigo': '0 0 0 3px rgba(91,87,232,0.15)',
-        'focus-teal':   '0 0 0 3px rgba(14,158,122,0.15)',
-        'card':         '0 1px 2px rgba(11,18,28,.04), 0 12px 28px -18px rgba(11,18,28,.18)',
+        'focus-indigo': '0 0 0 3px rgba(91,87,232,0.25)',
+        'focus-teal':   '0 0 0 3px rgba(14,158,122,0.25)',
+        'card':         'var(--j-shadow-card)',
+        'pop':          'var(--j-shadow-pop)',
         'btn-indigo':   '0 8px 20px -8px rgba(91,87,232,.55)',
         'btn-coral':    '0 8px 20px -8px rgba(211,52,32,.55)',
       },

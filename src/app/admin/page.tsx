@@ -136,9 +136,9 @@ export default async function AdminDashboard({ searchParams }: Props) {
 
   const revMap = countBy(ansP, a => a.review_status ?? 'pending')
   const funnelData = [
-    { label: 'Pendente',   value: revMap.get('pending') ?? 0,            color: '#E8900C' },
-    { label: 'Aprovado',   value: revMap.get('approved') ?? 0,           color: '#0E9E7A' },
-    { label: 'Em revisão', value: revMap.get('revision_requested') ?? 0, color: '#EE4A34' },
+    { label: 'Pendente',   value: revMap.get('pending') ?? 0,            color: 'var(--j-amber)' },
+    { label: 'Aprovado',   value: revMap.get('approved') ?? 0,           color: 'var(--j-teal)' },
+    { label: 'Em revisão', value: revMap.get('revision_requested') ?? 0, color: 'var(--j-coral)' },
   ]
 
   // ── Status das agências: snapshot atual de TODA a base (não filtrado por período) ──
@@ -150,9 +150,9 @@ export default async function AdminDashboard({ searchParams }: Props) {
     else emTeste++
   }
   const statusData = [
-    { label: 'Em teste',       value: emTeste,  color: '#5B57E8' },
-    { label: 'Assinante',      value: ativo,    color: '#0E9E7A' },
-    { label: 'Teste expirado', value: expirado, color: '#EE4A34' },
+    { label: 'Em teste',       value: emTeste,  color: 'var(--j-indigo)' },
+    { label: 'Assinante',      value: ativo,    color: 'var(--j-teal)' },
+    { label: 'Teste expirado', value: expirado, color: 'var(--j-coral)' },
   ]
 
   // ── Aquisição: de onde vieram as agências ──
@@ -189,39 +189,39 @@ export default async function AdminDashboard({ searchParams }: Props) {
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatTile label={`Novas agências · ${plabel}`} value={fmt(agsP.length)}
-                  sub={`${fmt(ags.length)} no total`} accent="#5B57E8" />
+                  sub={`${fmt(ags.length)} no total`} accent="var(--j-indigo)" />
         <StatTile label={`Novos casos · ${plabel}`} value={fmt(csP.length)}
-                  sub={`${fmt(cs.length)} no total`} accent="#0E9E7A" />
+                  sub={`${fmt(cs.length)} no total`} accent="var(--j-teal)" />
         <StatTile label={`Casos via WhatsApp · ${plabel}`} value={fmt(whatsappCases)}
                   sub={`${pctWhatsapp}% dos casos do período`} accent="#25D366" />
         <StatTile label={`Tokens de IA · ${plabel}`} value={fmt(tokensPeriod)}
-                  sub="consumo estimado na API" accent="#16202F" />
+                  sub="consumo estimado na API" accent="var(--j-ink)" />
       </div>
 
       {/* Aquisição — de onde vieram as agências */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatTile label={`Agências do evento · ${plabel}`} value={fmt(eventoP.length)}
-                  sub={`${fmt(eventoTotal.length)} no total`} accent="#EE4A34" />
+                  sub={`${fmt(eventoTotal.length)} no total`} accent="var(--j-coral)" />
         <StatTile label="Do evento que usaram" value={fmt(eventoAtivas)}
-                  sub={`${pctEventoAtivas}% abriram ao menos um caso`} accent="#0E9E7A" />
+                  sub={`${pctEventoAtivas}% abriram ao menos um caso`} accent="var(--j-teal)" />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-5">
         <ChartCard title={`Origem das agências · ${plabel}`}>
-          <HBars data={origemData} color="#5B57E8" />
+          <HBars data={origemData} color="var(--j-indigo)" />
         </ChartCard>
         <ChartCard title={`Campanhas · ${plabel}`}>
-          <HBars data={campanhaData} color="#EE4A34" />
+          <HBars data={campanhaData} color="var(--j-coral)" />
         </ChartCard>
       </div>
 
       {/* Séries temporais */}
       <div className="grid lg:grid-cols-2 gap-5">
         <ChartCard title={`Novas agências · ${plabel}`}>
-          <VBars data={bucketize(agsP.map(a => a.created_at))} color="#5B57E8" />
+          <VBars data={bucketize(agsP.map(a => a.created_at))} color="var(--j-indigo)" />
         </ChartCard>
         <ChartCard title={`Novos casos · ${plabel}`}>
-          <VBars data={bucketize(csP.map(c => c.created_at))} color="#0E9E7A" />
+          <VBars data={bucketize(csP.map(c => c.created_at))} color="var(--j-teal)" />
         </ChartCard>
       </div>
 
@@ -230,17 +230,17 @@ export default async function AdminDashboard({ searchParams }: Props) {
         <ChartCard title={`Origem dos casos · ${plabel}`}>
           <Donut segments={[
             { label: 'WhatsApp', value: whatsappCases, color: '#25D366' },
-            { label: 'Plataforma web', value: webCases, color: '#5B57E8' },
+            { label: 'Plataforma web', value: webCases, color: 'var(--j-indigo)' },
           ]} />
         </ChartCard>
         <ChartCard title={`Casos por categoria · ${plabel}`}>
-          <HBars data={categoryData} color="#5B57E8" />
+          <HBars data={categoryData} color="var(--j-indigo)" />
         </ChartCard>
       </div>
 
       {/* Casos por agência */}
       <ChartCard title={`Casos por agência · ${plabel}`}>
-        <HBars data={agencyData} color="#5B57E8" />
+        <HBars data={agencyData} color="var(--j-indigo)" />
       </ChartCard>
 
       {/* Status (base atual) + Funil */}

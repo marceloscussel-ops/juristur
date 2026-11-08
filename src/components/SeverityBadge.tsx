@@ -1,10 +1,11 @@
 import type { Severity } from '@/types'
+import { toneColors, type Tone } from '@/lib/tones'
 
-const CONFIG: Record<Severity, { label: string; bg: string; border: string; text: string; dot: string }> = {
-  leve:         { label: 'Risco Leve',          bg: '#EAFBF5', border: '#C8F4E5', text: '#086552', dot: '#0E9E7A' },
-  medio:        { label: 'Risco Médio',         bg: '#FFF8EB', border: '#FDD88A', text: '#9A530A', dot: '#E8900C' },
-  elevado:      { label: 'Risco Elevado',       bg: '#FFF1EF', border: '#FFC0B7', text: '#AF2719', dot: '#EE4A34' },
-  elevadissimo: { label: 'Risco Elevadíssimo',  bg: '#FFE9E5', border: '#FFA093', text: '#8F1E12', dot: '#AF2719' },
+const CONFIG: Record<Severity, { label: string; tone: Tone }> = {
+  leve:         { label: 'Risco Leve',          tone: 'teal'  },
+  medio:        { label: 'Risco Médio',         tone: 'amber' },
+  elevado:      { label: 'Risco Elevado',       tone: 'coral' },
+  elevadissimo: { label: 'Risco Elevadíssimo',  tone: 'crit'  },
 }
 
 interface Props {
@@ -13,7 +14,9 @@ interface Props {
 }
 
 export default function SeverityBadge({ severity, compact = false }: Props) {
-  const c = CONFIG[severity]
+  const { label, tone } = CONFIG[severity]
+  const c = toneColors(tone)
+
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 7,
@@ -24,9 +27,9 @@ export default function SeverityBadge({ severity, compact = false }: Props) {
     }}>
       <span style={{
         display: 'block', width: 9, height: 9, borderRadius: '50%',
-        background: c.dot, boxShadow: `0 0 0 3px ${c.dot}22`,
+        background: c.dot, boxShadow: `0 0 0 3px ${c.border}`,
       }} />
-      {c.label}
+      {label}
     </span>
   )
 }

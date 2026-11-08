@@ -23,15 +23,15 @@ const BASE: React.CSSProperties = {
 }
 
 const VARIANTS: Record<EscalateVariant, React.CSSProperties> = {
-  primary: { ...BASE, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', gap: 4, padding: '15px 22px', borderRadius: 13, background: '#D33420', color: '#FFFFFF', boxShadow: '0 8px 20px -8px rgba(211,52,32,.55)' },
-  compact: { ...BASE, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '13px 20px', borderRadius: 13, background: '#D33420', color: '#FFFFFF', boxShadow: '0 8px 20px -8px rgba(211,52,32,.55)' },
-  outline: { ...BASE, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '13px 20px', borderRadius: 13, background: '#FFFFFF', color: '#AF2719', border: '1.5px solid #FFC0B7' },
+  primary: { ...BASE, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', gap: 4, padding: '15px 22px', borderRadius: 13, background: 'var(--j-coral-solid)', color: '#FFFFFF', boxShadow: '0 8px 20px -8px rgba(211,52,32,.55)' },
+  compact: { ...BASE, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '13px 20px', borderRadius: 13, background: 'var(--j-coral-solid)', color: '#FFFFFF', boxShadow: '0 8px 20px -8px rgba(211,52,32,.55)' },
+  outline: { ...BASE, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '13px 20px', borderRadius: 13, background: 'var(--j-card)', color: 'var(--j-tone-coral-text)', border: '1.5px solid var(--j-tone-coral-border)' },
 }
 
 const HOVER_BG: Record<EscalateVariant, string> = {
-  primary: '#AF2719',
-  compact: '#AF2719',
-  outline: '#FFF1EF',
+  primary: 'var(--j-tone-crit-dot)',
+  compact: 'var(--j-tone-crit-dot)',
+  outline: 'var(--j-tone-coral-bg)',
 }
 
 export default function EscalateButton({ href, onClick, variant = 'primary', className = '', hint = 'Um advogado assume o caso e responde por aqui' }: Props) {

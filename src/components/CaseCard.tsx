@@ -1,12 +1,13 @@
 import Link from 'next/link'
 import ComplexityBadge, { type Complexity } from './ComplexityBadge'
+import { toneColors, type Tone } from '@/lib/tones'
 
 type CardStatus = 'aguardando' | 'em_analise' | 'resolvido'
 
-const STATUS: Record<CardStatus, { label: string; dot: string; bg: string; border: string; text: string }> = {
-  aguardando: { label: 'Aguardando',  dot: '#E8900C', bg: '#FFF8EB', border: '#FDD88A', text: '#9A530A' },
-  em_analise: { label: 'Em análise', dot: '#E8900C', bg: '#FFF8EB', border: '#FDD88A', text: '#9A530A' },
-  resolvido:  { label: 'Resolvido',  dot: '#0E9E7A', bg: '#EAFBF5', border: '#C8F4E5', text: '#086552' },
+const STATUS: Record<CardStatus, { label: string; tone: Tone }> = {
+  aguardando: { label: 'Aguardando', tone: 'amber' },
+  em_analise: { label: 'Em análise', tone: 'amber' },
+  resolvido:  { label: 'Resolvido',  tone: 'teal'  },
 }
 
 interface Props {
@@ -31,28 +32,30 @@ function elapsed(iso: string) {
 }
 
 export default function CaseCard({ id, title, category, areas = [], complexity, agencyName, createdAt, status, href }: Props) {
-  const s = STATUS[status]
+  const s   = STATUS[status]
+  const c   = toneColors(s.tone)
+  const tagTone = toneColors('indigo')
   const ym = createdAt.slice(0, 7).replace('-', '')
   const caseCode = `CASO #TG-${ym}-${id.slice(0, 4).toUpperCase()}`
   const allTags = [category, ...areas]
 
   return (
     <div style={{
-      background: '#FFFFFF', border: '1px solid #E6EAF0', borderRadius: 18, padding: 20,
-      boxShadow: '0 1px 2px rgba(11,18,28,.04), 0 12px 28px -18px rgba(11,18,28,.18)',
+      background: 'var(--j-card)', border: '1px solid var(--j-border-strong)', borderRadius: 18, padding: 20,
+      boxShadow: 'var(--j-shadow-card)',
     }}>
       {/* Top row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-        <span style={{ fontFamily: 'JetBrains Mono,monospace', fontSize: 12, color: '#4A5A75', letterSpacing: '0.02em' }}>
+        <span style={{ fontFamily: 'JetBrains Mono,monospace', fontSize: 12, color: 'var(--j-ink-80)', letterSpacing: '0.02em' }}>
           {caseCode}
         </span>
         <span style={{
           display: 'inline-flex', alignItems: 'center', gap: 5,
           padding: '3px 10px', borderRadius: 999,
-          background: s.bg, border: `1px solid ${s.border}`,
-          fontSize: 11, fontWeight: 500, color: s.text, whiteSpace: 'nowrap',
+          background: c.bg, border: `1px solid ${c.border}`,
+          fontSize: 11, fontWeight: 500, color: c.text, whiteSpace: 'nowrap',
         }}>
-          <span style={{ width: 5, height: 5, borderRadius: '50%', background: s.dot, flexShrink: 0 }} />
+          <span style={{ width: 5, height: 5, borderRadius: '50%', background: c.dot, flexShrink: 0 }} />
           {s.label}
         </span>
       </div>
@@ -60,7 +63,7 @@ export default function CaseCard({ id, title, category, areas = [], complexity, 
       {/* Title */}
       <p style={{
         fontFamily: 'Sora,sans-serif', fontWeight: 600, fontSize: 17,
-        lineHeight: 1.35, letterSpacing: '-0.3px', color: '#0B121C',
+        lineHeight: 1.35, letterSpacing: '-0.3px', color: 'var(--j-ink)',
         margin: '0 0 12px',
       }}>
         {title}
@@ -71,8 +74,8 @@ export default function CaseCard({ id, title, category, areas = [], complexity, 
         {allTags.map(tag => (
           <span key={tag} style={{
             padding: '3px 8px', borderRadius: 7,
-            background: '#EEF0FF', border: '1px solid #DEE2FF',
-            fontSize: 12, fontWeight: 500, color: '#3A35AC', fontFamily: 'Inter,sans-serif',
+            background: tagTone.bg, border: `1px solid ${tagTone.border}`,
+            fontSize: 12, fontWeight: 500, color: tagTone.text, fontFamily: 'Inter,sans-serif',
           }}>
             {tag}
           </span>
@@ -81,11 +84,11 @@ export default function CaseCard({ id, title, category, areas = [], complexity, 
       </div>
 
       {/* Footer */}
-      <div style={{ borderTop: '1px solid #EEF1F5', paddingTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 12, color: '#6E7E98', fontFamily: 'Inter,sans-serif' }}>
+      <div style={{ borderTop: '1px solid var(--j-border)', paddingTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: 12, color: 'var(--j-ink-40)', fontFamily: 'Inter,sans-serif' }}>
           {agencyName ? `${agencyName} · ` : ''}{elapsed(createdAt)}
         </span>
-        <Link href={href} style={{ fontSize: 13, fontWeight: 600, color: '#4842D4', textDecoration: 'none', fontFamily: 'Inter,sans-serif' }}>
+        <Link href={href} style={{ fontSize: 13, fontWeight: 600, color: 'var(--j-indigo)', textDecoration: 'none', fontFamily: 'Inter,sans-serif' }}>
           Ver orientação →
         </Link>
       </div>

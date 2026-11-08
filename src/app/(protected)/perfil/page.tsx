@@ -87,7 +87,7 @@ function SubscriptionCard({ agency, onChange }: { agency: AgencyData; onChange: 
 
         {/* Cancelamento — só faz sentido para assinatura mensal ativa */}
         {!canceled && isMonthly && (
-          <div className="mt-4 pt-4 border-t border-[rgba(13,13,26,0.07)]">
+          <div className="mt-4 pt-4 border-t border-line">
             {confirming ? (
               <div>
                 <p className="j-caption mb-3">

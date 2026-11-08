@@ -38,7 +38,7 @@ export default function ContratoSection() {
         href="/contrato"
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center gap-3 rounded-xl border border-[rgba(13,13,26,0.1)] px-4 py-3 no-underline hover:border-indigo/50 transition-colors"
+        className="flex items-center gap-3 rounded-xl border border-line-strong px-4 py-3 no-underline hover:border-indigo/50 transition-colors"
       >
         <ScrollText className="w-4 h-4 text-indigo shrink-0" />
         <span className="flex-1">
@@ -64,7 +64,7 @@ export default function ContratoSection() {
             {aceites.map(a => (
               <li
                 key={a.id}
-                className="flex items-start gap-3 rounded-xl border border-[rgba(13,13,26,0.07)] bg-surface px-4 py-3"
+                className="flex items-start gap-3 rounded-xl border border-line bg-surface px-4 py-3"
               >
                 <FileText className="w-4 h-4 text-ink-40 shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0">

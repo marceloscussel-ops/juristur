@@ -109,8 +109,8 @@ export default function CaseFollowUp({ caseId }: Props) {
                 <div
                   className={`rounded-xl px-4 py-3 max-w-[85%] ${
                     msg.role === 'user'
-                      ? 'bg-indigo text-white'
-                      : 'bg-surface border border-[rgba(13,13,26,0.07)]'
+                      ? 'bg-indigo-solid text-white'
+                      : 'bg-surface border border-line'
                   }`}
                 >
                   <p
@@ -129,7 +129,7 @@ export default function CaseFollowUp({ caseId }: Props) {
 
             {loading && (
               <div className="flex justify-start">
-                <div className="bg-surface border border-[rgba(13,13,26,0.07)] rounded-xl px-4 py-3 flex items-center gap-2">
+                <div className="bg-surface border border-line rounded-xl px-4 py-3 flex items-center gap-2">
                   <Loader2 className="w-3.5 h-3.5 text-indigo animate-spin" />
                   <span className="j-caption">Analisando...</span>
                 </div>
@@ -141,7 +141,7 @@ export default function CaseFollowUp({ caseId }: Props) {
         )}
 
         {limitReached && (
-          <div className="flex items-start gap-2 text-[13px] text-ink-light bg-surface border border-[rgba(13,13,26,0.07)] rounded-lg px-4 py-3 mt-4">
+          <div className="flex items-start gap-2 text-[13px] text-ink-light bg-surface border border-line rounded-lg px-4 py-3 mt-4">
             <Lock className="w-4 h-4 text-ink-40 shrink-0 mt-0.5" />
             <span>
               Você atingiu o limite de {MAX_FOLLOWUP_QUESTIONS} perguntas para este caso.
@@ -153,7 +153,7 @@ export default function CaseFollowUp({ caseId }: Props) {
 
       {/* Composer fixo na base da tela — sempre visível, sem precisar rolar */}
       {!limitReached && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-ink-15 bg-white/95 backdrop-blur shadow-[0_-4px_20px_-12px_rgba(11,18,28,0.25)] print:hidden">
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-ink-15 bg-card/95 backdrop-blur shadow-[0_-4px_20px_-12px_rgba(11,18,28,0.25)] print:hidden">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3">
             {isEmpty && (
               <p className="j-caption mb-2 flex items-center gap-1.5 text-indigo">

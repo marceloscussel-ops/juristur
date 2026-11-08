@@ -41,8 +41,8 @@ export default function HelpTabs({ supportUrl }: Props) {
               onClick={() => selectTab(tab.id)}
               className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors border ${
                 isActive
-                  ? 'bg-indigo text-white border-indigo'
-                  : 'bg-white text-ink-40 border-[rgba(13,13,26,0.12)] hover:border-indigo hover:text-indigo'
+                  ? 'bg-indigo-solid text-white border-indigo-solid'
+                  : 'bg-card text-ink-40 border-line-strong hover:border-indigo hover:text-indigo'
               }`}
             >
               <Icon className="w-3.5 h-3.5" />
@@ -57,7 +57,7 @@ export default function HelpTabs({ supportUrl }: Props) {
         <div className="space-y-3">
           {passos.map((p, i) => (
             <div key={i} className="j-card flex gap-4">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo text-white flex items-center justify-center font-semibold text-sm">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-solid text-white flex items-center justify-center font-semibold text-sm">
                 {i + 1}
               </div>
               <div>

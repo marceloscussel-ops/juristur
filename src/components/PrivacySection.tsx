@@ -128,7 +128,7 @@ function DeleteModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-4 animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-overlay px-4 animate-fade-in"
       onClick={pronto ? undefined : onClose}
     >
       <div className="j-card max-w-[440px] w-full relative animate-fade-up" onClick={e => e.stopPropagation()}>

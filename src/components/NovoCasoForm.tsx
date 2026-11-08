@@ -113,7 +113,7 @@ export default function NovoCasoForm() {
                 key={ex.id}
                 type="button"
                 onClick={() => applyExample(ex)}
-                className="px-3 py-1.5 rounded-full text-[13px] font-medium transition-colors border bg-white text-ink-40 border-[rgba(13,13,26,0.12)] hover:border-indigo hover:text-indigo"
+                className="px-3 py-1.5 rounded-full text-[13px] font-medium transition-colors border bg-card text-ink-40 border-line-strong hover:border-indigo hover:text-indigo"
               >
                 {ex.chip}
               </button>
@@ -145,7 +145,7 @@ export default function NovoCasoForm() {
           <div>
             <label className="j-label" htmlFor="category">Categoria <span className="text-danger">*</span></label>
             <select id="category" value={category} onChange={e => setCategory(e.target.value)}
-              className="j-input appearance-none bg-no-repeat bg-white"
+              className="j-input appearance-none bg-no-repeat bg-input"
               style={{
                 backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%230D0D1A' stroke-width='2' stroke-opacity='0.4'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
                 backgroundPosition: 'right 12px center',
@@ -173,7 +173,7 @@ export default function NovoCasoForm() {
             Documentos anexos <span className="text-ink-40 font-normal">(opcional — até {MAX_FILES} arquivos, 10MB cada)</span>
           </label>
           <button type="button" onClick={() => fileInputRef.current?.click()} disabled={files.length >= MAX_FILES}
-            className="w-full border-2 border-dashed border-[rgba(13,13,26,0.12)] hover:border-indigo rounded-lg p-6 text-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full border-2 border-dashed border-line-strong hover:border-indigo rounded-lg p-6 text-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Upload className="w-7 h-7 text-ink-40 mx-auto mb-2" />
             <p className="j-body">Clique para selecionar arquivos</p>

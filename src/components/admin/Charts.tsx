@@ -13,7 +13,7 @@ export function StatTile({ label, value, sub, accent }: {
     <div className="j-card">
       <p className="j-caption">{label}</p>
       <p className="font-display font-extrabold text-[28px] leading-none tracking-tight mt-1.5"
-         style={{ color: accent ?? '#16202F' }}>
+         style={{ color: accent ?? 'var(--j-ink)' }}>
         {value}
       </p>
       {sub && <p className="j-caption mt-1">{sub}</p>}
@@ -22,7 +22,7 @@ export function StatTile({ label, value, sub, accent }: {
 }
 
 /** Gráfico de barras verticais (série temporal). Tooltip nativo via title. */
-export function VBars({ data, color = '#5B57E8' }: {
+export function VBars({ data, color = 'var(--j-indigo-solid)' }: {
   data: { label: string; value: number }[]
   color?: string
 }) {
@@ -53,7 +53,7 @@ export function VBars({ data, color = '#5B57E8' }: {
 }
 
 /** Barras horizontais (categorias, status, funil). */
-export function HBars({ data, color = '#5B57E8' }: {
+export function HBars({ data, color = 'var(--j-indigo-solid)' }: {
   data: { label: string; value: number; color?: string }[]
   color?: string
 }) {

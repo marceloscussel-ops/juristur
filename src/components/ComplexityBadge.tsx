@@ -1,9 +1,11 @@
+import { toneColors, type Tone } from '@/lib/tones'
+
 export type Complexity = 'simples' | 'moderada' | 'complexa'
 
-const CONFIG = {
-  simples:  { bg: '#EAFBF5', border: '#C8F4E5', text: '#086552', active: '#0E9E7A', inactive: '#C8F4E5', label: 'Simples',  bars: 1 },
-  moderada: { bg: '#FFF8EB', border: '#FDD88A', text: '#9A530A', active: '#E8900C', inactive: '#FDD88A', label: 'Moderada', bars: 2 },
-  complexa: { bg: '#FFF1EF', border: '#FFC0B7', text: '#AF2719', active: '#D33420', inactive: '#FFC0B7', label: 'Complexa', bars: 3 },
+const CONFIG: Record<Complexity, { label: string; tone: Tone; bars: number }> = {
+  simples:  { label: 'Simples',  tone: 'teal',  bars: 1 },
+  moderada: { label: 'Moderada', tone: 'amber', bars: 2 },
+  complexa: { label: 'Complexa', tone: 'coral', bars: 3 },
 }
 
 const BAR_HEIGHTS = [6, 9, 13]
@@ -14,7 +16,9 @@ interface Props {
 }
 
 export default function ComplexityBadge({ complexity, compact = false }: Props) {
-  const c = CONFIG[complexity]
+  const { label, tone, bars } = CONFIG[complexity]
+  const c = toneColors(tone)
+
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -27,11 +31,11 @@ export default function ComplexityBadge({ complexity, compact = false }: Props) 
         {BAR_HEIGHTS.map((h, i) => (
           <span key={i} style={{
             display: 'block', width: 3, height: h, borderRadius: 1,
-            background: i < c.bars ? c.active : c.inactive,
+            background: i < bars ? c.dot : c.border,
           }} />
         ))}
       </span>
-      {c.label}
+      {label}
     </span>
   )
 }

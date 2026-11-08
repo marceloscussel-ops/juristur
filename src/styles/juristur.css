@@ -1,6 +1,25 @@
 /* ============================================================
    JURISTUR DESIGN SYSTEM V2 — juristur.css
    Importado em src/app/layout.tsx
+
+   TEMAS (claro/escuro)
+   --------------------
+   Toda cor do sistema vem de um token, e os tokens existem em duas
+   formas com o mesmo nome:
+
+     --tg-<nome>  canais RGB soltos ("91 87 232"), consumidos pelo
+                  tailwind.config.ts como rgb(var(--tg-x) / <alpha>)
+                  — é o que faz `bg-indigo/30` continuar funcionando.
+     --j-<nome>   a cor já resolvida, para uso direto em CSS.
+
+   O tema escuro só reescreve os canais; nenhum componente precisa
+   saber em que tema está.
+
+   Quem decide o tema é o atributo data-theme no <html>, escrito pelo
+   script de src/lib/theme.ts antes da primeira pintura. Ele já resolve
+   "sistema" em claro/escuro, então aqui só existe um bloco escuro.
+   Um elemento com data-theme="light" força o tema claro no próprio
+   conteúdo (a landing usa isso).
    ============================================================ */
 
 /* Fontes carregadas via next/font no layout.tsx — sem @import aqui */
@@ -9,29 +28,267 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── CSS Variables ─── */
-:root {
-  /* Cores — Design System TurisGuard */
-  --j-ink:          #16202F;  /* Ink 800 */
-  --j-ink-900:      #0B121C;  /* Ink 900 */
-  --j-ink-80:       rgba(22, 32, 47, 0.80);
-  --j-ink-40:       rgba(22, 32, 47, 0.40);
-  --j-ink-15:       rgba(22, 32, 47, 0.07);
-  --j-indigo:       #5B57E8;  /* Indigo 500 */
-  --j-indigo-light: #4842D4;  /* Indigo 600 */
-  --j-indigo-pale:  #EEF0FF;  /* Indigo 50 */
-  --j-amber:        #E8900C;  /* Amber 500 */
-  --j-amber-light:  #FBC04D;  /* Amber 300 */
-  --j-amber-pale:   #FFF8EB;  /* Amber 50 */
-  --j-teal:         #0E9E7A;  /* Teal 500 */
-  --j-teal-pale:    #EAFBF5;  /* Teal 50 */
-  --j-coral:        #EE4A34;  /* Coral 500 */
-  --j-coral-pale:   #FFF1EF;  /* Coral 50 */
-  --j-success:      #16A34A;
-  --j-danger:       #DC2626;
-  --j-warning:      #E8900C;
-  --j-surface:      #F7F9FB;
+/* ─── Tema claro (padrão, e o que vale sem JavaScript) ─── */
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+
+  /* Superfícies */
+  --tg-surface:       247 249 251;  /* fundo da página e poços internos */
+  --tg-card:          255 255 255;  /* cartões, menus, modais */
+  --tg-input:         255 255 255;  /* campos de formulário */
+  --tg-nav:            22  32  47;  /* barra de navegação */
+
+  /* Texto */
+  --tg-fg:             22  32  47;  /* Ink 800 */
+  --tg-fg-strong:      11  18  28;  /* Ink 900 */
+  --j-fg-80-alpha:   0.80;
+  --j-fg-40-alpha:   0.40;
+
+  /* Bordas */
+  --j-border:        rgba(13, 13, 26, 0.07);
+  --j-border-strong: rgba(13, 13, 26, 0.15);
+  --j-border-hover:  rgba(13, 13, 26, 0.30);
+  --j-ink-15:        rgba(22, 32, 47, 0.07);
+
+  /* Inversão — botão primário, chip ativo, badge ink */
+  --tg-inverse:         22  32  47;
+  --tg-inverse-hover:   35  47  66;
+  --tg-on-inverse:     255 255 255;
+
+  /* Indigo — interação. `indigo` é a versão legível (texto, borda,
+     ícone); o preenchimento de CTA é --j-indigo-solid, que não muda
+     de tema porque leva texto branco por cima. */
+  --tg-indigo:         91  87 232;
+  --tg-indigo-light:   72  66 212;
+  --tg-indigo-pale:  238 240 255;
+  --tg-indigo-100:   222 226 255;
+  --tg-indigo-300:   157 161 251;
+  --tg-indigo-700:    58  53 172;
+
+  /* Amber — alerta */
+  --tg-amber:        232 144  12;
+  --tg-amber-light:  251 192  77;
+  --tg-amber-pale:   255 248 235;
+  --tg-amber-200:    253 216 138;
+  --tg-amber-700:    154  83  10;
+  --tg-amber-800:    124  66  14;
+
+  /* Teal — sucesso/resolvido */
+  --tg-teal:          14 158 122;
+  --tg-teal-pale:    234 251 245;
+  --tg-teal-100:     200 244 229;
+  --tg-teal-700:       8 101  82;
+
+  /* Coral — risco/escalada */
+  --tg-coral:        238  74  52;
+  --tg-coral-600:    211  52  32;
+  --tg-coral-700:    175  39  25;
+  --tg-coral-pale:   255 241 239;
+  --tg-coral-200:    255 192 183;
+
+  /* Semânticas */
+  --tg-success:       22 163  74;
+  --tg-danger:       220  38  38;
+
+  /* Tonalidades de status (severidade, complexidade, situação) */
+  --j-tone-teal-bg:        #EAFBF5;
+  --j-tone-teal-border:    #C8F4E5;
+  --j-tone-teal-text:      #086552;
+  --j-tone-teal-dot:       #0E9E7A;
+  --j-tone-amber-bg:       #FFF8EB;
+  --j-tone-amber-border:   #FDD88A;
+  --j-tone-amber-text:     #9A530A;
+  --j-tone-amber-dot:      #E8900C;
+  --j-tone-coral-bg:       #FFF1EF;
+  --j-tone-coral-border:   #FFC0B7;
+  --j-tone-coral-text:     #AF2719;
+  --j-tone-coral-dot:      #EE4A34;
+  --j-tone-crit-bg:        #FFE9E5;
+  --j-tone-crit-border:    #FFA093;
+  --j-tone-crit-text:      #8F1E12;
+  --j-tone-crit-dot:       #AF2719;
+  --j-tone-indigo-bg:      #EEF0FF;
+  --j-tone-indigo-border:  #DEE2FF;
+  --j-tone-indigo-text:    #3A35AC;
+  --j-tone-indigo-dot:     #5B57E8;
+
+  /* Matizes extras das etiquetas de área do Direito (fora da paleta
+     da marca, só para diferenciar as áreas entre si) */
+  --j-tint-blue-bg:     #EEF6FF;
+  --j-tint-blue-text:   #1D4ED8;
+  --j-tint-green-bg:    #F0FDF4;
+  --j-tint-green-text:  #166534;
+  --j-tint-red-bg:      #FEF2F2;
+  --j-tint-red-text:    #991B1B;
+  --j-tint-purple-bg:   #FAF5FF;
+  --j-tint-purple-text: #6B21A8;
+  --j-tint-orange-bg:   #FFF7ED;
+  --j-tint-orange-text: #C2410C;
+
+  /* Alertas */
+  --j-alert-info-bg:        #F0F9FF;
+  --j-alert-info-border:    rgba(14, 165, 160, 0.25);
+  --j-alert-info-text:      #0D5E72;
+  --j-alert-success-bg:     #F0FDF4;
+  --j-alert-success-border: rgba(22, 163, 74, 0.25);
+  --j-alert-success-text:   #14532D;
+  --j-alert-warning-bg:     #FFF8EB;
+  --j-alert-warning-border: rgba(232, 144, 12, 0.30);
+  --j-alert-warning-text:   #7C420E;
+  --j-alert-danger-bg:      #FEF2F2;
+  --j-alert-danger-border:  rgba(220, 38, 38, 0.25);
+  --j-alert-danger-text:    #7F1D1D;
+
+  /* Diversos */
+  --j-overlay:       rgba(11, 18, 28, 0.40);
+  --j-scroll-thumb:  rgba(13, 13, 26, 0.15);
+  --j-scroll-hover:  rgba(13, 13, 26, 0.28);
+  --j-shadow-card:   0 1px 2px rgba(11, 18, 28, .04), 0 12px 28px -18px rgba(11, 18, 28, .18);
+  --j-shadow-pop:    0 10px 30px -12px rgba(11, 18, 28, .25);
+}
+
+/* ─── Tema escuro ─── */
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --tg-surface:        13  19  28;
+  --tg-card:           22  31  43;
+  --tg-input:          14  22  32;
+  --tg-nav:             8  13  20;
+
+  --tg-fg:            230 235 242;
+  --tg-fg-strong:     255 255 255;
+  --j-fg-80-alpha:   0.78;
+  --j-fg-40-alpha:   0.55;
+
+  --j-border:        rgba(255, 255, 255, 0.09);
+  --j-border-strong: rgba(255, 255, 255, 0.18);
+  --j-border-hover:  rgba(255, 255, 255, 0.32);
+  --j-ink-15:        rgba(255, 255, 255, 0.08);
+
+  --tg-inverse:        232 237 244;
+  --tg-inverse-hover:  255 255 255;
+  --tg-on-inverse:      13  19  28;
+
+  --tg-indigo:        165 162 255;
+  --tg-indigo-light:  108 104 238;
+  --tg-indigo-pale:    39  46  73;
+  --tg-indigo-100:     49  58  92;
+  --tg-indigo-300:    125 121 232;
+  --tg-indigo-700:    195 193 255;
+
+  --tg-amber:         243 167  44;
+  --tg-amber-light:   251 192  77;
+  --tg-amber-pale:     52  50  43;
+  --tg-amber-200:      74  65  50;
+  --tg-amber-700:     240 184  96;
+  --tg-amber-800:     245 200 126;
+
+  --tg-teal:           63 208 168;
+  --tg-teal-pale:      25  52  58;
+  --tg-teal-100:       34  69  74;
+  --tg-teal-700:      111 217 188;
+
+  --tg-coral:         255 122  99;
+  --tg-coral-600:     255 142 123;
+  --tg-coral-700:     255 170 155;
+  --tg-coral-pale:     55  42  48;
+  --tg-coral-200:      78  51  57;
+
+  --tg-success:        69 210 124;
+  --tg-danger:        255 107 107;
+
+  --j-tone-teal-bg:        #15303A;
+  --j-tone-teal-border:    #1F4A50;
+  --j-tone-teal-text:      #7BE0C3;
+  --j-tone-teal-dot:       #3FD0A8;
+  --j-tone-amber-bg:       #3A2F1E;
+  --j-tone-amber-border:   #574630;
+  --j-tone-amber-text:     #F6C97E;
+  --j-tone-amber-dot:      #F3A72C;
+  --j-tone-coral-bg:       #3B2520;
+  --j-tone-coral-border:   #5B3730;
+  --j-tone-coral-text:     #FFB0A0;
+  --j-tone-coral-dot:      #FF7A63;
+  --j-tone-crit-bg:        #4A1F19;
+  --j-tone-crit-border:    #6E2E23;
+  --j-tone-crit-text:      #FFC2B4;
+  --j-tone-crit-dot:       #FF8A72;
+  --j-tone-indigo-bg:      #272E49;
+  --j-tone-indigo-border:  #39416A;
+  --j-tone-indigo-text:    #C3C1FF;
+  --j-tone-indigo-dot:     #A5A2FF;
+
+  --j-tint-blue-bg:     #1C2A42;
+  --j-tint-blue-text:   #9EC2FF;
+  --j-tint-green-bg:    #16301F;
+  --j-tint-green-text:  #86DBA4;
+  --j-tint-red-bg:      #3A2122;
+  --j-tint-red-text:    #FFAFAF;
+  --j-tint-purple-bg:   #2A2140;
+  --j-tint-purple-text: #CDB2FF;
+  --j-tint-orange-bg:   #38271A;
+  --j-tint-orange-text: #FFBE8A;
+
+  --j-alert-info-bg:        #122C36;
+  --j-alert-info-border:    rgba(45, 196, 190, 0.32);
+  --j-alert-info-text:      #8FD9E6;
+  --j-alert-success-bg:     #12301F;
+  --j-alert-success-border: rgba(69, 210, 124, 0.30);
+  --j-alert-success-text:   #92E3AF;
+  --j-alert-warning-bg:     #3A2F1E;
+  --j-alert-warning-border: rgba(243, 167, 44, 0.34);
+  --j-alert-warning-text:   #F6C97E;
+  --j-alert-danger-bg:      #3C1D1D;
+  --j-alert-danger-border:  rgba(255, 107, 107, 0.32);
+  --j-alert-danger-text:    #FFB4B4;
+
+  --j-overlay:       rgba(0, 0, 0, 0.66);
+  --j-scroll-thumb:  rgba(255, 255, 255, 0.16);
+  --j-scroll-hover:  rgba(255, 255, 255, 0.30);
+  --j-shadow-card:   0 1px 2px rgba(0, 0, 0, .40), 0 14px 32px -20px rgba(0, 0, 0, .70);
+  --j-shadow-pop:    0 12px 34px -12px rgba(0, 0, 0, .70);
+}
+
+/* ─── Cores resolvidas + medidas (iguais nos dois temas) ─── */
+:root,
+[data-theme='light'],
+[data-theme='dark'] {
+  --j-surface:      rgb(var(--tg-surface));
+  --j-card:         rgb(var(--tg-card));
+  --j-input-bg:     rgb(var(--tg-input));
+  --j-nav-bg:       rgb(var(--tg-nav));
+  --j-ink:          rgb(var(--tg-fg));
+  --j-ink-900:      rgb(var(--tg-fg-strong));
+  --j-ink-80:       rgb(var(--tg-fg) / var(--j-fg-80-alpha));
+  --j-ink-40:       rgb(var(--tg-fg) / var(--j-fg-40-alpha));
+  --j-inverse:       rgb(var(--tg-inverse));
+  --j-inverse-hover: rgb(var(--tg-inverse-hover));
+  --j-on-inverse:    rgb(var(--tg-on-inverse));
+  --j-indigo:       rgb(var(--tg-indigo));
+  --j-indigo-light: rgb(var(--tg-indigo-light));
+  --j-indigo-pale:  rgb(var(--tg-indigo-pale));
+  --j-amber:        rgb(var(--tg-amber));
+  --j-amber-light:  rgb(var(--tg-amber-light));
+  --j-amber-pale:   rgb(var(--tg-amber-pale));
+  --j-teal:         rgb(var(--tg-teal));
+  --j-teal-pale:    rgb(var(--tg-teal-pale));
+  --j-coral:        rgb(var(--tg-coral));
+  --j-coral-pale:   rgb(var(--tg-coral-pale));
+  --j-success:      rgb(var(--tg-success));
+  --j-danger:       rgb(var(--tg-danger));
+  --j-warning:      rgb(var(--tg-amber));
   --j-white:        #FFFFFF;
+
+  /* Preenchimentos sólidos de CTA — iguais nos dois temas, porque
+     levam texto branco por cima. */
+  --tg-indigo-solid:  91  87 232;
+  --tg-coral-solid:  211  52  32;
+  --tg-amber-solid:  176 106   6;
+  --j-indigo-solid: rgb(var(--tg-indigo-solid));
+  --j-coral-solid:  rgb(var(--tg-coral-solid));
+  --j-amber-solid:  rgb(var(--tg-amber-solid));
 
   /* Gradientes */
   --gradient-brand: linear-gradient(90deg, #5B57E8, #EE4A34);
@@ -47,6 +304,8 @@
 
 /* ─── Reset base ─── */
 *, *::before, *::after { box-sizing: border-box; }
+
+html { background-color: var(--j-surface); }
 
 body {
   font-family: var(--font-body, 'Inter', sans-serif);
@@ -88,8 +347,8 @@ code, kbd, pre {
 /* ─── Scrollbar ─── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: var(--j-surface); }
-::-webkit-scrollbar-thumb { background: rgba(13,13,26,0.15); border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(13,13,26,0.28); }
+::-webkit-scrollbar-thumb { background: var(--j-scroll-thumb); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--j-scroll-hover); }
 
 /* ─── Seleção de texto ─── */
 ::selection { background: var(--j-indigo-pale); color: var(--j-indigo); }
@@ -147,11 +406,11 @@ code, kbd, pre {
   .btn-icon{ @apply w-[40px] px-0 justify-center; }
 
   .btn-primary {
-    @apply btn bg-ink text-white hover:bg-[#232F42];
+    @apply btn bg-inverse text-on-inverse hover:bg-inverse-hover;
   }
 
   .btn-accent {
-    @apply btn bg-indigo text-white hover:bg-indigo-light;
+    @apply btn bg-indigo-solid text-white hover:brightness-110;
   }
 
   .btn-warm {
@@ -159,7 +418,7 @@ code, kbd, pre {
   }
 
   .btn-outline {
-    @apply btn bg-transparent text-ink border border-[rgba(13,13,26,0.15)]
+    @apply btn bg-transparent text-ink border border-line-strong
            hover:bg-surface;
   }
 
@@ -169,15 +428,19 @@ code, kbd, pre {
   }
 
   .btn-danger {
-    @apply btn bg-transparent text-danger border border-[rgba(220,38,38,0.20)]
-           hover:bg-[#FEF2F2];
+    @apply btn bg-transparent text-danger border border-danger/20;
+    background-color: transparent;
+  }
+
+  .btn-danger:hover {
+    background-color: var(--j-alert-danger-bg);
   }
 
 
   /* ─── INPUTS ─── */
   .j-input {
-    @apply w-full h-[42px] px-[14px] border border-[rgba(13,13,26,0.15)] rounded-md
-           font-body text-[14px] text-ink bg-white outline-none
+    @apply w-full h-[42px] px-[14px] border border-line-strong rounded-md
+           font-body text-[14px] text-ink bg-input outline-none
            transition-all duration-150 placeholder:text-ink-40
            focus:border-indigo focus:shadow-focus-indigo;
   }
@@ -206,6 +469,13 @@ code, kbd, pre {
     @apply j-input h-auto py-2.5 min-h-[80px] resize-y;
   }
 
+  /* A lista nativa de <select> não herda o tema em todos os sistemas;
+     o color-scheme dos tokens resolve a maior parte, isto fecha o resto. */
+  select.j-input option {
+    color: var(--j-ink);
+    background-color: var(--j-card);
+  }
+
 
   /* ─── BADGES ─── */
   .badge {
@@ -217,13 +487,21 @@ code, kbd, pre {
     @apply w-[5px] h-[5px] rounded-full bg-current opacity-80 flex-shrink-0;
   }
 
-  .badge-ink     { @apply bg-ink text-white; }
-  .badge-indigo  { @apply bg-indigo-pale text-indigo; }
-  .badge-amber   { @apply bg-amber-pale text-[#7C420E]; }
-  .badge-teal    { @apply bg-teal-pale text-teal; }
-  .badge-success { @apply bg-[#F0FDF4] text-success; }
-  .badge-danger  { @apply bg-[#FEF2F2] text-danger; }
-  .badge-muted   { @apply bg-surface text-ink-40 border border-[rgba(13,13,26,0.12)]; }
+  .badge-ink     { @apply bg-inverse text-on-inverse; }
+  .badge-indigo  { @apply bg-indigo-pale text-indigo-700; }
+  .badge-amber   { @apply bg-amber-pale text-amber-800; }
+  .badge-teal    { @apply bg-teal-pale text-teal-700; }
+  .badge-muted   { @apply bg-surface text-ink-40 border border-line-strong; }
+
+  .badge-success {
+    background-color: var(--j-alert-success-bg);
+    color: var(--j-alert-success-text);
+  }
+
+  .badge-danger {
+    background-color: var(--j-alert-danger-bg);
+    color: var(--j-alert-danger-text);
+  }
 
 
   /* ─── AREA TAGS ─── */
@@ -234,13 +512,13 @@ code, kbd, pre {
 
   /* ─── CARDS ─── */
   .j-card {
-    @apply bg-white border border-[rgba(13,13,26,0.07)] rounded-lg p-5 relative overflow-hidden;
+    @apply bg-card border border-line rounded-lg p-5 relative overflow-hidden;
   }
 
   .j-card-gradient::before {
     content: '';
     @apply absolute top-0 left-0 right-0 h-[3px];
-    background: linear-gradient(90deg, #2B1FCC, #F26D5B);
+    background: linear-gradient(90deg, #5B57E8, #F26D5B);
   }
 
   .j-card-amber::before {
@@ -272,10 +550,29 @@ code, kbd, pre {
     @apply font-semibold mb-0.5 text-[13px];
   }
 
-  .j-alert-info    { @apply bg-[#F0F9FF] border-[rgba(14,165,160,0.25)] text-[#0D5E72]; }
-  .j-alert-success { @apply bg-[#F0FDF4] border-[rgba(22,163,74,0.25)] text-[#14532D]; }
-  .j-alert-warning { @apply bg-amber-pale border-[rgba(232,144,12,0.30)] text-[#7C420E]; }
-  .j-alert-danger  { @apply bg-[#FEF2F2] border-[rgba(220,38,38,0.25)] text-[#7F1D1D]; }
+  .j-alert-info {
+    background-color: var(--j-alert-info-bg);
+    border-color: var(--j-alert-info-border);
+    color: var(--j-alert-info-text);
+  }
+
+  .j-alert-success {
+    background-color: var(--j-alert-success-bg);
+    border-color: var(--j-alert-success-border);
+    color: var(--j-alert-success-text);
+  }
+
+  .j-alert-warning {
+    background-color: var(--j-alert-warning-bg);
+    border-color: var(--j-alert-warning-border);
+    color: var(--j-alert-warning-text);
+  }
+
+  .j-alert-danger {
+    background-color: var(--j-alert-danger-bg);
+    border-color: var(--j-alert-danger-border);
+    color: var(--j-alert-danger-text);
+  }
 
 
   /* ─── TABELA ─── */
@@ -284,7 +581,7 @@ code, kbd, pre {
   }
 
   .j-table thead tr {
-    @apply border-b border-[rgba(13,13,26,0.12)];
+    @apply border-b border-line-strong;
   }
 
   .j-table th {
@@ -292,7 +589,7 @@ code, kbd, pre {
   }
 
   .j-table td {
-    @apply py-[11px] px-2.5 text-ink border-b border-[rgba(13,13,26,0.07)];
+    @apply py-[11px] px-2.5 text-ink border-b border-line;
   }
 
   .j-table tbody tr:last-child td { @apply border-b-0; }
@@ -301,7 +598,7 @@ code, kbd, pre {
 
   /* ─── NAVBAR ─── */
   .j-nav {
-    @apply bg-ink flex items-center justify-between px-6 h-14;
+    @apply bg-nav flex items-center justify-between px-6 h-14;
   }
 
   .j-nav-logo {
@@ -324,13 +621,13 @@ code, kbd, pre {
   /* ─── CHIP / FILTRO ─── */
   .j-chip {
     @apply inline-flex items-center gap-1.5 px-3.5 py-[6px]
-           border border-[rgba(13,13,26,0.15)] rounded-pill
-           text-[12px] font-medium text-ink bg-white cursor-pointer
-           transition-all duration-150 hover:border-[rgba(13,13,26,0.30)];
+           border border-line-strong rounded-pill
+           text-[12px] font-medium text-ink bg-card cursor-pointer
+           transition-all duration-150 hover:border-line-hover;
   }
 
   .j-chip-active {
-    @apply bg-ink text-white border-ink;
+    @apply bg-inverse text-on-inverse border-inverse;
   }
 
 
@@ -354,7 +651,7 @@ code, kbd, pre {
 
   /* ─── DIVIDER ─── */
   .j-divider {
-    @apply border-t border-[rgba(13,13,26,0.07)] my-4;
+    @apply border-t border-line my-4;
   }
 
 
@@ -383,8 +680,19 @@ code, kbd, pre {
 /* ── Estilos de impressão ──
    O PDF oficial vem pronto do servidor (botão "Baixar PDF"). Estas regras
    existem só para quem usa Ctrl+P: antes havia um `body > * { display: none }`
-   apoiado numa classe .print-area inexistente — a página saía em branco. */
+   apoiado numa classe .print-area inexistente — a página saía em branco.
+   Papel é sempre claro: o tema escuro é neutralizado aqui. */
 @media print {
+  :root, [data-theme='dark'] {
+    color-scheme: light;
+    --tg-surface:      255 255 255;
+    --tg-card:         255 255 255;
+    --tg-input:        255 255 255;
+    --tg-fg:            22  32  47;
+    --tg-fg-strong:     11  18  28;
+    --j-border:        rgba(13, 13, 26, 0.15);
+    --j-border-strong: rgba(13, 13, 26, 0.25);
+  }
   nav, footer, .print\:hidden { display: none !important; }
   @page { margin: 1.8cm; size: A4; }
   body { font-size: 11pt; color: #000; background: #fff; }

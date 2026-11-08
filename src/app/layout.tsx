@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Sora, Inter, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import '@/styles/juristur.css'
+import { THEME_COLOR, THEME_INIT_SCRIPT } from '@/lib/theme'
 
 const sora = Sora({
   subsets: ['latin'],
@@ -34,7 +35,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const clarityId = process.env.NEXT_PUBLIC_CLARITY_ID
 
   return (
-    <html lang="pt-BR" className={`${sora.variable} ${inter.variable} ${jetbrains.variable}`}>
+    // suppressHydrationWarning: o script abaixo escreve data-theme no <html>
+    // antes do React hidratar, então o atributo do servidor e o do cliente
+    // divergem de propósito.
+    <html
+      lang="pt-BR"
+      data-theme="light"
+      className={`${sora.variable} ${inter.variable} ${jetbrains.variable}`}
+      suppressHydrationWarning
+    >
+      <head>
+        <meta name="theme-color" content={THEME_COLOR.light} />
+        {/* Define o tema (escolha do usuário ou preferência do sistema) antes
+            da primeira pintura — sem isto a página pisca branca no escuro. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body>
         {/* Google Analytics (gtag.js) — snippet oficial, renderizado no HTML */}
         {gaId && (

@@ -31,7 +31,7 @@ export default function ContratoPage() {
         </div>
 
         <div className="j-card">
-          <div className="flex items-start gap-3 pb-5 mb-5 border-b border-[rgba(13,13,26,0.07)]">
+          <div className="flex items-start gap-3 pb-5 mb-5 border-b border-line">
             <FileText className="w-5 h-5 text-indigo shrink-0 mt-0.5" />
             <div>
               <p className="j-overline">Documento contratual</p>

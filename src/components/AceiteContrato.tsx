@@ -23,7 +23,7 @@ export default function AceiteContrato({
   return (
     <div
       className={`rounded-xl border px-4 py-3 ${
-        erro ? 'border-coral bg-[#FEF2F2]' : 'border-[rgba(13,13,26,0.1)] bg-surface'
+        erro ? 'border-coral bg-[var(--j-alert-danger-bg)]' : 'border-line-strong bg-surface'
       }`}
     >
       <label className="flex items-start gap-2.5 cursor-pointer">

@@ -44,7 +44,9 @@ export default function HomePage() {
   }
 
   return (
-    <div style={{ fontFamily: D.body, color: '#16202F', background: '#fff', minHeight: '100%', overflowX: 'hidden' }}>
+    // A landing tem paleta própria, toda em style inline. data-theme="light"
+    // trava o tema claro aqui dentro mesmo com o sistema no escuro.
+    <div data-theme="light" style={{ fontFamily: D.body, color: '#16202F', background: '#fff', minHeight: '100vh', overflowX: 'hidden' }}>
 
       {/* ===== NAV ===== */}
       <nav style={{ position: 'sticky', top: 0, zIndex: 40, background: 'rgba(255,255,255,.82)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #EEF1F5' }}>

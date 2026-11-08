@@ -107,7 +107,7 @@ export default function ContratoForm() {
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={files.length >= MAX_FILES || loading}
-            className="w-full border-2 border-dashed border-[rgba(13,13,26,0.12)] hover:border-indigo rounded-lg p-6 text-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full border-2 border-dashed border-line-strong hover:border-indigo rounded-lg p-6 text-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Upload className="w-7 h-7 text-ink-40 mx-auto mb-2" />
             <p className="j-body">Clique para selecionar arquivos</p>

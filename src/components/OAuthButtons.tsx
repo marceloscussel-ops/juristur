@@ -36,7 +36,7 @@ export default function OAuthButtons({
         type="button"
         onClick={signInWithGoogle}
         aria-disabled={bloqueado}
-        className={`w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-lg border border-border bg-white transition-colors text-[14px] font-medium text-ink ${
+        className={`w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-lg border border-line-strong bg-card transition-colors text-[14px] font-medium text-ink ${
           bloqueado ? 'opacity-60 cursor-not-allowed' : 'hover:bg-surface-2'
         }`}
       >

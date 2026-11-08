@@ -65,9 +65,9 @@ const barStyles: Record<Tone, string> = {
 }
 
 const ctaStyles: Record<Tone, string> = {
-  indigo: 'bg-indigo text-white hover:bg-indigo-light',
-  amber:  'bg-amber text-white hover:bg-amber-700',
-  coral:  'bg-coral text-white hover:bg-coral-600',
+  indigo: 'bg-indigo-solid text-white hover:brightness-110',
+  amber:  'bg-amber-solid text-white hover:brightness-110',
+  coral:  'bg-coral-solid text-white hover:brightness-110',
 }
 
 function Bar({ tone, children }: { tone: Tone; children: React.ReactNode }) {
