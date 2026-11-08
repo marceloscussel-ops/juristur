@@ -12,6 +12,7 @@ import { createClient } from '@supabase/supabase-js'
 import { env } from '@/lib/env'
 import { mesesPlanoAnual } from '@/lib/promo'
 import { getCheckout } from '@/lib/asaas'
+import { aplicarAssentosDoPlano } from '@/lib/equipe'
 
 export const maxDuration = 60
 
@@ -147,6 +148,15 @@ export async function POST(request: NextRequest) {
         .from('agencies')
         .update({ subscription_status: 'active', plan: 'essencial', access_until: accessUntil.toISOString() })
         .eq('id', agencyId)
+
+      // Assentos do plano recém-ativado: numa troca para um plano menor, os
+      // usuários excedentes viram 'suspenso' e o titular escolhe quem reativa.
+      // O downgrade em si nunca é bloqueado.
+      //
+      // ATENÇÃO: isto lê o `plan` gravado na linha acima. Enquanto ele for
+      // fixo em 'essencial', toda agência cai no teto de 1 usuário ao pagar —
+      // precisa passar a gravar o plano efetivamente contratado.
+      await aplicarAssentosDoPlano(agencyId)
     }
   }
 

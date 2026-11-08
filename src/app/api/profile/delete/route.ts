@@ -17,8 +17,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { deleteSubscription, serviceClient } from '@/lib/asaas'
+import { exigirTitular } from '@/lib/titular'
 import { notifyAdminDeletionIssue } from '@/lib/notify'
 
 export const maxDuration = 60
@@ -57,9 +57,12 @@ async function listarArquivos(db: Db, agencyId: string): Promise<string[]> {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
+    // Exclusão apaga a conta da agência inteira — casos, documentos e o acesso
+    // de todo mundo da equipe. Só o titular pode pedir isso.
+    const porteiro = await exigirTitular(
+      'Só o titular da conta pode excluir a agência.',
+    )
+    if ('erro' in porteiro) return porteiro.erro
 
     const body = await request.json().catch(() => ({}))
     if (String(body.confirmacao ?? '').trim().toUpperCase() !== CONFIRMACAO) {
@@ -74,7 +77,7 @@ export async function POST(request: NextRequest) {
     const { data: agency } = await db
       .from('agencies')
       .select('id, email, asaas_subscription_id')
-      .eq('id', user.id)
+      .eq('id', porteiro.agencyId)
       .maybeSingle()
 
     if (!agency) {
@@ -112,7 +115,22 @@ export async function POST(request: NextRequest) {
     //    linhas primeiro, o cascata seguinte fica determinístico.
     await db.from('whatsapp_sessions').delete().eq('agency_id', agency.id)
 
-    // 4. Remove o usuário. A FK agencies.id → auth.users(id) ON DELETE CASCADE
+    // 4. Usuários da equipe. O cascade da agência leva as linhas de
+    //    `agency_members`, mas NÃO os usuários do Auth: eles continuariam
+    //    conseguindo entrar, e o auto-reparo do layout criaria uma agência
+    //    vazia para cada um. A conta deles só existe para esta agência.
+    const { data: equipe } = await db
+      .from('agency_members')
+      .select('user_id')
+      .eq('agency_id', agency.id)
+      .neq('user_id', agency.id)
+
+    for (const membro of equipe ?? []) {
+      const { error: membroErr } = await db.auth.admin.deleteUser(membro.user_id)
+      if (membroErr) console.error('[profile/delete] membro:', membroErr.message)
+    }
+
+    // 5. Remove o titular. A FK agencies.id → auth.users(id) ON DELETE CASCADE
     //    leva junto agência, casos, análises, mensagens e arquivos.
     const { error: authError } = await db.auth.admin.deleteUser(agency.id)
     if (authError) {

@@ -15,7 +15,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { env } from '@/lib/env'
 import { getEquipe } from '@/lib/equipe'
-import { exigirTitular } from '../guard'
+import { exigirTitular } from '@/lib/titular'
 
 function admin() {
   return createServiceClient(env('NEXT_PUBLIC_SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'))
@@ -45,7 +45,9 @@ async function alvo(agencyId: string, userId: string) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const porteiro = await exigirTitular()
+  const porteiro = await exigirTitular(
+    'Só o titular da conta pode gerenciar os usuários da agência.',
+  )
   if ('erro' in porteiro) return porteiro.erro
 
   const body   = await request.json().catch(() => ({}))
@@ -90,7 +92,9 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const porteiro = await exigirTitular()
+  const porteiro = await exigirTitular(
+    'Só o titular da conta pode gerenciar os usuários da agência.',
+  )
   if ('erro' in porteiro) return porteiro.erro
 
   const body    = await request.json().catch(() => ({}))

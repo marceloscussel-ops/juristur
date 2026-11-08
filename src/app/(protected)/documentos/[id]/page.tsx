@@ -9,23 +9,32 @@ import { formatDateTimeLong } from '@/lib/datetime'
 import { LACUNA } from '@/lib/templates/contrato-turismo'
 import type { AgencyDocument } from '@/types'
 import { ArrowLeft, Clock, Paperclip, Plus, AlertTriangle } from 'lucide-react'
+import { getAgencyId, getNomesDaEquipe } from '@/lib/agencia-do-usuario'
 
 export default async function DocumentoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
+  // Mesma regra dos casos: o documento é da agência, e todo usuário ativo vê.
+  const agencyId = await getAgencyId(user!.id)
+
   const { data } = await supabase
     .from('documents')
     .select('*, document_files(*)')
     .eq('id', id)
-    .eq('agency_id', user!.id)
+    .eq('agency_id', agencyId)
     .maybeSingle()
 
   if (!data) notFound()
 
   const doc   = data as AgencyDocument
   const files = doc.document_files ?? []
+
+  const autores = await getNomesDaEquipe(agencyId)
+  const autor   = Object.keys(autores).length > 1 && doc.created_by
+    ? autores[doc.created_by] ?? null
+    : null
   const isContract = doc.kind === 'contrato'
 
   // Conta as lacunas para avisar antes de a agência mandar o arquivo ao cliente.
@@ -63,6 +72,7 @@ export default async function DocumentoPage({ params }: { params: Promise<{ id: 
         <p className="j-caption flex items-center gap-1.5">
           <Clock className="w-3.5 h-3.5" />
           Gerado em {formatDateTimeLong(doc.created_at)}
+          {autor && <span>· gerado por {autor}</span>}
         </p>
 
         {doc.prompt && (

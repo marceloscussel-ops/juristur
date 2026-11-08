@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getAgencyId } from '@/lib/agencia-do-usuario'
 import { buildContratoPdf, contratoFilename } from '@/lib/pdf/contrato-pdf'
 import { montarContrato, type AnexoI } from '@/lib/contrato/termos'
 import type { AceiteEvento } from '@/lib/contrato/termos'
@@ -24,11 +25,14 @@ export async function GET(
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
+  // A agência do usuário (membro ou titular) — nunca o id dele.
+    const agencyId = await getAgencyId(user.id)
+
     const { data } = await supabase
       .from('contract_acceptances')
       .select('id, version, event, anexo, contract_text, accepted_at')
       .eq('id', id)
-      .eq('agency_id', user.id)
+      .eq('agency_id', agencyId)
       .maybeSingle()
 
     if (!data) return NextResponse.json({ error: 'Aceite não encontrado.' }, { status: 404 })

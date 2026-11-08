@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getTrialInfo, getEscalationInfo } from '@/lib/plans'
+import { getAgencyId } from '@/lib/agencia-do-usuario'
 
 /**
  * Registra a solicitação de defesa de um caso (atendimento humano), respeitando a cota
@@ -15,11 +16,15 @@ export async function POST(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
 
+  // Qualquer usuário ativo da agência pode solicitar defesa; a cota consumida
+  // é a da agência, não a da pessoa.
+  const agencyId = await getAgencyId(user.id)
+
   const { data: caseRow } = await supabase
     .from('cases')
     .select('id, escalated_at')
     .eq('id', id)
-    .eq('agency_id', user.id)
+    .eq('agency_id', agencyId)
     .single()
 
   if (!caseRow) return NextResponse.json({ error: 'Caso não encontrado' }, { status: 404 })
@@ -33,13 +38,13 @@ export async function POST(
   const { data: agency } = await supabase
     .from('agencies')
     .select('subscription_status, trial_ends_at, created_at')
-    .eq('id', user.id)
+    .eq('id', agencyId)
     .single()
 
   const { count } = await supabase
     .from('cases')
     .select('id', { count: 'exact', head: true })
-    .eq('agency_id', user.id)
+    .eq('agency_id', agencyId)
     .not('escalated_at', 'is', null)
 
   const trial = getTrialInfo(agency ?? {})
@@ -56,7 +61,7 @@ export async function POST(
     .from('cases')
     .update({ escalated_at: new Date().toISOString() })
     .eq('id', id)
-    .eq('agency_id', user.id)
+    .eq('agency_id', agencyId)
 
   const remaining = Number.isFinite(info.remaining) ? Math.max(0, info.remaining - 1) : info.remaining
   return NextResponse.json({ ok: true, remaining })

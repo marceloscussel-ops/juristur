@@ -23,7 +23,7 @@ import { appUrl } from '@/lib/urls'
 import { normalizePhone, isValidBrazilianMobile } from '@/lib/phone'
 import { isPhoneTaken } from '@/lib/agency'
 import { getEquipe } from '@/lib/equipe'
-import { exigirTitular } from './guard'
+import { exigirTitular } from '@/lib/titular'
 
 function admin() {
   return createServiceClient(env('NEXT_PUBLIC_SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'))
@@ -40,7 +40,9 @@ function conviteRedirectTo(): string {
 }
 
 export async function GET() {
-  const porteiro = await exigirTitular()
+  const porteiro = await exigirTitular(
+    'Só o titular da conta pode gerenciar os usuários da agência.',
+  )
   if ('erro' in porteiro) return porteiro.erro
 
   const { membros, seats, plan } = await getEquipe(porteiro.agencyId)
@@ -56,7 +58,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const porteiro = await exigirTitular()
+  const porteiro = await exigirTitular(
+    'Só o titular da conta pode gerenciar os usuários da agência.',
+  )
   if ('erro' in porteiro) return porteiro.erro
 
   const { agencyId } = porteiro

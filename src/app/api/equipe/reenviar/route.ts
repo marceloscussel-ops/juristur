@@ -15,14 +15,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { env } from '@/lib/env'
 import { appUrl } from '@/lib/urls'
-import { exigirTitular } from '../guard'
+import { exigirTitular } from '@/lib/titular'
 
 function admin() {
   return createServiceClient(env('NEXT_PUBLIC_SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'))
 }
 
 export async function POST(request: NextRequest) {
-  const porteiro = await exigirTitular()
+  const porteiro = await exigirTitular(
+    'Só o titular da conta pode gerenciar os usuários da agência.',
+  )
   if ('erro' in porteiro) return porteiro.erro
 
   const body   = await request.json().catch(() => ({}))

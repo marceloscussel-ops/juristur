@@ -16,6 +16,7 @@ import { isUnavPromoEligible } from '@/lib/promo'
 import {
   dadosDoCliente, enderecoDaAgencia, jaAssinouAntes, planoPago, registrarAceite,
 } from '@/lib/contrato/aceite'
+import { exigirTitular } from '@/lib/titular'
 import type { BillingCycle } from '@/types'
 
 export const maxDuration = 30
@@ -40,9 +41,16 @@ function brPhone(stored?: string | null): string | null {
 
 export async function POST(request: NextRequest) {
   try {
+    // Contratar e trocar de plano é do titular: a cobrança sai no nome dele e o
+    // plano vale para a agência toda. Um membro assinando criaria uma segunda
+    // contratação para uma conta que já tem a sua.
+    const porteiro = await exigirTitular(
+      'Só o titular da conta pode assinar ou trocar o plano. Fale com ele.',
+    )
+    if ('erro' in porteiro) return porteiro.erro
+
+    const { agencyId } = porteiro
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
     const { cycle, method, cnpj, address, aceiteContrato } = await request.json()
     if (!CYCLES.includes(cycle) || !METHODS.includes(method)) {
@@ -62,7 +70,7 @@ export async function POST(request: NextRequest) {
     const { data: agency, error } = await supabase
       .from('agencies')
       .select('id, name, cnpj, email, phone, subscription_status, access_until, cep, endereco, endereco_numero, bairro, cidade, origem_campanha, created_at')
-      .eq('id', user.id)
+      .eq('id', agencyId)
       .single()
 
     if (error || !agency) {

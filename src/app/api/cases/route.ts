@@ -7,6 +7,7 @@ import { notifyAnalysisFailed, notifyLawyerNewCase, notifyAgencyCaseReady } from
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { env } from '@/lib/env'
 import { ensureAgency } from '@/lib/agency'
+import { getAgencyId } from '@/lib/agencia-do-usuario'
 
 function getServiceClient() {
   return createServiceClient(env('NEXT_PUBLIC_SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'))
@@ -27,10 +28,12 @@ export async function GET() {
       return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
     }
 
+    const agencyId = await getAgencyId(user.id)
+
     const { data: cases, error } = await supabase
       .from('cases')
       .select('*, case_analyses(id, created_at)')
-      .eq('agency_id', user.id)
+      .eq('agency_id', agencyId)
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -52,6 +55,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
     }
 
+    // A agência do caso é a do usuário (membro ou titular); `created_by`
+    // guarda quem de fato registrou, para a autoria aparecer no painel.
+    const agencyId = await getAgencyId(user.id)
+
     const formData    = await request.formData()
     const title       = formData.get('title') as string | null
     const description = formData.get('description') as string
@@ -67,7 +74,7 @@ export async function POST(request: NextRequest) {
     const { count: todayCount } = await supabase
       .from('cases')
       .select('*', { count: 'exact', head: true })
-      .eq('agency_id', user.id)
+      .eq('agency_id', agencyId)
       .gte('created_at', today)
 
     if ((todayCount ?? 0) >= MAX_CASES_PER_DAY) {
@@ -79,7 +86,8 @@ export async function POST(request: NextRequest) {
 
     // 1. Criar o caso
     const newCase = {
-      agency_id:   user.id,
+      agency_id:   agencyId,
+      created_by:  user.id,
       title:       title || null,
       description,
       category,
@@ -95,7 +103,7 @@ export async function POST(request: NextRequest) {
 
     // 23503 = o usuário está autenticado mas não tem linha em `agencies`, então
     // a foreign key `cases_agency_id_fkey` barra o insert. Repara e tenta uma vez.
-    if (caseError?.code === '23503') {
+    if (caseError?.code === '23503' && agencyId === user.id) {
       console.error('[cases POST] agência ausente, reparando:', JSON.stringify(caseError))
       const repaired = await ensureAgency(user)
 
@@ -131,7 +139,7 @@ export async function POST(request: NextRequest) {
       try {
         const arrayBuffer = await file.arrayBuffer()
         const buffer      = Buffer.from(arrayBuffer)
-        const filePath    = `${user.id}/${caseData.id}/${Date.now()}-${file.name}`
+        const filePath    = `${agencyId}/${caseData.id}/${Date.now()}-${file.name}`
 
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('case-files')
@@ -203,7 +211,7 @@ export async function POST(request: NextRequest) {
       } else {
         // Notifica advogado para revisar
         if (lawyerSettings?.lawyer_phone) {
-          const { data: agencyData } = await supabase.from('agencies').select('name').eq('id', user.id).single()
+          const { data: agencyData } = await supabase.from('agencies').select('name').eq('id', agencyId).single()
           await notifyLawyerNewCase(
             lawyerSettings.lawyer_phone,
             caseData.id,
@@ -215,7 +223,7 @@ export async function POST(request: NextRequest) {
       }
     } catch (aiErr) {
       console.error('[cases POST] AI analysis error:', aiErr)
-      await notifyAnalysisFailed(caseData.id, user.id, aiErr)
+      await notifyAnalysisFailed(caseData.id, agencyId, aiErr)
     }
 
     return NextResponse.json({ caseId: caseData.id }, { status: 201 })

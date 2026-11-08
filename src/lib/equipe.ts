@@ -103,9 +103,13 @@ export async function getEquipe(agencyId: string): Promise<EquipeDaAgencia> {
   if (total !== undefined) await suspenderExcedentes(agencyId, total)
 
   const membros = await listarMembros(agencyId)
-  const ativos  = membros.filter(m => m.status === 'ativo').length
 
-  return { membros, seats: getSeatInfo(plan, trial, ativos), plan }
+  // Convite pendente conta como assento ocupado: ele já vai virar acesso
+  // quando a pessoa aceitar, e deixá-lo de fora permitiria convidar dez
+  // pessoas num plano de três — a conta estouraria na hora dos aceites.
+  const ocupados = membros.filter(m => m.status === 'ativo' || m.status === 'convidado').length
+
+  return { membros, seats: getSeatInfo(plan, trial, ocupados), plan }
 }
 
 /**

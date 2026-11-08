@@ -10,13 +10,14 @@ import { CASE_CATEGORIES, type Case, type AgencyDocument, type PanelItem } from 
 import { formatDate } from '@/lib/datetime'
 import { ChevronRight, FolderOpen } from 'lucide-react'
 import WhatsappCta from '@/components/WhatsappCta'
+import { getAgencyId, getNomesDaEquipe } from '@/lib/agencia-do-usuario'
 
 /** Severidade a exibir: só de análise aprovada (a agência não vê pendências). */
 function caseSeverity(c: Case) {
   return (c.case_analyses ?? []).find(a => a.review_status === 'approved')?.severity ?? null
 }
 
-function caseToItem(c: Case): PanelItem {
+function caseToItem(c: Case, autores: Record<string, string>): PanelItem {
   return {
     id:         c.id,
     kind:       'duvida',
@@ -25,11 +26,12 @@ function caseToItem(c: Case): PanelItem {
     href:       `/casos/${c.id}`,
     status:     c.status,
     severity:   caseSeverity(c),
+    autor:      c.created_by ? autores[c.created_by] ?? null : null,
     created_at: c.created_at,
   }
 }
 
-function documentToItem(d: AgencyDocument): PanelItem {
+function documentToItem(d: AgencyDocument, autores: Record<string, string>): PanelItem {
   const isContract = d.kind === 'contrato'
   return {
     id:         d.id,
@@ -39,6 +41,7 @@ function documentToItem(d: AgencyDocument): PanelItem {
     href:       `/documentos/${d.id}`,
     status:     d.status,
     severity:   null,
+    autor:      d.created_by ? autores[d.created_by] ?? null : null,
     created_at: d.created_at,
   }
 }
@@ -53,8 +56,17 @@ export default async function DashboardPage({ searchParams }: Props) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: agency } = await supabase
-    .from('agencies').select('name').eq('id', user!.id).single()
+  // A agência é a do vínculo: para um membro, o id dele não é o da agência.
+  const agencyId = await getAgencyId(user!.id)
+
+  const [{ data: agency }, autores] = await Promise.all([
+    supabase.from('agencies').select('name').eq('id', agencyId).single(),
+    getNomesDaEquipe(agencyId),
+  ])
+
+  // Com um usuário só, dizer "por Fulano" em toda linha é ruído: a autoria só
+  // informa algo quando há mais de uma pessoa registrando na mesma agência.
+  const mostrarAutor = Object.keys(autores).length > 1
 
   // Casos e documentos são tabelas separadas, mas uma lista só para a agência.
   // O filtro de categoria só existe em casos; tipo e status são aplicados
@@ -62,7 +74,7 @@ export default async function DashboardPage({ searchParams }: Props) {
   let casesQuery = supabase
     .from('cases')
     .select('*, case_analyses(severity, review_status)')
-    .eq('agency_id', user!.id)
+    .eq('agency_id', agencyId)
     .order('created_at', { ascending: false })
 
   if (categoria) casesQuery = casesQuery.eq('category', categoria)
@@ -71,16 +83,16 @@ export default async function DashboardPage({ searchParams }: Props) {
     casesQuery,
     supabase
       .from('documents')
-      .select('id, kind, title, doc_type, status, created_at')
-      .eq('agency_id', user!.id)
+      .select('id, kind, title, doc_type, status, created_by, created_at')
+      .eq('agency_id', agencyId)
       .order('created_at', { ascending: false }),
   ])
 
   // Uma categoria escolhida é um filtro de caso: documentos saem da lista.
   // `documents` vem null enquanto a migration não rodou — a lista segue com os casos.
   const items: PanelItem[] = [
-    ...((cases ?? []) as Case[]).map(caseToItem),
-    ...(categoria ? [] : ((documents ?? []) as AgencyDocument[]).map(documentToItem)),
+    ...((cases ?? []) as Case[]).map(c => caseToItem(c, autores)),
+    ...(categoria ? [] : ((documents ?? []) as AgencyDocument[]).map(d => documentToItem(d, autores))),
   ]
     .filter(i => !tipo   || i.kind === tipo)
     .filter(i => !status || i.status === status)
@@ -172,6 +184,9 @@ export default async function DashboardPage({ searchParams }: Props) {
                       <Link href={item.href} className="no-underline text-ink hover:text-indigo transition-colors block">
                         {item.title}
                       </Link>
+                      {mostrarAutor && item.autor && (
+                        <span className="j-caption">por {item.autor}</span>
+                      )}
                     </td>
                     <td><KindBadge kind={item.kind} /></td>
                     <td className="text-ink-40 hidden md:table-cell">{item.subtitle}</td>

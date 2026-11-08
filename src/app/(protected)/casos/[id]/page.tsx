@@ -13,16 +13,21 @@ import { formatDateTimeLong } from '@/lib/datetime'
 import { Case } from '@/types'
 import { ArrowLeft, Paperclip, Clock, Plus } from 'lucide-react'
 import { whatsappLink } from '@/lib/whatsapp/public-number'
+import { getAgencyId, getNomesDaEquipe } from '@/lib/agencia-do-usuario'
 
 export default async function CasoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
+  // Todo usuário ativo da agência abre qualquer caso dela: é o histórico
+  // jurídico da empresa, não o de uma pessoa.
+  const agencyId = await getAgencyId(user!.id)
+
   const { data } = await supabase
     .from('cases')
     .select('*, case_analyses(*), case_files(*)')
-    .eq('id', id).eq('agency_id', user!.id).single()
+    .eq('id', id).eq('agency_id', agencyId).single()
 
   if (!data) notFound()
 
@@ -37,17 +42,25 @@ export default async function CasoPage({ params }: { params: Promise<{ id: strin
   )
 
   // Cota de escaladas gratuitas (período de teste)
-  const { data: agency } = await supabase
-    .from('agencies')
-    .select('subscription_status, trial_ends_at, created_at')
-    .eq('id', user!.id)
-    .single()
+  const [{ data: agency }, { count: escalationsUsed }, autores] = await Promise.all([
+    supabase
+      .from('agencies')
+      .select('subscription_status, trial_ends_at, created_at')
+      .eq('id', agencyId)
+      .single(),
+    supabase
+      .from('cases')
+      .select('id', { count: 'exact', head: true })
+      .eq('agency_id', agencyId)
+      .not('escalated_at', 'is', null),
+    getNomesDaEquipe(agencyId),
+  ])
 
-  const { count: escalationsUsed } = await supabase
-    .from('cases')
-    .select('id', { count: 'exact', head: true })
-    .eq('agency_id', user!.id)
-    .not('escalated_at', 'is', null)
+  // Autoria: só aparece quando a agência tem mais de um usuário — com um só,
+  // "registrado por" em todo caso é ruído.
+  const autor = Object.keys(autores).length > 1 && caseData.created_by
+    ? autores[caseData.created_by] ?? null
+    : null
 
   const escalationInfo = getEscalationInfo(getTrialInfo(agency ?? {}), escalationsUsed ?? 0)
   const alreadyEscalated = !!caseData.escalated_at
@@ -82,6 +95,7 @@ export default async function CasoPage({ params }: { params: Promise<{ id: strin
         <p className="j-caption flex items-center gap-1.5 mb-4">
           <Clock className="w-3.5 h-3.5" />
           Aberto em {formatDateTimeLong(caseData.created_at)}
+          {autor && <span>· registrado por {autor}</span>}
         </p>
 
         <div className="j-divider" />

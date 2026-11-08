@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import TGLogo from '@/components/TGLogo'
 import WhatsappStep from '@/components/WhatsappStep'
 import { dadosDoCliente, planoAvaliacao, registrarAceite, temAceite } from '@/lib/contrato/aceite'
+import { getVinculo } from '@/lib/agencia-do-usuario'
 
 /**
  * Passo de boas-vindas após o cadastro.
@@ -25,10 +26,16 @@ export default async function BemVindoPage({ searchParams }: Props) {
   // Advogado nunca passa pelo onboarding de agência.
   if (user.app_metadata?.role === 'lawyer') redirect('/lawyer/dashboard')
 
+  // Nem membro convidado: esta tela cuida do cadastro de uma agência nova
+  // (telefone, origem, aceite do contrato), e nada disso é dele. A agência
+  // onde ele entrou já passou por aqui.
+  const vinculo = await getVinculo(user.id)
+  if (!vinculo.isTitular) redirect('/dashboard')
+
   const { data: agency } = await supabase
     .from('agencies')
     .select('name, phone, origem, cnpj, email, trial_ends_at')
-    .eq('id', user.id)
+    .eq('id', vinculo.agencyId)
     .maybeSingle()
 
   // Aceite do contrato no cadastro por Google. O fluxo OAuth não passa pelo
@@ -60,7 +67,7 @@ export default async function BemVindoPage({ searchParams }: Props) {
         origem:          origem.slice(0, 30),
         origem_campanha: campanha ? campanha.slice(0, 60) : null,
       })
-      .eq('id', user.id)
+      .eq('id', vinculo.agencyId)
   }
 
   if (agency?.phone) {
@@ -69,7 +76,7 @@ export default async function BemVindoPage({ searchParams }: Props) {
     const { count } = await supabase
       .from('cases')
       .select('id', { count: 'exact', head: true })
-      .eq('agency_id', user.id)
+      .eq('agency_id', vinculo.agencyId)
 
     redirect((count ?? 0) > 0 ? '/dashboard' : '/casos/novo?bemvindo=1')
   }

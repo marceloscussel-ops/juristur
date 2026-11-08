@@ -206,7 +206,10 @@ export function usuariosDoPlano(plan: AgencyPlan | null | undefined): number {
 export type SeatReason = 'ok' | 'seats_reached' | 'trial_expired'
 
 export interface SeatInfo {
-  /** Usuários ativos da agência, o titular incluído. */
+  /**
+   * Assentos ocupados: usuários ativos + convites pendentes, o titular
+   * incluído. Convite conta porque já vai virar acesso quando for aceito.
+   */
   used:      number
   /** Assentos do plano (ou do período gratuito). */
   total:     number

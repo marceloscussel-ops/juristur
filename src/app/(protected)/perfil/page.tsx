@@ -18,6 +18,11 @@ function formatPhone(value: string) {
   return `+${digits.slice(0,2)} (${digits.slice(2,4)}) ${digits.slice(4,9)}-${digits.slice(9)}`
 }
 
+interface PerfilResponse {
+  agency:    AgencyData
+  isTitular: boolean
+}
+
 interface AgencyData {
   name:                string
   cnpj:                string
@@ -163,6 +168,9 @@ function SubscriptionCard({ agency, onChange }: { agency: AgencyData; onChange: 
 
 export default function PerfilPage() {
   const [agency, setAgency]   = useState<AgencyData | null>(null)
+  // Assinatura, edição dos dados e LGPD são do titular. O membro vê de qual
+  // agência ele faz parte e para.
+  const [isTitular, setIsTitular] = useState(true)
   const [name,   setName]     = useState('')
   const [doc,    setDoc]      = useState('')
   const [phone,  setPhone]    = useState('')
@@ -172,8 +180,9 @@ export default function PerfilPage() {
   const [error,   setError]   = useState('')
 
   const loadAgency = useCallback(async () => {
-    const d = await fetch('/api/profile', { cache: 'no-store' }).then(r => r.json())
+    const d: PerfilResponse = await fetch('/api/profile', { cache: 'no-store' }).then(r => r.json())
     setAgency(d.agency)
+    setIsTitular(d.isTitular !== false)
     setName(d.agency.name)
     setDoc(d.agency.cnpj ? formatCpfCnpj(d.agency.cnpj) : '')
     setPhone(d.agency.phone ? formatPhone(d.agency.phone) : '')
@@ -224,7 +233,11 @@ export default function PerfilPage() {
       <div className="mb-6">
         <p className="j-overline">Configurações</p>
         <h1 className="j-h1 mt-0.5">Perfil da agência</h1>
-        <p className="j-caption mt-1">Gerencie os dados da sua conta</p>
+        <p className="j-caption mt-1">
+          {isTitular
+            ? 'Gerencie os dados da sua conta'
+            : 'Dados da agência onde você tem acesso'}
+        </p>
       </div>
 
       {/* Informações fixas */}
@@ -252,11 +265,22 @@ export default function PerfilPage() {
         </div>
       </div>
 
-      {/* Assinatura / período gratuito */}
-      {agency && <SubscriptionCard agency={agency} onChange={loadAgency} />}
+      {/* Assinatura / período gratuito — só o titular contrata e cancela */}
+      {agency && isTitular && <SubscriptionCard agency={agency} onChange={loadAgency} />}
+
+      {!isTitular && (
+        <div className="j-card">
+          <p className="j-label mb-4">Acesso</p>
+          <p className="j-caption">
+            Você usa o TurisGuard como usuário desta agência. O plano, a
+            cobrança e os dados cadastrais são administrados pelo titular da
+            conta.
+          </p>
+        </div>
+      )}
 
       {/* Formulário editável */}
-      <div className="j-card">
+      {isTitular && <div className="j-card">
         <p className="j-label mb-4">Editar informações</p>
         <form onSubmit={handleSave} className="space-y-4">
           <div>
@@ -316,13 +340,12 @@ export default function PerfilPage() {
               : <><Save className="w-4 h-4" /> Salvar alterações</>}
           </button>
         </form>
-      </div>
+      </div>}
 
-      {/* Contrato de licença de uso e histórico de aceites */}
-      <ContratoSection />
-
-      {/* Direitos do titular dos dados (LGPD) */}
-      <PrivacySection />
+      {/* Contrato, exportação e exclusão são atos da conta: só o titular.
+          O membro não assinou o contrato nem pode apagar a agência. */}
+      {isTitular && <ContratoSection />}
+      {isTitular && <PrivacySection />}
     </div>
   )
 }

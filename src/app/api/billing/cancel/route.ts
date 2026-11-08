@@ -9,19 +9,24 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { deleteSubscription, serviceClient } from '@/lib/asaas'
+import { exigirTitular } from '@/lib/titular'
 
 export const maxDuration = 30
 
 export async function POST() {
   try {
+    // Cancelar é ato de quem assinou.
+    const porteiro = await exigirTitular(
+      'Só o titular da conta pode cancelar a assinatura.',
+    )
+    if ('erro' in porteiro) return porteiro.erro
+
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
     const { data: agency, error } = await supabase
       .from('agencies')
       .select('id, asaas_subscription_id, billing_cycle, subscription_status')
-      .eq('id', user.id)
+      .eq('id', porteiro.agencyId)
       .single()
 
     if (error || !agency) {

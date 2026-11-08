@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getAgencyId } from '@/lib/agencia-do-usuario'
 import { generateContract, generateDocument, agencyProfileFromRow } from '@/lib/ai/documents'
 import { getContractTemplate } from '@/lib/templates/contrato-turismo'
 import type { AgencyDocument, DocumentFile } from '@/types'
@@ -23,13 +24,15 @@ export async function PATCH(
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
+    const agencyId = await getAgencyId(user.id)
+
     const { action } = await request.json().catch(() => ({ action: null }))
 
     const { data } = await supabase
       .from('documents')
       .select('*, document_files(file_name, extracted_text)')
       .eq('id', id)
-      .eq('agency_id', user.id)
+      .eq('agency_id', agencyId)
       .maybeSingle()
 
     if (!data) return NextResponse.json({ error: 'Documento não encontrado.' }, { status: 404 })
@@ -43,7 +46,7 @@ export async function PATCH(
         .from('documents')
         .update({ status: 'confirmado', updated_at: new Date().toISOString() })
         .eq('id', id)
-        .eq('agency_id', user.id)
+        .eq('agency_id', agencyId)
       return NextResponse.json({ ok: true, status: 'confirmado' })
     }
 
@@ -58,7 +61,7 @@ export async function PATCH(
       const { data: agencyRow } = await supabase
         .from('agencies')
         .select('name, cnpj, email, phone, endereco, endereco_numero, bairro, cidade')
-        .eq('id', user.id)
+        .eq('id', agencyId)
         .maybeSingle()
 
       const filesContent = ((doc.document_files ?? []) as Partial<DocumentFile>[])
@@ -87,7 +90,7 @@ export async function PATCH(
           updated_at:  new Date().toISOString(),
         })
         .eq('id', id)
-        .eq('agency_id', user.id)
+        .eq('agency_id', agencyId)
 
       return NextResponse.json({ ok: true })
     }
@@ -109,11 +112,13 @@ export async function DELETE(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
+  const agencyId = await getAgencyId(user.id)
+
   const { error } = await supabase
     .from('documents')
     .delete()
     .eq('id', id)
-    .eq('agency_id', user.id)
+    .eq('agency_id', agencyId)
 
   if (error) return NextResponse.json({ error: 'Não foi possível excluir.' }, { status: 500 })
   return NextResponse.json({ ok: true })

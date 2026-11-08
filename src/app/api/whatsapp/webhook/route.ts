@@ -91,15 +91,49 @@ async function isDuplicateDelivery(msg: ZApiMessage): Promise<boolean> {
   return false
 }
 
-/** Busca agência pelo número de telefone cadastrado. */
+/**
+ * Busca a agência pelo telefone de quem está escrevendo.
+ *
+ * Procura primeiro em `agency_members.telefone`: com vários usuários por
+ * agência, o número que chega pode ser de um membro, e é o vínculo dele que
+ * diz em qual agência o caso entra. O `agencies.phone` continua como
+ * fallback — é onde está o número das agências que existiam antes da equipe
+ * (o backfill da migration copiou o do titular para os dois lugares), então
+ * nenhuma conta antiga para de ser reconhecida.
+ *
+ * Membro suspenso não casa no primeiro passo e não tem número em `agencies`:
+ * cai no "número não cadastrado", que é o certo — suspenso é sem acesso.
+ *
+ * `userId` é quem está falando, e vai para `cases.created_by` (autoria).
+ */
 async function findAgencyByPhone(phone: string) {
   const supabase = getServiceClient()
+
+  const { data: membro } = await supabase
+    .from('agency_members')
+    .select('user_id, agency_id, status')
+    .eq('telefone', phone)
+    .maybeSingle()
+
+  if (membro?.status === 'ativo') {
+    const { data: ag } = await supabase
+      .from('agencies')
+      .select('id, name')
+      .eq('id', membro.agency_id)
+      .maybeSingle()
+
+    if (ag) return { id: ag.id, name: ag.name, userId: membro.user_id as string }
+  }
+
   const { data } = await supabase
     .from('agencies')
     .select('id, name')
     .eq('phone', phone)
-    .single()
-  return data as { id: string; name: string } | null
+    .maybeSingle()
+
+  // Sem linha em `agency_members`, quem fala é o titular: o id da agência é o
+  // id dele.
+  return data ? { id: data.id, name: data.name, userId: data.id } : null
 }
 
 /** Salva arquivo enviado pelo WhatsApp no Supabase Storage. */
@@ -480,6 +514,8 @@ async function handleAwaitingFiles(
   phone:     string,
   sessionId: string,
   agencyId:  string,
+  /** Usuário da agência que está escrevendo — vira `cases.created_by`. */
+  createdBy: string,
   msg:       ZApiMessage,
   sessionData: { category?: string; description?: string; fileUrls?: Array<{ url: string; name: string; type: string }> },
   existingCaseId: string | null
@@ -510,6 +546,7 @@ async function handleAwaitingFiles(
         .from('cases')
         .insert({
           agency_id:   agencyId,
+          created_by:  createdBy,
           title:       sessionData.category ?? 'Caso WhatsApp',
           description: sessionData.description ?? '',
           category:    sessionData.category ?? 'Outro',
@@ -575,6 +612,7 @@ async function handleAwaitingFiles(
         .from('cases')
         .insert({
           agency_id:   agencyId,
+          created_by:  createdBy,
           title:       category,
           description,
           category,
@@ -767,7 +805,7 @@ export async function POST(request: NextRequest) {
         break
 
       case 'awaiting_files':
-        await handleAwaitingFiles(phone, session.id, agency.id, body, sessionData, session.case_id)
+        await handleAwaitingFiles(phone, session.id, agency.id, agency.userId, body, sessionData, session.case_id)
         break
 
       case 'processing':

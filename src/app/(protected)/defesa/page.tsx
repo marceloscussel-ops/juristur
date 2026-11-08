@@ -5,6 +5,7 @@ import { whatsappLink } from '@/lib/whatsapp/public-number'
 import DefesaCaseList, { type DefesaCase } from '@/components/DefesaCaseList'
 import EscalateButton from '@/components/EscalateButton'
 import { ArrowLeft, AlertTriangle, Clock, FileText, UserCheck } from 'lucide-react'
+import { getAgencyId } from '@/lib/agencia-do-usuario'
 
 /**
  * Solicitar defesa — atendimento humano por um advogado.
@@ -24,22 +25,25 @@ export default async function DefesaPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
+  // Membro também pode solicitar defesa: a cota é da agência.
+  const agencyId = await getAgencyId(user!.id)
+
   const [{ data: agency }, { data: recentCases }, { count: escalationsUsed }] = await Promise.all([
     supabase
       .from('agencies')
       .select('subscription_status, trial_ends_at, created_at, access_until')
-      .eq('id', user!.id)
+      .eq('id', agencyId)
       .maybeSingle(),
     supabase
       .from('cases')
       .select('id, title, category, created_at, escalated_at')
-      .eq('agency_id', user!.id)
+      .eq('agency_id', agencyId)
       .order('created_at', { ascending: false })
       .limit(5),
     supabase
       .from('cases')
       .select('id', { count: 'exact', head: true })
-      .eq('agency_id', user!.id)
+      .eq('agency_id', agencyId)
       .not('escalated_at', 'is', null),
   ])
 
