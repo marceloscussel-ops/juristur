@@ -63,6 +63,27 @@ export async function ensureAgency(user: User): Promise<AgencyAccess | null> {
     return null
   }
 
+  // O vínculo de titular anda junto com a agência: sem a linha em
+  // `agency_members`, `agency_do_usuario()` devolve NULL e a RLS tranca o
+  // dono fora da própria conta — o mesmo tipo de falha silenciosa que fazia o
+  // usuário entrar sem agência e só descobrir no primeiro caso.
+  const { error: memberError } = await db.from('agency_members').upsert(
+    {
+      user_id:   user.id,
+      agency_id: user.id,
+      papel:     'titular',
+      nome:      row.name,
+      email:     user.email,
+      status:    'ativo',
+      aceito_em: new Date().toISOString(),
+    },
+    { onConflict: 'user_id' },
+  )
+
+  // Telefone fica fora do upsert de propósito: ele é UNIQUE global e já está
+  // em `agencies.phone` (de onde o webhook do WhatsApp cai como fallback).
+  if (memberError) console.error('[ensureAgency] agency_members:', JSON.stringify(memberError))
+
   const { data } = await db
     .from('agencies')
     .select('subscription_status, trial_ends_at, created_at, access_until')
@@ -73,7 +94,8 @@ export async function ensureAgency(user: User): Promise<AgencyAccess | null> {
 }
 
 /**
- * `true` quando o número já está em uso por outra agência.
+ * `true` quando o número já está em uso por outra conta — agência ou
+ * usuário convidado.
  *
  * A base tem números em formatos antigos — `51998344269`, `5551998344269` e
  * `555198344269` são o mesmo WhatsApp —, então comparar as strings deixaria o
@@ -82,15 +104,24 @@ export async function ensureAgency(user: User): Promise<AgencyAccess | null> {
  * decisão sai da comparação com os dois lados normalizados, porque DDDs
  * diferentes podem compartilhar esses 8 dígitos (ex.: 51 98765-4321 e
  * 11 98765-4321 são números distintos).
+ *
+ * Olha as duas tabelas que o webhook consulta: `agencies.phone` (o titular)
+ * e `agency_members.telefone` (cada usuário da equipe). Um número repetido
+ * entre elas faria a mensagem de uma agência cair na outra.
  */
 export async function isPhoneTaken(rawPhone: string, exceptId?: string): Promise<boolean> {
   const phone = normalizePhone(rawPhone)
   if (!phone) return false
 
-  const { data } = await admin()
-    .from('agencies')
-    .select('id, phone')
-    .like('phone', `%${phone.slice(-8)}`)
+  const db      = admin()
+  const sufixo  = `%${phone.slice(-8)}`
+  const mesmo   = (valor: string | null) => normalizePhone(valor ?? '') === phone
 
-  return (data ?? []).some(a => a.id !== exceptId && normalizePhone(a.phone ?? '') === phone)
+  const [{ data: agencias }, { data: membros }] = await Promise.all([
+    db.from('agencies').select('id, phone').like('phone', sufixo),
+    db.from('agency_members').select('user_id, telefone').like('telefone', sufixo),
+  ])
+
+  return (agencias ?? []).some(a => a.id !== exceptId && mesmo(a.phone))
+      || (membros  ?? []).some(m => m.user_id !== exceptId && mesmo(m.telefone))
 }

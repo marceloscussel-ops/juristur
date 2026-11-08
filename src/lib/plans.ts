@@ -16,6 +16,15 @@ export const TRIAL_DAYS = 7
 /** Solicitações de defesa (advogado) incluídas sem custo no período gratuito. */
 export const TRIAL_ESCALATIONS = 2
 
+/**
+ * Usuários permitidos durante o período gratuito.
+ *
+ * A agência em avaliação não tem plano (`plan = 'free'`), e deixá-la com um
+ * assento só esconderia a equipe justamente de quem está decidindo se assina.
+ * Espelha o Professional, como TRIAL_ESCALATIONS já faz com as defesas.
+ */
+export const TRIAL_USUARIOS = 3
+
 export interface PlanDef {
   id:       AgencyPlan
   nome:     string
@@ -23,6 +32,7 @@ export interface PlanDef {
   mensal:   number
   anual:    number      // preço/mês no plano anual
   ativo:    boolean     // disponível para assinatura
+  usuarios: number      // assentos incluídos (o titular conta como um)
   features: string[]
 }
 
@@ -35,6 +45,7 @@ export const PLANS: PlanDef[] = [
     mensal: 99,
     anual: 79,
     ativo: true,
+    usuarios: 1,
     features: [
       'Consultas ilimitadas por IA',
       'Base legal sempre citada',
@@ -50,6 +61,7 @@ export const PLANS: PlanDef[] = [
     mensal: 222,
     anual: 177,
     ativo: false,
+    usuarios: 3,
     features: [
       'Tudo do Essential',
       'Até 3 usuários',
@@ -64,6 +76,7 @@ export const PLANS: PlanDef[] = [
     mensal: 297,
     anual: 237,
     ativo: false,
+    usuarios: 5,
     features: [
       'Tudo do Professional',
       'Até 5 usuários',
@@ -182,5 +195,55 @@ export function getEscalationInfo(trial: TrialInfo, used: number): EscalationInf
     total:       TRIAL_ESCALATIONS,
     canEscalate: remaining > 0,
     reason:      remaining > 0 ? 'ok' : 'quota_reached',
+  }
+}
+
+/** Assentos incluídos no plano. `free` (avaliação) cai em TRIAL_USUARIOS. */
+export function usuariosDoPlano(plan: AgencyPlan | null | undefined): number {
+  return PLANS.find(p => p.id === plan)?.usuarios ?? TRIAL_USUARIOS
+}
+
+export type SeatReason = 'ok' | 'seats_reached' | 'trial_expired'
+
+export interface SeatInfo {
+  /** Usuários ativos da agência, o titular incluído. */
+  used:      number
+  /** Assentos do plano (ou do período gratuito). */
+  total:     number
+  /** Assentos livres. */
+  remaining: number
+  /** Se ainda cabe convidar alguém. */
+  canInvite: boolean
+  reason:    SeatReason
+}
+
+/**
+ * Calcula a cota de usuários de uma agência — irmã de getEscalationInfo().
+ *
+ * O plano assinado manda; sem assinatura ativa vale o teto do período
+ * gratuito. Período expirado bloqueia o convite: a conta já está no gate de
+ * cobrança, e convidar alguém para uma conta sem acesso não ajudaria ninguém.
+ *
+ * Passar do teto não bloqueia o downgrade: os excedentes viram 'suspenso' e o
+ * titular escolhe quem reativa (suspenderExcedentes, em src/lib/equipe.ts).
+ */
+export function getSeatInfo(
+  plan:  AgencyPlan | null | undefined,
+  trial: TrialInfo,
+  used:  number,
+): SeatInfo {
+  const total = trial.isActive ? usuariosDoPlano(plan) : TRIAL_USUARIOS
+
+  if (trial.isExpired) {
+    return { used, total, remaining: 0, canInvite: false, reason: 'trial_expired' }
+  }
+
+  const remaining = Math.max(0, total - used)
+  return {
+    used,
+    total,
+    remaining,
+    canInvite: remaining > 0,
+    reason:    remaining > 0 ? 'ok' : 'seats_reached',
   }
 }
