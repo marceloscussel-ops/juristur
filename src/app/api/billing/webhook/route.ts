@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
   // Estado atual da agência (uma leitura só).
   const { data: current } = await supabase
     .from('agencies')
-    .select('access_until, origem_campanha, created_at, billing_cycle')
+    .select('plan, access_until, origem_campanha, created_at, billing_cycle')
     .eq('id', agencyId)
     .maybeSingle()
 
@@ -153,10 +153,9 @@ export async function POST(request: NextRequest) {
       // usuários excedentes viram 'suspenso' e o titular escolhe quem reativa.
       // O downgrade em si nunca é bloqueado.
       //
-      // ATENÇÃO: isto lê o `plan` gravado na linha acima. Enquanto ele for
-      // fixo em 'essencial', toda agência cai no teto de 1 usuário ao pagar —
-      // precisa passar a gravar o plano efetivamente contratado.
-      await aplicarAssentosDoPlano(agencyId)
+      // `current?.plan` é o plano de ANTES deste pagamento, e é o que diz se
+      // isto é mesmo um downgrade (ver aplicarAssentosDoPlano).
+      await aplicarAssentosDoPlano(agencyId, current?.plan)
     }
   }
 
