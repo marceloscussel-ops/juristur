@@ -11,6 +11,7 @@ import {
   type DefenseKind, type DefenseStatus,
 } from '@/types'
 import { ArrowLeft, AlertTriangle, Clock, FileText, UserCheck } from 'lucide-react'
+import { getAgencyId } from '@/lib/agencia-do-usuario'
 
 /**
  * Solicitar defesa — atendimento humano por um advogado.
@@ -41,11 +42,14 @@ export default async function DefesaPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
+  // Membro também pode solicitar defesa: a cota é da agência, não da pessoa.
+  const agencyId = await getAgencyId(user!.id)
+
   const [{ data: recentCases }, { data: historico }] = await Promise.all([
     supabase
       .from('cases')
       .select('id, title, category, created_at, escalated_at')
-      .eq('agency_id', user!.id)
+      .eq('agency_id', agencyId)
       .order('created_at', { ascending: false })
       .limit(5),
     // Histórico das solicitações. `error` é ignorado de propósito: se a
@@ -53,12 +57,12 @@ export default async function DefesaPage() {
     supabase
       .from('defense_requests')
       .select('id, kind, status, subject, requested_at, used_at, consumes_quota')
-      .eq('agency_id', user!.id)
+      .eq('agency_id', agencyId)
       .order('requested_at', { ascending: false })
       .limit(5),
   ])
 
-  const info = await loadDefenseInfo(supabase, user!.id)
+  const info = await loadDefenseInfo(supabase, agencyId)
 
   const beneficios = info.plan === 'enterprise' ? [...BENEFITS, BENEFIT_SLA] : BENEFITS
 

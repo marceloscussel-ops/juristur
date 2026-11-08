@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getAgencyId } from '@/lib/agencia-do-usuario'
 import { followUpCase, ConversationMessage } from '@/lib/claude'
 import { CaseAnalysis, MAX_FOLLOWUP_QUESTIONS } from '@/types'
 
@@ -14,11 +15,13 @@ export async function GET(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
 
+  const agencyId = await getAgencyId(user.id)
+
   const { data: caseRow } = await supabase
     .from('cases')
     .select('id')
     .eq('id', id)
-    .eq('agency_id', user.id)
+    .eq('agency_id', agencyId)
     .single()
 
   if (!caseRow) return NextResponse.json({ error: 'Caso não encontrado' }, { status: 404 })
@@ -47,11 +50,13 @@ export async function POST(
   if (question.length > 2000) return NextResponse.json({ error: 'Pergunta muito longa' }, { status: 400 })
 
   // Busca o caso + análise aprovada
+  const agencyId = await getAgencyId(user.id)
+
   const { data: caseRow } = await supabase
     .from('cases')
     .select('description, category, case_analyses(*)')
     .eq('id', id)
-    .eq('agency_id', user.id)
+    .eq('agency_id', agencyId)
     .single()
 
   if (!caseRow) return NextResponse.json({ error: 'Caso não encontrado' }, { status: 404 })

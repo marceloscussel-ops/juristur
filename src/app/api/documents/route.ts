@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { extractTextFromFile } from '@/lib/extract-text'
 import { generateContract, generateDocument, agencyProfileFromRow } from '@/lib/ai/documents'
 import { getContractTemplate, DEFAULT_CONTRACT_TEMPLATE_ID } from '@/lib/templates/contrato-turismo'
+import { getAgencyId } from '@/lib/agencia-do-usuario'
 
 // Claude redigindo um contrato inteiro leva mais que o default do Vercel.
 export const maxDuration = 300
@@ -24,6 +25,9 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
+
+    // Igual aos casos: o documento é da agência, `created_by` é a autoria.
+    const agencyId = await getAgencyId(user.id)
 
     const formData = await request.formData()
     const kind     = (formData.get('kind') as string) === 'outro' ? 'outro' : 'contrato'
@@ -49,7 +53,7 @@ export async function POST(request: NextRequest) {
     const { count: todayCount } = await supabase
       .from('documents')
       .select('id', { count: 'exact', head: true })
-      .eq('agency_id', user.id)
+      .eq('agency_id', agencyId)
       .gte('created_at', today)
 
     if ((todayCount ?? 0) >= MAX_DOCS_PER_DAY) {
@@ -68,7 +72,8 @@ export async function POST(request: NextRequest) {
     const { data: doc, error: insertError } = await supabase
       .from('documents')
       .insert({
-        agency_id:   user.id,
+        agency_id:   agencyId,
+        created_by:  user.id,
         kind,
         template_id: kind === 'contrato' ? template.id : null,
         doc_type:    kind === 'outro' ? docType : template.nome,
@@ -93,7 +98,7 @@ export async function POST(request: NextRequest) {
     for (const file of files.slice(0, MAX_FILES)) {
       try {
         const buffer   = Buffer.from(await file.arrayBuffer())
-        const filePath = `${user.id}/doc-${doc.id}/${Date.now()}-${file.name}`
+        const filePath = `${agencyId}/doc-${doc.id}/${Date.now()}-${file.name}`
 
         const { data: up, error: upErr } = await supabase.storage
           .from('case-files')
@@ -126,7 +131,7 @@ export async function POST(request: NextRequest) {
     const { data: agencyRow } = await supabase
       .from('agencies')
       .select('name, cnpj, email, phone, endereco, endereco_numero, bairro, cidade')
-      .eq('id', user.id)
+      .eq('id', agencyId)
       .maybeSingle()
 
     const agency = agencyProfileFromRow(agencyRow)
@@ -146,7 +151,7 @@ export async function POST(request: NextRequest) {
           updated_at:  new Date().toISOString(),
         })
         .eq('id', doc.id)
-        .eq('agency_id', user.id)
+        .eq('agency_id', agencyId)
     } catch (aiErr) {
       console.error('[documents POST] AI error:', aiErr)
       // O rascunho fica sem conteúdo; a tela oferece "Gerar novamente".

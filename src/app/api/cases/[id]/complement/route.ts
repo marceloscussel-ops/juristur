@@ -5,6 +5,7 @@ import { analyzeCaseComplement } from '@/lib/claude'
 import { notifyAgencyCaseReady, notifyLawyerNewCase } from '@/lib/notify'
 import { CaseAnalysis, MAX_COMPLEMENT_LENGTH } from '@/types'
 import { env } from '@/lib/env'
+import { getAgencyId } from '@/lib/agencia-do-usuario'
 
 function getServiceClient() {
   return createServiceClient(env('NEXT_PUBLIC_SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'))
@@ -21,6 +22,9 @@ export async function POST(
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+
+  // A agência do usuário (membro ou titular) — nunca o id dele.
+  const agencyId = await getAgencyId(user.id)
 
   const body = await req.json().catch(() => ({}))
   const complement: string = (body.complement ?? '').trim()
@@ -40,7 +44,7 @@ export async function POST(
     .from('cases')
     .select('description, category, complemented_at, case_analyses(*)')
     .eq('id', id)
-    .eq('agency_id', user.id)
+    .eq('agency_id', agencyId)
     .single()
 
   if (!caseRow) return NextResponse.json({ error: 'Caso não encontrado.' }, { status: 404 })
@@ -123,7 +127,7 @@ export async function POST(
   if (autoApprove) {
     await notifyAgencyCaseReady(id)
   } else if (settings?.lawyer_phone) {
-    const { data: agencyData } = await supabase.from('agencies').select('name').eq('id', user.id).single()
+    const { data: agencyData } = await supabase.from('agencies').select('name').eq('id', agencyId).single()
     await notifyLawyerNewCase(
       settings.lawyer_phone,
       id,

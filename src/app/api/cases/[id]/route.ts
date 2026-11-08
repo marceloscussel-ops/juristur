@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getAgencyId } from '@/lib/agencia-do-usuario'
 
 export async function GET(
   _request: NextRequest,
@@ -14,11 +15,14 @@ export async function GET(
       return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
     }
 
+    // A agência do usuário (membro ou titular) — nunca o id dele.
+    const agencyId = await getAgencyId(user.id)
+
     const { data: caseData, error } = await supabase
       .from('cases')
       .select('*, case_analyses(*), case_files(*)')
       .eq('id', id)
-      .eq('agency_id', user.id)
+      .eq('agency_id', agencyId)
       .single()
 
     if (error || !caseData) {

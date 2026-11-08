@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getAgencyId } from '@/lib/agencia-do-usuario'
 import { buildDocumentPdf, documentFilename } from '@/lib/pdf/document-pdf'
 import { buildDocumentDocx } from '@/lib/docx/document-docx'
 import type { AgencyDocument } from '@/types'
@@ -31,11 +32,14 @@ export async function GET(
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
+  // A agência do usuário (membro ou titular) — nunca o id dele.
+    const agencyId = await getAgencyId(user.id)
+
     const { data } = await supabase
       .from('documents')
       .select('id, title, content, kind, doc_type, created_at')
       .eq('id', id)
-      .eq('agency_id', user.id)
+      .eq('agency_id', agencyId)
       .maybeSingle()
 
     if (!data) return NextResponse.json({ error: 'Documento não encontrado.' }, { status: 404 })
@@ -46,7 +50,7 @@ export async function GET(
     }
 
     const { data: agency } = await supabase
-      .from('agencies').select('name').eq('id', user.id).maybeSingle()
+      .from('agencies').select('name').eq('id', agencyId).maybeSingle()
 
     const title = doc.title?.trim() || doc.doc_type?.trim() || 'Documento'
 

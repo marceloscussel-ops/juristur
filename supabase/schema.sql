@@ -62,6 +62,107 @@ ALTER TABLE agencies ADD COLUMN IF NOT EXISTS endereco_numero  TEXT;
 ALTER TABLE agencies ADD COLUMN IF NOT EXISTS bairro           TEXT;  -- province no Asaas
 ALTER TABLE agencies ADD COLUMN IF NOT EXISTS cidade           TEXT;
 
+-- ============================================================
+-- Múltiplos usuários por agência
+--
+-- `agencies.id` é o id do TITULAR (quem criou a conta e assina). Para os
+-- planos com 3 e 5 usuários, `agency_members` liga cada usuário do Auth a
+-- uma agência — a linha do titular é a que tem `user_id = agency_id`.
+-- Nenhuma coluna de dono mudou: `cases.agency_id` e `documents.agency_id`
+-- continuam apontando para a agência.
+--
+-- Vem antes das policies de propósito: elas chamam as funções definidas
+-- aqui, e uma policy que referencia função inexistente não é criada.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS agency_members (
+  -- PK no usuário: um usuário pertence a UMA agência. É o que torna
+  -- `agency_do_usuario()` determinística (e a RLS, barata).
+  user_id      UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  agency_id    UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+  papel        TEXT NOT NULL DEFAULT 'membro'
+                 CHECK (papel IN ('titular', 'membro')),
+  nome         TEXT,
+  telefone     TEXT,                  -- WhatsApp do usuário (formato Z-API, 12 dígitos)
+  email        TEXT,
+  status       TEXT NOT NULL DEFAULT 'convidado'
+                 CHECK (status IN ('convidado', 'ativo', 'suspenso')),
+  convidado_em TIMESTAMPTZ,
+  aceito_em    TIMESTAMPTZ,
+  created_at   TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS agency_members_agency_idx ON agency_members(agency_id);
+
+-- Telefone é único GLOBAL: o webhook do WhatsApp identifica quem está falando
+-- só pelo número, então dois usuários com o mesmo WhatsApp fariam a mensagem
+-- de um cair na agência do outro.
+CREATE UNIQUE INDEX IF NOT EXISTS agency_members_telefone_idx
+  ON agency_members(telefone) WHERE telefone IS NOT NULL;
+
+-- Um titular por agência: é dele que saem cobrança, plano e gestão de usuários.
+CREATE UNIQUE INDEX IF NOT EXISTS agency_members_titular_idx
+  ON agency_members(agency_id) WHERE papel = 'titular';
+
+-- Backfill: toda agência existente ganha o seu titular ativo. Sem isto
+-- `agency_do_usuario()` devolveria NULL e a RLS trancaria todo mundo fora.
+INSERT INTO agency_members (user_id, agency_id, papel, nome, telefone, email, status, aceito_em, created_at)
+SELECT a.id, a.id, 'titular', a.name, a.phone, a.email, 'ativo', a.created_at, a.created_at
+FROM agencies a
+ON CONFLICT (user_id) DO NOTHING;
+
+-- Resolução da agência de quem está chamando — base de toda a RLS.
+--
+-- SECURITY DEFINER é OBRIGATÓRIO: uma policy de `cases` que consultasse
+-- `agency_members` diretamente acionaria a RLS de `agency_members`, que chama
+-- esta resolução — recursão infinita (42P17). Rodando como dona da função, a
+-- consulta interna não passa por RLS.
+--
+-- Não é buraco de segurança: a função não aceita parâmetro, só responde "qual
+-- é a agência de quem está chamando". Sem sessão, auth.uid() é NULL, nenhuma
+-- linha casa, o retorno é NULL — e `agency_id = NULL` nunca é verdadeiro.
+CREATE OR REPLACE FUNCTION public.agency_do_usuario()
+RETURNS UUID
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT m.agency_id
+  FROM public.agency_members m
+  WHERE m.user_id = auth.uid()
+    AND m.status  = 'ativo'
+  LIMIT 1;
+$$;
+
+-- Titular: quem pode mexer em cobrança, plano, dados da agência e equipe.
+CREATE OR REPLACE FUNCTION public.e_titular_da_agencia()
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.agency_members m
+    WHERE m.user_id = auth.uid()
+      AND m.status  = 'ativo'
+      AND m.papel   = 'titular'
+  );
+$$;
+
+GRANT EXECUTE ON FUNCTION public.agency_do_usuario()    TO authenticated, anon, service_role;
+GRANT EXECUTE ON FUNCTION public.e_titular_da_agencia() TO authenticated, anon, service_role;
+
+ALTER TABLE agency_members ENABLE ROW LEVEL SECURITY;
+
+-- A equipe inteira se enxerga (a tela de equipe mostra papel e status de
+-- todos). Escrita não tem policy: convidar, suspender e remover passam pelas
+-- rotas de API com service role, que validam o titular e o assento do plano.
+DROP POLICY IF EXISTS "agency_members_read" ON agency_members;
+CREATE POLICY "agency_members_read" ON agency_members
+  FOR SELECT USING (agency_id = public.agency_do_usuario());
+
 -- Casos
 CREATE TABLE IF NOT EXISTS cases (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -83,6 +184,11 @@ ALTER TABLE cases ADD COLUMN IF NOT EXISTS escalated_at TIMESTAMPTZ;  -- quando 
 -- (description) é preservado; complemented_at != NULL trava para um único complemento.
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS complement      TEXT;
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS complemented_at TIMESTAMPTZ;
+-- Autoria: qual usuário da agência registrou o caso. Sem foreign key para
+-- auth.users de propósito — com FK, remover alguém da equipe cascatearia (ou
+-- travaria) nos casos da agência, e o histórico jurídico da empresa não pode
+-- depender de quem continua na conta. Linhas antigas ficam NULL.
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS created_by UUID;
 -- Índice parcial para contar escaladas por agência (cota de escaladas gratuitas)
 CREATE INDEX IF NOT EXISTS cases_escalated_idx ON cases(agency_id) WHERE escalated_at IS NOT NULL;
 
@@ -204,14 +310,25 @@ ALTER TABLE billing_events     ENABLE ROW LEVEL SECURITY;
 -- billing_events: sem policy — apenas o service role (webhook) lê/escreve
 
 -- Policies: agencies
-DROP POLICY IF EXISTS "agencies_own" ON agencies;
-CREATE POLICY "agencies_own" ON agencies
-  FOR ALL USING (auth.uid() = id);
+-- `agency_do_usuario()` (definida na seção "Múltiplos usuários por agência")
+-- é a resolução da agência do usuário. Membro lê, só o titular atualiza;
+-- INSERT/DELETE ficam sem policy — são trabalho das rotas com service role.
+DROP POLICY IF EXISTS "agencies_own"    ON agencies;
+DROP POLICY IF EXISTS "agencies_read"   ON agencies;
+DROP POLICY IF EXISTS "agencies_update" ON agencies;
+
+CREATE POLICY "agencies_read" ON agencies
+  FOR SELECT USING (id = public.agency_do_usuario());
+
+CREATE POLICY "agencies_update" ON agencies
+  FOR UPDATE
+  USING      (id = public.agency_do_usuario() AND public.e_titular_da_agencia())
+  WITH CHECK (id = public.agency_do_usuario() AND public.e_titular_da_agencia());
 
 -- Policies: cases
 DROP POLICY IF EXISTS "cases_own" ON cases;
 CREATE POLICY "cases_own" ON cases
-  FOR ALL USING (auth.uid() = agency_id);
+  FOR ALL USING (agency_id = public.agency_do_usuario());
 
 -- Policies: case_files
 DROP POLICY IF EXISTS "case_files_own" ON case_files;
@@ -220,7 +337,7 @@ CREATE POLICY "case_files_own" ON case_files
     EXISTS (
       SELECT 1 FROM cases
       WHERE cases.id = case_files.case_id
-        AND cases.agency_id = auth.uid()
+        AND cases.agency_id = public.agency_do_usuario()
     )
   );
 
@@ -231,7 +348,7 @@ CREATE POLICY "case_analyses_own" ON case_analyses
     EXISTS (
       SELECT 1 FROM cases
       WHERE cases.id = case_analyses.case_id
-        AND cases.agency_id = auth.uid()
+        AND cases.agency_id = public.agency_do_usuario()
     )
   );
 
@@ -242,14 +359,14 @@ CREATE POLICY "case_messages_own" ON case_messages
     EXISTS (
       SELECT 1 FROM cases
       WHERE cases.id = case_messages.case_id
-        AND cases.agency_id = auth.uid()
+        AND cases.agency_id = public.agency_do_usuario()
     )
   );
 
 -- Policies: whatsapp_sessions (acesso via service role no webhook)
 DROP POLICY IF EXISTS "whatsapp_sessions_own" ON whatsapp_sessions;
 CREATE POLICY "whatsapp_sessions_own" ON whatsapp_sessions
-  FOR ALL USING (auth.uid() = agency_id);
+  FOR ALL USING (agency_id = public.agency_do_usuario());
 
 -- ============================================================
 -- Função de busca RAG (similarity search)
@@ -289,6 +406,11 @@ $$;
 
 -- ============================================================
 -- Trigger: criar agencies automaticamente no cadastro
+--
+-- Também é o ponto que resolve o convite: antes, TODO usuário novo do Auth
+-- ganhava uma agência — um membro convidado entrava pelo mesmo caminho e
+-- virava uma agência vazia em vez de entrar na agência do titular. Agora o
+-- `agency_id` no metadata do convite decide qual dos dois caminhos vale.
 -- ============================================================
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger
@@ -296,23 +418,47 @@ LANGUAGE plpgsql
 SECURITY DEFINER SET search_path = public
 AS $$
 DECLARE
-  v_phone TEXT := NEW.raw_user_meta_data->>'phone';
+  v_phone     TEXT := NEW.raw_user_meta_data->>'phone';
+  v_agency_id UUID := NULLIF(NEW.raw_user_meta_data->>'agency_id', '')::UUID;
+  v_nome      TEXT := NEW.raw_user_meta_data->>'name';
 BEGIN
-  -- `phone` é UNIQUE: se o número já é de outra agência, grava NULL em vez de
-  -- deixar a violação derrubar o insert. Sem a linha em `agencies` o usuário
-  -- entra na plataforma mas todo caso quebra na foreign key de `cases`.
-  IF v_phone IS NOT NULL AND EXISTS (
-    SELECT 1 FROM public.agencies a WHERE a.phone = v_phone AND a.id <> NEW.id
+  -- Telefone é chave de busca do WhatsApp nas DUAS tabelas: se o número já é
+  -- de outra conta, grava NULL em vez de deixar a violação de UNIQUE derrubar
+  -- o insert. Ficar sem o canal de aviso é recuperável pelo /perfil; ficar sem
+  -- vínculo com a agência não (todo caso quebraria na foreign key).
+  IF v_phone IS NOT NULL AND (
+       EXISTS (SELECT 1 FROM public.agencies a
+                WHERE a.phone = v_phone AND a.id <> NEW.id)
+    OR EXISTS (SELECT 1 FROM public.agency_members m
+                WHERE m.telefone = v_phone AND m.user_id <> NEW.id)
   ) THEN
     v_phone := NULL;
   END IF;
 
+  -- ── Convidado: entra numa agência que já existe ──
+  IF v_agency_id IS NOT NULL
+     AND EXISTS (SELECT 1 FROM public.agencies WHERE id = v_agency_id) THEN
+    -- `papel` é fixo em 'membro': o metadata vem de fora do banco, e deixá-lo
+    -- escolher o papel transformaria um convite em promoção a titular.
+    INSERT INTO public.agency_members
+      (user_id, agency_id, papel, nome, telefone, email, status, convidado_em)
+    VALUES (
+      NEW.id, v_agency_id, 'membro',
+      COALESCE(v_nome, split_part(NEW.email, '@', 1)),
+      v_phone, NEW.email, 'convidado', now()
+    )
+    ON CONFLICT (user_id) DO NOTHING;
+
+    RETURN NEW;  -- nenhuma agência é criada para ele
+  END IF;
+
+  -- ── Cadastro comum: nasce a agência e o seu titular ──
   -- Novos cadastros: 7 dias de acesso gratuito. Agências do piloto (30 dias)
   -- mantêm o trial_ends_at já gravado na criação.
   INSERT INTO public.agencies (id, name, cnpj, email, phone, subscription_status, trial_ends_at)
   VALUES (
     NEW.id,
-    COALESCE(NEW.raw_user_meta_data->>'name',  'Agência sem nome'),
+    COALESCE(v_nome, 'Agência sem nome'),
     COALESCE(NEW.raw_user_meta_data->>'cnpj',  '00.000.000/0000-00'),
     NEW.email,
     v_phone,
@@ -320,6 +466,16 @@ BEGIN
     now() + INTERVAL '7 days'
   )
   ON CONFLICT (id) DO NOTHING;
+
+  INSERT INTO public.agency_members
+    (user_id, agency_id, papel, nome, telefone, email, status, aceito_em)
+  VALUES (
+    NEW.id, NEW.id, 'titular',
+    COALESCE(v_nome, 'Agência sem nome'),
+    v_phone, NEW.email, 'ativo', now()
+  )
+  ON CONFLICT (user_id) DO NOTHING;
+
   RETURN NEW;
 END;
 $$;
@@ -328,6 +484,35 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- ============================================================
+-- Trigger: convite aceito
+--
+-- O convidado entra em `agency_members` como 'convidado' e só passa a 'ativo'
+-- quando prova que é dono do e-mail — o que o Auth registra em
+-- `email_confirmed_at` ao abrir o link do convite. Enquanto for 'convidado',
+-- `agency_do_usuario()` devolve NULL e ele não lê nada da agência.
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.handle_user_confirmed()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  IF NEW.email_confirmed_at IS NOT NULL AND OLD.email_confirmed_at IS NULL THEN
+    UPDATE public.agency_members
+      SET status = 'ativo', aceito_em = COALESCE(aceito_em, now())
+      WHERE user_id = NEW.id
+        AND status  = 'convidado';  -- nunca reativa quem o titular suspendeu
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_confirmed ON auth.users;
+CREATE TRIGGER on_auth_user_confirmed
+  AFTER UPDATE OF email_confirmed_at ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_user_confirmed();
 
 -- ============================================================
 -- Storage bucket
@@ -384,6 +569,10 @@ CREATE TABLE IF NOT EXISTS document_files (
   created_at     TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
+-- Autoria do documento. Mesmo desenho de `cases.created_by`: sem foreign key
+-- para auth.users, para remover alguém da equipe não mexer no histórico.
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS created_by UUID;
+
 CREATE INDEX IF NOT EXISTS documents_agency_id_idx   ON documents(agency_id);
 CREATE INDEX IF NOT EXISTS documents_created_at_idx  ON documents(agency_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS document_files_doc_id_idx ON document_files(document_id);
@@ -393,7 +582,7 @@ ALTER TABLE document_files ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "documents_own" ON documents;
 CREATE POLICY "documents_own" ON documents
-  FOR ALL USING (auth.uid() = agency_id);
+  FOR ALL USING (agency_id = public.agency_do_usuario());
 
 DROP POLICY IF EXISTS "document_files_own" ON document_files;
 CREATE POLICY "document_files_own" ON document_files
@@ -401,7 +590,7 @@ CREATE POLICY "document_files_own" ON document_files
     EXISTS (
       SELECT 1 FROM documents
       WHERE documents.id = document_files.document_id
-        AND documents.agency_id = auth.uid()
+        AND documents.agency_id = public.agency_do_usuario()
     )
   );
 
@@ -437,7 +626,7 @@ ALTER TABLE contract_acceptances ENABLE ROW LEVEL SECURITY;
 -- cadastro e de checkout), para o registro não poder ser forjado no navegador.
 DROP POLICY IF EXISTS "contract_acceptances_read_own" ON contract_acceptances;
 CREATE POLICY "contract_acceptances_read_own" ON contract_acceptances
-  FOR SELECT USING (auth.uid() = agency_id);
+  FOR SELECT USING (agency_id = public.agency_do_usuario());
 
 -- ============================================================
 -- Defesas inclusas no plano
@@ -497,9 +686,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS defense_requests_case_unique_idx
 
 ALTER TABLE defense_requests ENABLE ROW LEVEL SECURITY;
 
--- A agência lê as próprias solicitações (a tela de defesa mostra o saldo).
+-- A agência LÊ as próprias solicitações (a tela de defesa mostra o saldo).
 -- Escrita só pelo service role: quem marca "utilizada" é o advogado, pelas
--- rotas de API — não pode ser forjado no navegador da agência.
+-- rotas de API. Por isso SELECT e não FOR ALL — uma agência que pudesse
+-- escrever aqui zeraria a própria cota marcando `consumes_quota = false`
+-- ou apagando a linha da defesa já utilizada.
 DROP POLICY IF EXISTS "defense_requests_read_own" ON defense_requests;
-CREATE POLICY "defense_requests_read_own" ON defense_requests
-  FOR SELECT USING (auth.uid() = agency_id);
+DROP POLICY IF EXISTS "defense_requests_agencia" ON defense_requests;
+CREATE POLICY "defense_requests_agencia" ON defense_requests
+  FOR SELECT USING (agency_id = public.agency_do_usuario());

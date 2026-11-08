@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { env } from '@/lib/env'
+import { getAgencyId } from '@/lib/agencia-do-usuario'
 
 export async function GET() {
   const supabase = await createClient()
@@ -16,7 +17,7 @@ export async function GET() {
 
   // Estado da agência (para diagnosticar o banner de trial)
   const { data: agencyRow, error: agencyErr } = await db
-    .from('agencies').select('*').eq('id', user.id).maybeSingle()
+    .from('agencies').select('*').eq('id', await getAgencyId(user.id)).maybeSingle()
 
   return NextResponse.json({
     user_id:       user.id,

@@ -19,6 +19,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { env } from '@/lib/env'
 import { loadDefenseInfo, registrarSolicitacaoDefesa } from '@/lib/defesas'
+import { getAgencyId } from '@/lib/agencia-do-usuario'
 import type { DefenseKind } from '@/types'
 
 const KINDS: DefenseKind[] = ['contrato', 'defesa', 'audiencia', 'peca', 'outro']
@@ -37,7 +38,10 @@ export async function POST(request: NextRequest) {
   const subject = typeof body.subject === 'string' ? body.subject.slice(0, 500) : null
   const kind: DefenseKind = KINDS.includes(body.kind) ? body.kind : 'defesa'
 
-  const info = await loadDefenseInfo(supabase, user.id)
+  // Qualquer usuário ativo da agência pode pedir defesa: a cota é da agência.
+  const agencyId = await getAgencyId(user.id)
+
+  const info = await loadDefenseInfo(supabase, agencyId)
 
   if (!info.canRequest) {
     const error = info.state === 'expirada'
@@ -53,14 +57,14 @@ export async function POST(request: NextRequest) {
       .from('cases')
       .select('id')
       .eq('id', caseId)
-      .eq('agency_id', user.id)
+      .eq('agency_id', agencyId)
       .maybeSingle()
     caseIdOk = caseRow?.id ?? null
   }
 
   const db = serviceClient()
   const id = await registrarSolicitacaoDefesa(db, {
-    agencyId:  user.id,
+    agencyId,
     caseId:    caseIdOk,
     origin:    'web',
     kind,

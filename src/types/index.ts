@@ -77,6 +77,8 @@ export interface Case {
   escalated_at: string | null
   complement:      string | null
   complemented_at: string | null
+  /** Usuário da agência que registrou (null nos casos anteriores à equipe). */
+  created_by:   string | null
   created_at:   string
   case_analyses?:  CaseAnalysis[]
   case_files?:     CaseFile[]
@@ -218,6 +220,8 @@ export interface AgencyDocument {
   content:     string | null
   status:      DocumentStatus
   tokens_used: number | null
+  /** Usuário da agência que gerou (null nos documentos anteriores à equipe). */
+  created_by:  string | null
   created_at:  string
   updated_at:  string
   document_files?: DocumentFile[]
@@ -245,6 +249,8 @@ export interface PanelItem {
   href:       string
   status:     CaseStatus | DocumentStatus
   severity:   Severity | null
+  /** Nome de quem registrou, quando a agência tem mais de um usuário. */
+  autor:      string | null
   created_at: string
 }
 

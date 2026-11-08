@@ -73,10 +73,28 @@ export async function updateSession(request: NextRequest) {
     !isAdmin(user.email) && !pathname.startsWith('/admin') &&
     !isPublicPath && !billingExempt
   ) {
+    // Qual agência é a desta pessoa? Com múltiplos usuários por agência, o
+    // `auth.uid()` do membro NÃO é o id da agência — ler `agencies` por
+    // `user.id` devolveria nada e o gate deixaria passar quem já expirou.
+    //
+    // Aqui a consulta usa a sessão do próprio usuário (e não o service role de
+    // src/lib/agencia-do-usuario.ts): o middleware roda no Edge, onde env var
+    // lida dinamicamente não existe. A policy de `agency_members` já mostra a
+    // linha de quem está ativo, que é justamente quem o gate precisa avaliar.
+    const { data: membro } = await supabase
+      .from('agency_members')
+      .select('agency_id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    // Sem linha (ou migration ainda não aplicada): titular da própria agência,
+    // igual ao comportamento de antes desta feature.
+    const agencyId = membro?.agency_id ?? user.id
+
     const { data: agency } = await supabase
       .from('agencies')
       .select('subscription_status, trial_ends_at, created_at, access_until')
-      .eq('id', user.id)
+      .eq('id', agencyId)
       .maybeSingle()
 
     if (agency && getTrialInfo(agency).isExpired) {
@@ -85,6 +103,12 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url)
     }
   }
+
+  // /assinar continua aberto ao membro de propósito: é onde ele vê que a
+  // assinatura é administrada pelo titular (a própria página explica). Barrar
+  // aqui criaria laço com o redirecionamento do gate acima, que manda todo
+  // mundo da agência expirada justamente para /assinar. Contratar, trocar de
+  // plano e cancelar é que são bloqueados — nas rotas de /api/billing.
 
   return supabaseResponse
 }

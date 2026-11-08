@@ -8,18 +8,31 @@ import { LogOut, Menu, X, Plus, UserCircle } from 'lucide-react'
 import TGLogo from '@/components/TGLogo'
 import ThemeToggle from '@/components/ThemeToggle'
 
-const navItems = [
+const baseNavItems = [
   { href: '/dashboard', label: 'Painel'     },
   { href: '/assinar',   label: 'Planos'     },
   { href: '/perfil',    label: 'Perfil'      },
   { href: '/ajuda',     label: 'Ajuda'       },
 ]
 
-export default function Navbar() {
+/**
+ * `isTitular` controla o link da equipe: gestão de usuários é só do titular
+ * (quem assina e paga). O membro não vê a entrada — e as rotas de /api/equipe
+ * recusam quem não é titular, então esconder aqui é conveniência, não a trava.
+ */
+export default function Navbar({ isTitular = true }: { isTitular?: boolean }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
   const supabase = createClient()
+
+  const navItems = isTitular
+    ? [
+        ...baseNavItems.slice(0, 3),
+        { href: '/equipe', label: 'Equipe' },
+        ...baseNavItems.slice(3),
+      ]
+    : baseNavItems
 
   async function handleLogout() {
     await supabase.auth.signOut()

@@ -4,17 +4,39 @@ import { getTrialInfo, PLAN_LABELS } from '@/lib/plans'
 import { isUnavPromoEligible, UNAV_PROMO_MESES, UNAV_PROMO } from '@/lib/promo'
 import { isValidCpfCnpj } from '@/lib/document'
 import type { AgencyPlan } from '@/types'
-import { CheckCircle2, Gift } from 'lucide-react'
+import { CheckCircle2, Gift, Lock } from 'lucide-react'
 import { WHATSAPP_NUMBER } from '@/lib/whatsapp/public-number'
+import { getVinculo } from '@/lib/agencia-do-usuario'
 
 export default async function AssinarPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
+  const vinculo = await getVinculo(user!.id)
+
+  // Membro não contrata: o plano é da agência e a cobrança sai no nome do
+  // titular. A tela fica acessível de propósito — o gate de cobrança manda
+  // toda a agência expirada para cá, e o membro precisa entender por que não
+  // consegue mais usar o sistema em vez de bater num redirecionamento em laço.
+  if (!vinculo.isTitular) {
+    return (
+      <div className="animate-fade-in max-w-md mx-auto">
+        <div className="j-card text-center py-10">
+          <Lock className="w-9 h-9 text-ink-40 mx-auto mb-3" />
+          <h1 className="j-h3 mb-1">Assinatura da agência</h1>
+          <p className="j-caption">
+            O plano e a cobrança são administrados pelo titular da conta. Fale
+            com ele para assinar, trocar de plano ou renovar o acesso.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   const { data: agency } = await supabase
     .from('agencies')
     .select('plan, subscription_status, trial_ends_at, created_at, access_until, origem_campanha, cnpj, cep, endereco, endereco_numero, bairro')
-    .eq('id', user!.id)
+    .eq('id', vinculo.agencyId)
     .single()
 
   const trial = agency ? getTrialInfo(agency) : null

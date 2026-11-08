@@ -101,7 +101,23 @@ ALTER TABLE defense_requests ENABLE ROW LEVEL SECURITY;
 
 -- A agência LÊ as próprias solicitações (a tela de defesa mostra o saldo).
 -- Escrita só pelo service role: quem marca "utilizada" é o advogado, pelas
--- rotas de API — não pode ser forjado no navegador da agência.
-DROP POLICY IF EXISTS "defense_requests_read_own" ON defense_requests;
-CREATE POLICY "defense_requests_read_own" ON defense_requests
-  FOR SELECT USING (auth.uid() = agency_id);
+-- rotas de API. Por isso SELECT e não FOR ALL — uma agência que pudesse
+-- escrever aqui zeraria a própria cota marcando `consumes_quota = false`.
+--
+-- Quem é "a agência" depende da migration do multiusuário: com
+-- `agency_do_usuario()` no banco, qualquer usuário ativo da agência lê;
+-- sem ela, vale o modelo antigo (agência = usuário). O bloco guardado deixa
+-- esta migration rodar em qualquer ordem em relação àquela — aplicada a
+-- outra depois, basta rodá-la de novo (ela também é idempotente).
+DO $$
+BEGIN
+  EXECUTE 'DROP POLICY IF EXISTS "defense_requests_read_own" ON defense_requests';
+  EXECUTE 'DROP POLICY IF EXISTS "defense_requests_agencia" ON defense_requests';
+  IF to_regproc('public.agency_do_usuario') IS NOT NULL THEN
+    EXECUTE 'CREATE POLICY "defense_requests_agencia" ON defense_requests
+               FOR SELECT USING (agency_id = public.agency_do_usuario())';
+  ELSE
+    EXECUTE 'CREATE POLICY "defense_requests_agencia" ON defense_requests
+               FOR SELECT USING (auth.uid() = agency_id)';
+  END IF;
+END $$;

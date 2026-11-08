@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { env } from '@/lib/env'
 import { loadDefenseInfo, registrarSolicitacaoDefesa } from '@/lib/defesas'
+import { getAgencyId } from '@/lib/agencia-do-usuario'
 
 /**
  * Registra a solicitação de defesa de um caso (atendimento humano).
@@ -26,11 +27,15 @@ export async function POST(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
 
+  // Qualquer usuário ativo da agência pode solicitar defesa; a cota consumida
+  // é a da agência, não a da pessoa.
+  const agencyId = await getAgencyId(user.id)
+
   const { data: caseRow } = await supabase
     .from('cases')
     .select('id, category, escalated_at')
     .eq('id', id)
-    .eq('agency_id', user.id)
+    .eq('agency_id', agencyId)
     .single()
 
   if (!caseRow) return NextResponse.json({ error: 'Caso não encontrado' }, { status: 404 })
@@ -40,7 +45,7 @@ export async function POST(
     return NextResponse.json({ ok: true, alreadyEscalated: true })
   }
 
-  const info = await loadDefenseInfo(supabase, user.id)
+  const info = await loadDefenseInfo(supabase, agencyId)
 
   if (!info.canRequest) {
     const error = info.state === 'expirada'
@@ -53,7 +58,7 @@ export async function POST(
     .from('cases')
     .update({ escalated_at: new Date().toISOString() })
     .eq('id', id)
-    .eq('agency_id', user.id)
+    .eq('agency_id', agencyId)
 
   // A fila do advogado é escrita pelo service role: a policy de
   // `defense_requests` só permite LEITURA à agência, para o registro de
@@ -61,7 +66,7 @@ export async function POST(
   await registrarSolicitacaoDefesa(
     createServiceClient(env('NEXT_PUBLIC_SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY')),
     {
-      agencyId:  user.id,
+      agencyId:  agencyId,
       caseId:    id,
       origin:    'web',
       kind:      'defesa',

@@ -11,6 +11,7 @@
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { exigirTitular } from '@/lib/titular'
 
 // Depende da sessão do usuário — nunca pode ser avaliada em build.
 export const dynamic = 'force-dynamic'
@@ -18,17 +19,23 @@ export const maxDuration = 60
 
 export async function GET() {
   try {
+    // Exportação é da conta inteira da agência (todos os casos, todos os
+    // aceites), então quem pede é quem responde por ela.
+    const porteiro = await exigirTitular(
+      'Só o titular da conta pode exportar os dados da agência.',
+    )
+    if ('erro' in porteiro) return porteiro.erro
+
+    const { agencyId } = porteiro
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
     // RLS garante que só vêm os dados da própria agência.
     const [{ data: agency }, { data: cases }, { data: aceites }] = await Promise.all([
-      supabase.from('agencies').select('*').eq('id', user.id).maybeSingle(),
+      supabase.from('agencies').select('*').eq('id', agencyId).maybeSingle(),
       supabase
         .from('cases')
         .select('*, case_analyses(*), case_messages(*), case_files(id, file_name, file_type, file_url, created_at)')
-        .eq('agency_id', user.id)
+        .eq('agency_id', agencyId)
         .order('created_at', { ascending: true }),
       // Aceites do contrato: fazem parte do histórico da conta e são a prova do
       // que a agência contratou. Vão sem o texto completo (vários KB cada) —
@@ -36,7 +43,7 @@ export async function GET() {
       supabase
         .from('contract_acceptances')
         .select('id, version, event, anexo, ip, user_agent, accepted_at')
-        .eq('agency_id', user.id)
+        .eq('agency_id', agencyId)
         .order('accepted_at', { ascending: true }),
     ])
 
