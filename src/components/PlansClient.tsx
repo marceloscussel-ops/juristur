@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Check, X, Sparkles, CreditCard, QrCode, Loader2, AlertCircle, Gift } from 'lucide-react'
 import { PLANS, type PlanDef } from '@/lib/plans'
+import AceiteContrato from '@/components/AceiteContrato'
 import { UNAV_PROMO_MESES } from '@/lib/promo'
 import { formatCpfCnpj, isValidCpfCnpj } from '@/lib/document'
 import type { PaymentMethod } from '@/types'
@@ -156,6 +157,9 @@ function SubscribeModal({
   const [cepBuscado, setCepBuscado] = useState(false)
   const [cepErro, setCepErro]     = useState('')
   const [cepLoading, setCepLoading] = useState(false)
+  // Aceite do contrato com o Anexo I desta contratação.
+  const [aceite, setAceite]         = useState(false)
+  const [aceiteErro, setAceiteErro] = useState('')
 
   // Busca o endereço pelo CEP (ViaCEP) quando completa os 8 dígitos.
   async function buscarCep(valor: string) {
@@ -229,6 +233,10 @@ function SubscribeModal({
         return
       }
     }
+    if (!aceite) {
+      setAceiteErro('É preciso aceitar o contrato para assinar o plano.')
+      return
+    }
 
     setLoading(true)
     try {
@@ -238,6 +246,7 @@ function SubscribeModal({
         body:    JSON.stringify({
           cycle:  billing,
           method,
+          aceiteContrato: true,
           ...(pedirDoc ? { cnpj: doc.replace(/\D/g, '') } : {}),
           ...(enderecoPendente ? {
             address: {
@@ -257,6 +266,9 @@ function SubscribeModal({
         if (data.code === 'cnpj_required' || data.code === 'cnpj_invalid') {
           setPedirDoc(true)
           setDocErro(data.error || 'Informe um CPF ou CNPJ válido.')
+        } else if (data.code === 'aceite_required') {
+          setAceite(false)
+          setAceiteErro(data.error || 'É preciso aceitar o contrato para assinar o plano.')
         } else {
           setError(data.error || 'Não foi possível iniciar o pagamento.')
         }
@@ -424,6 +436,36 @@ function SubscribeModal({
           })}
         </div>
 
+        {/* Anexo I em resumo: é exatamente o que vai registrado no aceite. */}
+        <div className="mt-5 rounded-xl border border-[rgba(13,13,26,0.1)] bg-white px-4 py-3">
+          <p className="j-overline mb-2">Anexo I — o que você está contratando</p>
+          <dl className="space-y-1 text-[13px] m-0">
+            <AnexoLinha rotulo="Plano"   valor={plan.nome} />
+            <AnexoLinha rotulo="Modalidade" valor={billing === 'anual' ? 'Anual' : 'Mensal'} />
+            <AnexoLinha
+              rotulo="Valor"
+              valor={billing === 'anual'
+                ? `R$ ${plan.anual}/mês, cobrado anualmente (R$ ${anualTotal})`
+                : `R$ ${plan.mensal}/mês`}
+            />
+            <AnexoLinha
+              rotulo="Pagamento"
+              valor={options.find(o => o.id === method)?.label ?? '—'}
+            />
+            <AnexoLinha rotulo="Escalonamento para advogado" valor="1x por ano" />
+          </dl>
+        </div>
+
+        <div className="mt-4">
+          <AceiteContrato
+            contexto="assinatura"
+            checked={aceite}
+            disabled={loading}
+            erro={aceiteErro}
+            onChange={v => { setAceite(v); if (v) setAceiteErro('') }}
+          />
+        </div>
+
         {error && (
           <div className="j-alert j-alert-danger mt-4">
             <AlertCircle className="w-4 h-4 shrink-0" /> <span>{error}</span>
@@ -458,6 +500,16 @@ function SubscribeModal({
           )}
         </p>
       </div>
+    </div>
+  )
+}
+
+/** Linha do resumo do Anexo I no modal de assinatura. */
+function AnexoLinha({ rotulo, valor }: { rotulo: string; valor: string }) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <dt className="text-ink-40 shrink-0">{rotulo}</dt>
+      <dd className="m-0 text-right font-medium text-ink-80">{valor}</dd>
     </div>
   )
 }

@@ -1,7 +1,9 @@
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import TGLogo from '@/components/TGLogo'
 import WhatsappStep from '@/components/WhatsappStep'
+import { dadosDoCliente, planoAvaliacao, registrarAceite, temAceite } from '@/lib/contrato/aceite'
 
 /**
  * Passo de boas-vindas após o cadastro.
@@ -11,11 +13,11 @@ import WhatsappStep from '@/components/WhatsappStep'
  * pronta —, então pedimos só esse campo antes de seguir.
  */
 interface Props {
-  searchParams: Promise<{ origem?: string; campanha?: string }>
+  searchParams: Promise<{ origem?: string; campanha?: string; aceite?: string }>
 }
 
 export default async function BemVindoPage({ searchParams }: Props) {
-  const { origem, campanha } = await searchParams
+  const { origem, campanha, aceite } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -25,9 +27,29 @@ export default async function BemVindoPage({ searchParams }: Props) {
 
   const { data: agency } = await supabase
     .from('agencies')
-    .select('name, phone, origem')
+    .select('name, phone, origem, cnpj, email, trial_ends_at')
     .eq('id', user.id)
     .maybeSingle()
+
+  // Aceite do contrato no cadastro por Google. O fluxo OAuth não passa pelo
+  // /api/auth/register, então a marca do checkbox volta do provedor na URL
+  // (?aceite=1) e o registro é gravado aqui, uma única vez por conta.
+  if (aceite === '1' && agency && !(await temAceite(user.id))) {
+    const { ip, userAgent } = dadosDoCliente(await headers())
+    await registrarAceite({
+      agencyId: user.id,
+      evento:   'cadastro',
+      agencia: {
+        nome:      agency.name,
+        documento: agency.cnpj,
+        email:     agency.email ?? user.email,
+        telefone:  agency.phone,
+      },
+      plano:     planoAvaliacao(agency.trial_ends_at),
+      email:     user.email,
+      ip, userAgent,
+    })
+  }
 
   // Cadastro por Google não passa pelo /api/auth/register: a origem chega aqui
   // pela URL. Só grava se ainda não houver — não sobrescreve a aquisição real.

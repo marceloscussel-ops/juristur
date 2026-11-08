@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import OAuthButtons from '@/components/OAuthButtons'
+import AceiteContrato from '@/components/AceiteContrato'
 import { createClient } from '@/lib/supabase/client'
 import { isValidBrazilianMobile } from '@/lib/phone'
 
@@ -40,6 +41,9 @@ export default function SignupForm({
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError]     = useState('')
   const [loading, setLoading] = useState(false)
+  // Aceite do contrato: obrigatório para criar a conta, por e-mail ou por Google.
+  const [aceite, setAceite]         = useState(false)
+  const [aceiteErro, setAceiteErro] = useState('')
   const router   = useRouter()
   const supabase = createClient()
 
@@ -53,12 +57,19 @@ export default function SignupForm({
     if (utm) setCampanha(utm.slice(0, 60))
   }, [])
 
-  // O cadastro por Google não passa pelo /api/auth/register, então a origem
-  // viaja na URL de retorno e é gravada no passo /bem-vindo.
-  const oauthNext = origem
-    ? `${redirectTo}${redirectTo.includes('?') ? '&' : '?'}origem=${encodeURIComponent(origem)}` +
-      (campanha ? `&campanha=${encodeURIComponent(campanha)}` : '')
-    : redirectTo
+  // O cadastro por Google não passa pelo /api/auth/register, então a origem e o
+  // aceite do contrato viajam na URL de retorno e são gravados no /bem-vindo.
+  const oauthNext = (() => {
+    const params = new URLSearchParams()
+    if (origem) {
+      params.set('origem', origem)
+      if (campanha) params.set('campanha', campanha)
+    }
+    if (aceite) params.set('aceite', '1')
+    const qs = params.toString()
+    if (!qs) return redirectTo
+    return `${redirectTo}${redirectTo.includes('?') ? '&' : '?'}${qs}`
+  })()
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = e.target
@@ -77,6 +88,10 @@ export default function SignupForm({
       setError('WhatsApp inválido. Informe com DDI e DDD. Ex: +55 (51) 99999-9999')
       return
     }
+    if (!aceite) {
+      setAceiteErro('É preciso aceitar o contrato para criar a conta.')
+      return
+    }
 
     setLoading(true)
     try {
@@ -90,6 +105,7 @@ export default function SignupForm({
           password: form.password,
           origem:   origem ?? null,
           origemCampanha: campanha,
+          aceiteContrato: true,
         }),
       })
       const data = await res.json()
@@ -162,6 +178,13 @@ export default function SignupForm({
           </div>
         </div>
 
+        <AceiteContrato
+          checked={aceite}
+          disabled={loading}
+          erro={aceiteErro}
+          onChange={v => { setAceite(v); if (v) setAceiteErro('') }}
+        />
+
         {error && <div className="j-alert j-alert-danger text-[13px]">{error}</div>}
 
         <button type="submit" disabled={loading} className="btn btn-primary w-full mt-1 justify-center">
@@ -176,7 +199,11 @@ export default function SignupForm({
       </form>
 
       <div className="mt-4">
-        <OAuthButtons next={oauthNext} />
+        <OAuthButtons
+          next={oauthNext}
+          bloqueado={!aceite}
+          onBloqueado={() => setAceiteErro('É preciso aceitar o contrato para criar a conta.')}
+        />
       </div>
     </>
   )

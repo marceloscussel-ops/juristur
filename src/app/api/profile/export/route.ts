@@ -23,13 +23,21 @@ export async function GET() {
     if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
     // RLS garante que só vêm os dados da própria agência.
-    const [{ data: agency }, { data: cases }] = await Promise.all([
+    const [{ data: agency }, { data: cases }, { data: aceites }] = await Promise.all([
       supabase.from('agencies').select('*').eq('id', user.id).maybeSingle(),
       supabase
         .from('cases')
         .select('*, case_analyses(*), case_messages(*), case_files(id, file_name, file_type, file_url, created_at)')
         .eq('agency_id', user.id)
         .order('created_at', { ascending: true }),
+      // Aceites do contrato: fazem parte do histórico da conta e são a prova do
+      // que a agência contratou. Vão sem o texto completo (vários KB cada) —
+      // o contrato integral de cada aceite sai em PDF pelo perfil.
+      supabase
+        .from('contract_acceptances')
+        .select('id, version, event, anexo, ip, user_agent, accepted_at')
+        .eq('agency_id', user.id)
+        .order('accepted_at', { ascending: true }),
     ])
 
     if (!agency) return NextResponse.json({ error: 'Agência não encontrada.' }, { status: 404 })
@@ -49,6 +57,16 @@ export async function GET() {
         assinatura: agency.subscription_status,
         acessoAte:  agency.access_until,
       },
+      aceitesDeContrato: (aceites ?? []).map(a => ({
+        id:          a.id,
+        versao:      a.version,
+        evento:      a.event,
+        anexo:       a.anexo,
+        ip:          a.ip,
+        navegador:   a.user_agent,
+        aceitoEm:    a.accepted_at,
+        contratoPdf: `/api/contrato/${a.id}/pdf`,
+      })),
       casos: (cases ?? []).map(c => ({
         id:          c.id,
         titulo:      c.title,

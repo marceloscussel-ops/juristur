@@ -12,6 +12,10 @@ import { createClient } from '@/lib/supabase/server'
 import { createCheckout, serviceClient, type AsaasCustomerData } from '@/lib/asaas'
 import { hasActiveAccess } from '@/lib/plans'
 import { isValidCpfCnpj } from '@/lib/document'
+import { isUnavPromoEligible } from '@/lib/promo'
+import {
+  dadosDoCliente, enderecoDaAgencia, jaAssinouAntes, planoPago, registrarAceite,
+} from '@/lib/contrato/aceite'
 import type { BillingCycle } from '@/types'
 
 export const maxDuration = 30
@@ -40,15 +44,24 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
-    const { cycle, method, cnpj, address } = await request.json()
+    const { cycle, method, cnpj, address, aceiteContrato } = await request.json()
     if (!CYCLES.includes(cycle) || !METHODS.includes(method)) {
       return NextResponse.json({ error: 'Plano ou forma de pagamento inválidos.' }, { status: 400 })
+    }
+
+    // Aceite do contrato com o Anexo I desta contratação (plano, modalidade,
+    // valor, forma de pagamento). Sem ele não se emite cobrança.
+    if (aceiteContrato !== true) {
+      return NextResponse.json(
+        { error: 'É preciso aceitar o contrato para assinar o plano.', code: 'aceite_required' },
+        { status: 422 },
+      )
     }
     // Mensal: cartão = assinatura recorrente; PIX = cobrança avulsa de 1 mês.
 
     const { data: agency, error } = await supabase
       .from('agencies')
-      .select('id, name, cnpj, email, phone, subscription_status, access_until, cep, endereco, endereco_numero, bairro, cidade')
+      .select('id, name, cnpj, email, phone, subscription_status, access_until, cep, endereco, endereco_numero, bairro, cidade, origem_campanha, created_at')
       .eq('id', user.id)
       .single()
 
@@ -140,6 +153,30 @@ export async function POST(request: NextRequest) {
         asaas_checkout_id: result.checkoutId,
       })
       .eq('id', agency.id)
+
+    // Registra o aceite desta contratação. Depois do checkout criado para o
+    // Anexo I refletir o que foi efetivamente enviado à cobrança; antes do
+    // pagamento porque o que se registra é o ato de aceitar, não o pagamento
+    // (a ativação do acesso continua sendo do webhook).
+    const { ip, userAgent } = dadosDoCliente(request)
+    await registrarAceite({
+      agencyId: agency.id,
+      evento:   (await jaAssinouAntes(agency.id)) ? 'renovacao' : 'assinatura',
+      agencia: {
+        nome:      agency.name,
+        documento: documento,
+        email:     agency.email,
+        telefone:  agency.phone,
+        endereco:  enderecoDaAgencia({ cep, endereco, endereco_numero: numero, bairro, cidade }),
+      },
+      plano: planoPago({
+        cycle:     cycle as BillingCycle,
+        method:    method as Method,
+        promoUnav: isUnavPromoEligible(agency),
+      }),
+      email: agency.email,
+      ip, userAgent,
+    })
 
     return NextResponse.json({ invoiceUrl: result.checkoutUrl })
   } catch (err) {

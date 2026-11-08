@@ -485,7 +485,7 @@ export default function HomePage() {
               <div>
                 <div style={{ fontFamily: D.mono, fontSize: 11, letterSpacing: '1px', color: '#4A5A75', textTransform: 'uppercase', marginBottom: 14 }}>Legal</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 14 }}>
-                  <a href="#" style={{ color: '#9FACC0', textDecoration: 'none' }}>Termos</a>
+                  <a href="/contrato" style={{ color: '#9FACC0', textDecoration: 'none' }}>Contrato de licença de uso</a>
                   <a href="#" style={{ color: '#9FACC0', textDecoration: 'none' }}>Privacidade</a>
                 </div>
               </div>

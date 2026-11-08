@@ -5,13 +5,24 @@ import { normalizePhone, isValidBrazilianMobile } from '@/lib/phone'
 import { isValidCpfCnpj } from '@/lib/document'
 import { isPhoneTaken } from '@/lib/agency'
 import { notifyWelcome } from '@/lib/notify'
+import { dadosDoCliente, planoAvaliacao, registrarAceite } from '@/lib/contrato/aceite'
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, cnpj, email, phone, password, origem, origemCampanha } = await request.json()
+    const { name, cnpj, email, phone, password, origem, origemCampanha, aceiteContrato } =
+      await request.json()
 
     if (!name || !email || !phone || !password) {
       return NextResponse.json({ error: 'Todos os campos são obrigatórios.' }, { status: 400 })
+    }
+
+    // O aceite do contrato é condição para a conta existir: sem ele não há
+    // relação contratual, então nem criamos o usuário no Auth.
+    if (aceiteContrato !== true) {
+      return NextResponse.json(
+        { error: 'É preciso aceitar o contrato para criar a conta.', code: 'aceite_required' },
+        { status: 422 },
+      )
     }
 
     // CPF/CNPJ não é pedido no cadastro (atrito alto — ninguém sabe de cabeça).
@@ -99,6 +110,23 @@ export async function POST(request: NextRequest) {
       origem_campanha: clean(origemCampanha),
     }
 
+    // Registro do aceite do contrato (Anexo I = dados do cadastro + período
+    // gratuito). Roda depois de a agência existir, por causa da foreign key.
+    const { ip, userAgent } = dadosDoCliente(request)
+    const gravarAceite = () =>
+      registrarAceite({
+        agencyId: authData.user!.id,
+        evento:   'cadastro',
+        agencia:  {
+          nome:      name,
+          documento: cnpjDigits || null,
+          email,
+          telefone:  agencyRow.phone,
+        },
+        plano: planoAvaliacao(),
+        email, ip, userAgent,
+      })
+
     const { error: agencyError } = await admin.from('agencies').upsert(agencyRow, { onConflict: 'id' })
 
     if (agencyError) {
@@ -111,7 +139,10 @@ export async function POST(request: NextRequest) {
           .from('agencies')
           .upsert({ ...agencyRow, phone: null }, { onConflict: 'id' })
 
-        if (!retryError) return NextResponse.json({ success: true })
+        if (!retryError) {
+          await gravarAceite()
+          return NextResponse.json({ success: true })
+        }
         console.error('[register] agencyError (retry sem telefone):', JSON.stringify(retryError))
       }
 
@@ -120,6 +151,8 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       )
     }
+
+    await gravarAceite()
 
     // Abre o canal: revela o WhatsApp do TurisGuard e confirma que o número
     // informado recebe as nossas mensagens. Silencioso se falhar.

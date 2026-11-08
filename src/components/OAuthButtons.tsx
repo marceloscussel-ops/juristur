@@ -2,10 +2,19 @@
 
 import { createClient } from '@/lib/supabase/client'
 
-export default function OAuthButtons({ next = '/bem-vindo' }: { next?: string } = {}) {
+/**
+ * `bloqueado` + `onBloqueado`: no cadastro o contrato tem de ser aceito antes de
+ * entrar por Google — e o aceite não pode viajar para o provedor OAuth. Em vez
+ * de desabilitar o botão sem explicação, ele avisa quem clicou.
+ */
+export default function OAuthButtons({
+  next = '/bem-vindo', bloqueado = false, onBloqueado,
+}: { next?: string; bloqueado?: boolean; onBloqueado?: () => void } = {}) {
   const supabase = createClient()
 
   async function signInWithGoogle() {
+    if (bloqueado) { onBloqueado?.(); return }
+
     const redirectTo = next
       ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
       : `${window.location.origin}/auth/callback`
@@ -26,7 +35,10 @@ export default function OAuthButtons({ next = '/bem-vindo' }: { next?: string } 
       <button
         type="button"
         onClick={signInWithGoogle}
-        className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-lg border border-border bg-white hover:bg-surface-2 transition-colors text-[14px] font-medium text-ink"
+        aria-disabled={bloqueado}
+        className={`w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-lg border border-border bg-white transition-colors text-[14px] font-medium text-ink ${
+          bloqueado ? 'opacity-60 cursor-not-allowed' : 'hover:bg-surface-2'
+        }`}
       >
         <GoogleIcon />
         Continuar com Google

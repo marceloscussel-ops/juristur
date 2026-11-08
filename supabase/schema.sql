@@ -404,3 +404,37 @@ CREATE POLICY "document_files_own" ON document_files
         AND documents.agency_id = auth.uid()
     )
   );
+
+-- ============================================================
+-- Aceite do contrato de licença de uso
+--
+-- Aceito em dois momentos: no cadastro e ao assinar/renovar um
+-- plano. Cada aceite é uma linha nova — o que vale é o registro
+-- do ato (data, conta, IP, versão do texto e Anexo I com os dados
+-- da agência e do plano daquele instante). `contract_text` guarda
+-- o markdown completo para o PDF continuar reproduzível depois de
+-- o corpo do contrato mudar de versão.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS contract_acceptances (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  agency_id     UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+  version       TEXT NOT NULL,
+  event         TEXT NOT NULL
+                  CHECK (event IN ('cadastro', 'assinatura', 'renovacao')),
+  anexo         JSONB NOT NULL DEFAULT '{}',
+  contract_text TEXT,
+  ip            TEXT,
+  user_agent    TEXT,
+  accepted_at   TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS contract_acceptances_agency_idx
+  ON contract_acceptances(agency_id, accepted_at DESC);
+
+ALTER TABLE contract_acceptances ENABLE ROW LEVEL SECURITY;
+
+-- Leitura dos próprios aceites; escrita apenas pelo service role (rotas de
+-- cadastro e de checkout), para o registro não poder ser forjado no navegador.
+DROP POLICY IF EXISTS "contract_acceptances_read_own" ON contract_acceptances;
+CREATE POLICY "contract_acceptances_read_own" ON contract_acceptances
+  FOR SELECT USING (auth.uid() = agency_id);

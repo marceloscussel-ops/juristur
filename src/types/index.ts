@@ -1,3 +1,5 @@
+import type { AceiteEvento, AnexoI } from '@/lib/contrato/termos'
+
 export type CaseStatus = 'em_analise' | 'concluido' | 'arquivado'
 export type CaseOrigin = 'web' | 'whatsapp'
 export type AgencyPlan = 'free' | 'essencial' | 'profissional' | 'enterprise'
@@ -242,4 +244,23 @@ export interface PanelItem {
   status:     CaseStatus | DocumentStatus
   severity:   Severity | null
   created_at: string
+}
+
+// ─── Aceite do contrato ───────────────────────────────────────────────────────
+
+/**
+ * Registro de um aceite do contrato de licença de uso. Cada linha é um ato
+ * (cadastro, assinatura ou renovação) e nunca é atualizada: `anexo` e
+ * `contract_text` guardam o contrato individualizado como estava no aceite.
+ */
+export interface ContractAcceptance {
+  id:            string
+  agency_id:     string
+  version:       string
+  event:         AceiteEvento
+  anexo:         AnexoI
+  contract_text: string | null
+  ip:            string | null
+  user_agent:    string | null
+  accepted_at:   string
 }

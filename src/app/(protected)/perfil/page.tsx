@@ -7,6 +7,7 @@ import { getTrialInfo, PLAN_LABELS } from '@/lib/plans'
 import { formatCpfCnpj, isValidCpfCnpj } from '@/lib/document'
 import { formatDateLong } from '@/lib/datetime'
 import PrivacySection from '@/components/PrivacySection'
+import ContratoSection from '@/components/ContratoSection'
 import type { AgencyPlan } from '@/types'
 
 function formatPhone(value: string) {
@@ -316,6 +317,9 @@ export default function PerfilPage() {
           </button>
         </form>
       </div>
+
+      {/* Contrato de licença de uso e histórico de aceites */}
+      <ContratoSection />
 
       {/* Direitos do titular dos dados (LGPD) */}
       <PrivacySection />
