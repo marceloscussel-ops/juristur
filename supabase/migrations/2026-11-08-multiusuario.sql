@@ -224,18 +224,25 @@ CREATE POLICY "contract_acceptances_read_own" ON contract_acceptances
 -- "relation does not exist" — e, quando a tabela já existir, ela entra
 -- junto no modelo novo.
 --
--- A policy original (`auth.uid() = agency_id`) não é derrubada de
--- propósito: policies permissivas se somam (OR), então se as duas
--- migrations rodarem em qualquer ordem o resultado é o mesmo — acesso no
--- nível da agência. Rodar esta migration de novo depois da outra é o que
--- fecha o caso em que a outra foi aplicada por último.
+-- A policy original da outra migration (`defense_requests_read_own`, com
+-- `auth.uid() = agency_id`) é derrubada junto, e no lugar das duas fica uma
+-- só, no nível da agência. Nada se perde: o titular é membro ativo da
+-- própria agência, então continua lendo o que lia.
+--
+-- Rodar esta migration de novo é o que fecha o caso em que a de defesas foi
+-- aplicada por último — e também o que substitui uma policy `FOR ALL` que
+-- tenha sido criada à mão antes desta correção.
 -- ------------------------------------------------------------
 DO $$
 BEGIN
   IF to_regclass('public.defense_requests') IS NOT NULL THEN
+    EXECUTE 'DROP POLICY IF EXISTS "defense_requests_read_own" ON defense_requests';
     EXECUTE 'DROP POLICY IF EXISTS "defense_requests_agencia" ON defense_requests';
+    -- SELECT, nunca FOR ALL: a escrita em defense_requests é do service
+    -- role (o advogado é quem marca o que foi utilizado). Com FOR ALL a
+    -- agência poderia zerar a própria cota marcando consumes_quota = false.
     EXECUTE 'CREATE POLICY "defense_requests_agencia" ON defense_requests
-               FOR ALL USING (agency_id = public.agency_do_usuario())';
+               FOR SELECT USING (agency_id = public.agency_do_usuario())';
   END IF;
 END $$;
 
