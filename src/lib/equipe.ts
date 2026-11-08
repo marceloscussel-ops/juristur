@@ -113,14 +113,34 @@ export async function getEquipe(agencyId: string): Promise<EquipeDaAgencia> {
 }
 
 /**
- * Suspende os excedentes depois de uma troca de plano.
+ * Suspende os excedentes depois de uma TROCA de plano.
  *
  * Chamada pelo webhook de cobrança, que é o único lugar onde o plano da
  * agência muda. Silenciosa por natureza: uma falha aqui não pode derrubar o
  * processamento de um pagamento.
+ *
+ * `planoAnterior` é o plano de antes do pagamento, e está aqui para esta
+ * função só agir num downgrade de verdade. Quem vinha de 'free' (ou de plano
+ * nenhum) está contratando pela primeira vez, e nesse caminho o plano gravado
+ * pode ser o fallback do webhook — 'essencial', teto de um usuário — em vez de
+ * uma escolha: uma agência que testou o período gratuito com três pessoas
+ * perderia duas na hora do pagamento, sem aviso e sem assento para reativar
+ * ninguém. O acerto então fica para a tela de equipe, onde o titular vê o que
+ * está acontecendo e decide quem fica.
  */
-export async function aplicarAssentosDoPlano(agencyId: string): Promise<void> {
+export async function aplicarAssentosDoPlano(
+  agencyId:       string,
+  planoAnterior?: string | null,
+): Promise<void> {
   try {
+    if (!planoAnterior || planoAnterior === 'free') {
+      console.log(
+        `[aplicarAssentosDoPlano] ${agencyId}: primeira contratação ` +
+        `(plano anterior: ${planoAnterior ?? 'ausente'}) — assentos ficam para a tela de equipe`,
+      )
+      return
+    }
+
     const { data: agency } = await admin()
       .from('agencies')
       .select(AGENCY_SEAT_COLS)
