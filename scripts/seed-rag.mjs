@@ -189,15 +189,18 @@ const CASES = [
     problem_description:
       'Companhia aérea cancelou voo de conexão por greve de funcionários, deixando grupo de 22 turistas parados no aeroporto por 18 horas. A agência intermediou o pacote e os clientes exigem reembolso de gastos emergenciais e indenização por danos morais.',
     applicable_laws: [
-      'Resolução ANAC 400/2016 Art. 21 e 27 (assistência material em atrasos)',
+      'Resolução ANAC 400/2016, Art. 21 (reacomodação, reembolso ou outra modalidade)',
+      'Resolução ANAC 400/2016, Art. 26 e 27 (assistência material — redação da Res. ANAC 813/2026)',
+      'Resolução ANAC 400/2016, Art. 25-B (responsabilidade civil e excludentes — incluído pela Res. 813/2026)',
+      'Resolução ANAC 400/2016, Art. 27-B (reembolso de despesas comprovadas em até 7 dias)',
       'CDC Art. 14 e 20 (responsabilidade do fornecedor)',
       'CC Art. 393 (força maior)',
       'RESP 1.303.004/RS (STJ — responsabilidade em caso de greve aérea)',
     ],
     analysis:
-      'A ANAC 400 obriga a companhia a oferecer assistência material (alimentação, comunicação, acomodação) após 1h, 2h e 4h de atraso. Greve não é causa de força maior suficiente para excluir responsabilidade segundo jurisprudência do STJ. A agência que vendeu o pacote incluso pode ser acionada solidariamente.',
+      'Na redação em vigor desde 26/10/2026 (Res. ANAC 813/2026), a assistência material é devida em alimentação a partir de 2h de espera e em hospedagem mais traslado de ida e volta a partir de 4h quando houver necessidade de pernoite — a obrigação de facilidades de comunicação após 1h foi revogada. Com atraso superior a 4h o passageiro escolhe entre reacomodação, reembolso integral ou outra modalidade de transporte (Art. 21). A greve de funcionários da própria companhia não é força maior na jurisprudência do STJ, mas a aérea passou a invocar o Art. 25-B e o parágrafo único do Art. 26 para sustentar que prestar assistência não implica reconhecimento de culpa. A agência que vendeu o pacote incluso responde solidariamente perante o consumidor.',
     recommended_resolution:
-      'Exigir da aérea os comprovantes de assistência material prestada. Coletar notas fiscais de gastos emergenciais do grupo. Orientar os clientes a registrar queixa na ANAC e no Procon. A agência deve acionar a aérea regressivamente pelos custos. Indenização por dano moral por passageiro: R$ 3.000 a R$ 8.000 (média STJ).',
+      'Exigir da aérea os comprovantes da assistência material prestada e o registro das comunicações do Art. 20. Coletar as notas fiscais dos gastos emergenciais do grupo e pedir o reembolso das despesas comprovadas no prazo de 7 dias do Art. 27-B. Negociar com a aérea o ressarcimento e a indenização; sem acordo, avaliar ação judicial. A agência deve acionar a aérea regressivamente pelos custos. Indenização por dano moral por passageiro: R$ 3.000 a R$ 8.000 (média STJ), observado que o Art. 251-A do CBA exige demonstração do prejuízo.',
     actual_outcome:
       'Companhia aérea pagou reembolso integral dos gastos emergenciais e R$ 4.000 por passageiro a título de danos morais após acordo pré-judicial.',
   },
@@ -209,13 +212,13 @@ const CASES = [
     applicable_laws: [
       'CDC Art. 14 (responsabilidade pelo defeito do serviço)',
       'CDC Art. 18 (vício do serviço)',
-      'Resolução ANAC 400/2016 Art. 11 (alteração de dados)',
+      'Resolução ANAC 400/2016, Art. 8º (correção de nome sem ônus ao passageiro)',
       'CC Art. 186 (ato ilícito por culpa)',
     ],
     analysis:
-      'O erro de digitação é vício do serviço imputável à agência (CC Art. 186 — culpa in faciendo). A agência deve arcar com o custo da correção. A ANAC 400 permite alteração gratuita de nome pela aérea apenas quando o erro é da própria companhia; erro da agência gera cobrança legítima.',
+      'O Art. 8º da Resolução ANAC 400/2016 obriga o transportador a corrigir erro no nome, sobrenome ou agnome sem ônus ao passageiro, desde que a correção seja pedida até o check-in, independentemente de quem errou. O repasse de custos só é admitido em voo internacional com operadores diferentes (interline, §2º) e nem nesse caso quando o erro é imputável à própria aérea (§3º). Logo, a taxa de R$ 350 em voo doméstico é indevida. Internamente o erro de digitação continua sendo vício do serviço da agência (CDC Art. 14 e 18; CC Art. 186), e é ela quem responde perante o cliente se a correção não sair.',
     recommended_resolution:
-      'A agência deve arcar com a taxa de correção imediatamente para não prejudicar o cliente. Internamente, identificar o funcionário responsável e aplicar medidas de treinamento. Implementar checklist de conferência de dados antes de emissão. Avaliar seguro de responsabilidade civil para cobrir esse tipo de sinistro.',
+      'Pedir a correção à aérea antes do check-in invocando o Art. 8º da Res. ANAC 400/2016 e recusar a taxa em voo doméstico, por escrito. Se a companhia mantiver a cobrança, pagar para não prejudicar o cliente e cobrar a devolução da aérea depois, com o pedido documentado. Implementar checklist de conferência de dados antes da emissão. Avaliar seguro de responsabilidade civil para esse tipo de sinistro.',
     actual_outcome:
       'Agência pagou a taxa de correção, emitiu novo bilhete e implementou protocolo duplo de conferência de dados.',
   },
