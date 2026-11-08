@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Eye, EyeOff, CheckCircle, ArrowLeft } from 'lucide-react'
@@ -17,6 +17,32 @@ export default function ResetarSenhaPage() {
   const [loading, setLoading]                 = useState(false)
 
   const supabase = createClient()
+
+  /**
+   * Sessão vinda do link, quando ela chega no fragmento da URL.
+   *
+   * São dois caminhos até esta tela. O "esqueci minha senha" é pedido pelo
+   * navegador (PKCE), passa pelo /auth/callback e chega aqui já com sessão em
+   * cookie. O convite de equipe é emitido no servidor, sem o verificador PKCE
+   * no navegador de quem recebe — o Supabase devolve os tokens no hash
+   * (#access_token=...&refresh_token=...), e sem gravá-los não existe sessão
+   * e o updateUser abaixo falharia como "link expirado".
+   *
+   * Depois de gravar, limpa a barra de endereços: token em histórico de
+   * navegador é credencial exposta.
+   */
+  useEffect(() => {
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+    const accessToken  = hash.get('access_token')
+    const refreshToken = hash.get('refresh_token')
+    if (!accessToken || !refreshToken) return
+
+    createClient()
+      .auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+      .finally(() => {
+        window.history.replaceState(null, '', window.location.pathname)
+      })
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

@@ -24,10 +24,15 @@ import type { AgencyPlan } from '@/types'
 
 function formatPhone(value: string) {
   const digits = value.replace(/\D/g, '').slice(0, 13)
-  if (digits.length <= 2)  return `+${digits}`
-  if (digits.length <= 4)  return `+${digits.slice(0,2)} (${digits.slice(2)}`
-  if (digits.length <= 9)  return `+${digits.slice(0,2)} (${digits.slice(2,4)}) ${digits.slice(4)}`
-  return `+${digits.slice(0,2)} (${digits.slice(2,4)}) ${digits.slice(4,9)}-${digits.slice(9)}`
+  if (digits.length <= 2) return `+${digits}`
+  if (digits.length <= 4) return `+${digits.slice(0, 2)} (${digits.slice(2)}`
+
+  // O número é GRAVADO no formato Z-API: 55 + DDD + 8 dígitos, sem o nono.
+  // Com 12 dígitos a quebra do assinante é 4+4 (9908-2111); a de 5+4 só vale
+  // para quem está digitando o número com o nono dígito.
+  const corte = digits.length <= 12 ? 8 : 9
+  if (digits.length <= corte) return `+${digits.slice(0, 2)} (${digits.slice(2, 4)}) ${digits.slice(4)}`
+  return `+${digits.slice(0, 2)} (${digits.slice(2, 4)}) ${digits.slice(4, corte)}-${digits.slice(corte)}`
 }
 
 const STATUS_BADGE: Record<StatusMembro, { variant: string; label: string }> = {

@@ -1,0 +1,93 @@
+<!--
+  Convite de equipe (Supabase Auth → "Invite user")
+
+  Onde colar: painel do Supabase → Authentication → Emails → Invite user.
+  Assunto sugerido: Você foi convidado para o TurisGuard
+
+  O template padrão do Supabase vem em inglês ("You have been invited").
+  Quem recebe é uma agência de turismo brasileira, convidada por um colega de
+  trabalho — e-mail em inglês parece golpe e derruba o aceite.
+
+  Variáveis disponíveis no template de convite:
+    {{ .ConfirmationURL }}  link que confirma o convite e leva a definir a senha
+    {{ .Email }}            e-mail de quem foi convidado
+    {{ .SiteURL }}          URL do site configurada no projeto
+    {{ .Data.name }}        nome que gravamos no metadata do convite
+
+  HTML de e-mail é propositalmente antiquado: tabelas, estilo inline e nada de
+  classes — Gmail e Outlook descartam <style> e CSS externo.
+-->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+       style="background:#F7F9FB;margin:0;padding:32px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <tr>
+    <td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+             style="max-width:520px;background:#FFFFFF;border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(11,18,28,.04);">
+
+        <!-- Cabeçalho -->
+        <tr>
+          <td style="background:#0B121C;padding:22px 32px;">
+            <span style="color:#FFFFFF;font-size:19px;font-weight:700;letter-spacing:-0.2px;">Turis</span><span
+                  style="color:#5B57E8;font-size:19px;font-weight:700;letter-spacing:-0.2px;">Guard</span>
+          </td>
+        </tr>
+
+        <!-- Corpo -->
+        <tr>
+          <td style="padding:34px 32px 8px 32px;">
+            <h1 style="margin:0 0 14px 0;font-size:23px;line-height:1.3;color:#16202F;font-weight:700;">
+              Você foi convidado para o TurisGuard
+            </h1>
+
+            <p style="margin:0 0 14px 0;font-size:15px;line-height:1.6;color:rgba(22,32,47,0.80);">
+              Sua agência usa o TurisGuard para tirar dúvidas jurídicas do dia a dia,
+              gerar contratos e documentos e falar com um advogado quando o caso é sério.
+              Agora você tem acesso também.
+            </p>
+
+            <p style="margin:0 0 26px 0;font-size:15px;line-height:1.6;color:rgba(22,32,47,0.80);">
+              Para começar, crie a sua senha. Você entra com o seu próprio e-mail
+              (<strong style="color:#16202F;">{{ .Email }}</strong>) e enxerga todo o
+              histórico da agência.
+            </p>
+
+            <!-- Botão -->
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 26px 0;">
+              <tr>
+                <td style="background:#5B57E8;border-radius:10px;">
+                  <a href="{{ .ConfirmationURL }}"
+                     style="display:inline-block;padding:13px 26px;font-size:15px;font-weight:600;color:#FFFFFF;text-decoration:none;">
+                    Criar minha senha
+                  </a>
+                </td>
+              </tr>
+            </table>
+
+            <p style="margin:0 0 8px 0;font-size:13px;line-height:1.6;color:rgba(22,32,47,0.55);">
+              Se o botão não funcionar, copie e cole este endereço no navegador:
+            </p>
+            <p style="margin:0 0 26px 0;font-size:12px;line-height:1.5;word-break:break-all;">
+              <a href="{{ .ConfirmationURL }}" style="color:#5B57E8;text-decoration:none;">{{ .ConfirmationURL }}</a>
+            </p>
+
+            <p style="margin:0 0 26px 0;font-size:13px;line-height:1.6;color:rgba(22,32,47,0.55);">
+              Não esperava este convite? Pode ignorar esta mensagem — sem criar a senha,
+              nenhum acesso é liberado.
+            </p>
+          </td>
+        </tr>
+
+        <!-- Rodapé -->
+        <tr>
+          <td style="padding:0 32px 30px 32px;border-top:1px solid rgba(13,13,26,0.07);">
+            <p style="margin:18px 0 0 0;font-size:12px;line-height:1.6;color:rgba(22,32,47,0.55);">
+              TurisGuard — assessoria jurídica para agências de turismo.<br>
+              Este e-mail foi enviado para {{ .Email }}.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>

@@ -67,7 +67,9 @@ export async function POST(request: NextRequest) {
       agency_id: porteiro.agencyId,
       papel:     'membro',
     },
-    redirectTo: `${appUrl()}/auth/callback?next=/resetar-senha`,
+    // Mesmo destino do convite original: o link do Auth volta com os tokens
+    // no fragmento da URL, e quem lê isso é a /resetar-senha.
+    redirectTo: `${appUrl()}/resetar-senha`,
   })
 
   if (error) {

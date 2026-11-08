@@ -30,13 +30,22 @@ function admin() {
 }
 
 /**
- * Destino do link do convite. É o mesmo caminho do "esqueci minha senha":
- * /auth/callback troca o código por sessão e manda para /resetar-senha, onde
- * a pessoa define a senha. Não existe tela própria de convite — o convidado
- * só precisa de uma senha.
+ * Destino do link do convite: direto em /resetar-senha.
+ *
+ * NÃO passa pelo /auth/callback, que é o caminho do "esqueci minha senha".
+ * Aquele fluxo nasce no navegador de quem pede (PKCE) e volta com `?code=`
+ * para trocar por sessão. O convite é emitido aqui no servidor: o navegador
+ * de quem recebe nunca teve o verificador PKCE, então o Supabase devolve os
+ * tokens no fragmento da URL (#access_token=...). O /auth/callback não vê
+ * `code` nenhum e manda a pessoa para a tela de erro — foi o que aconteceu
+ * no primeiro teste. /resetar-senha lê o fragmento e grava a sessão.
+ *
+ * Este endereço precisa estar na lista de Redirect URLs do projeto no
+ * Supabase (Authentication → URL Configuration). Fora da lista, o Supabase
+ * ignora o destino e joga a pessoa na Site URL — a home do site.
  */
 function conviteRedirectTo(): string {
-  return `${appUrl()}/auth/callback?next=/resetar-senha`
+  return `${appUrl()}/resetar-senha`
 }
 
 export async function GET() {
