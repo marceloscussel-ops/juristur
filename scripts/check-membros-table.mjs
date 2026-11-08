@@ -18,10 +18,15 @@
  * então o supabase-js não enxerga o erro do PostgREST e uma tabela INEXISTENTE
  * volta como `error: null, count: null` — isto é, como se estivesse tudo certo.
  */
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { createClient } from '@supabase/supabase-js'
 
-for (const line of readFileSync('.env.local', 'utf8').split(/\r?\n/)) {
+// O .env.local é a fonte normal das chaves, mas não é obrigatório: rodando de
+// um worktree (ou de um runner) elas podem vir só do ambiente, e exigir o
+// arquivo derrubava o script antes de ele conferir qualquer coisa.
+const envLocal = existsSync('.env.local') ? readFileSync('.env.local', 'utf8') : ''
+
+for (const line of envLocal.split(/\r?\n/)) {
   const m = line.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/)
   if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, '')
 }

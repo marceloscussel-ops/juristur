@@ -7,7 +7,7 @@ import { notifyAnalysisFailed, notifyLawyerNewCase, notifyAgencyCaseReady } from
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { env } from '@/lib/env'
 import { ensureAgency } from '@/lib/agency'
-import { getAgencyId } from '@/lib/agencia-do-usuario'
+import { getAgencyId, getVinculo } from '@/lib/agencia-do-usuario'
 
 function getServiceClient() {
   return createServiceClient(env('NEXT_PUBLIC_SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'))
@@ -57,7 +57,8 @@ export async function POST(request: NextRequest) {
 
     // A agência do caso é a do usuário (membro ou titular); `created_by`
     // guarda quem de fato registrou, para a autoria aparecer no painel.
-    const agencyId = await getAgencyId(user.id)
+    const vinculo  = await getVinculo(user.id)
+    const agencyId = vinculo.agencyId
 
     const formData    = await request.formData()
     const title       = formData.get('title') as string | null
@@ -103,7 +104,11 @@ export async function POST(request: NextRequest) {
 
     // 23503 = o usuário está autenticado mas não tem linha em `agencies`, então
     // a foreign key `cases_agency_id_fkey` barra o insert. Repara e tenta uma vez.
-    if (caseError?.code === '23503' && agencyId === user.id) {
+    //
+    // Só para quem é a própria agência, e só quando o vínculo foi lido de
+    // verdade: com `erro`, `agencyId` cai no id do usuário por falta de
+    // informação, e reparar aí criaria uma agência fantasma para um membro.
+    if (caseError?.code === '23503' && !vinculo.membership && !vinculo.erro) {
       console.error('[cases POST] agência ausente, reparando:', JSON.stringify(caseError))
       const repaired = await ensureAgency(user)
 

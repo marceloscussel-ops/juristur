@@ -59,9 +59,14 @@ export default async function ProtectedLayout({ children }: { children: React.Re
 
   // Auto-reparo: usuário autenticado sem agência (ex.: cadastro via Google, ou
   // linha removida). Cria a agência com o período gratuito antes de seguir.
-  // Só vale para quem não tem vínculo: para um membro, criar agência aqui é o
-  // bug que o convite existe para evitar.
-  if (!agency && !isLawyer && !vinculo.membership) {
+  //
+  // Duas condições, e as duas já falharam na prática. `!vinculo.membership`
+  // porque criar agência para um membro é o bug que o convite existe para
+  // evitar. E `!vinculo.erro` porque "não consegui ler o vínculo" não é
+  // "não tem vínculo": foi assim que um membro ganhou uma agência fantasma
+  // — a leitura falhou por um instante e o reparo entendeu que ele era um
+  // titular sem agência.
+  if (!agency && !isLawyer && !vinculo.membership && !vinculo.erro) {
     agency = await ensureAgency(user)
   }
 
