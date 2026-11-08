@@ -11,10 +11,15 @@
  *   3. a pessoa já abriu o link? (`email_confirmed_at` no Auth é o que o
  *      trigger on_auth_user_confirmed usa para passar o status a 'ativo')
  */
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { createClient } from '@supabase/supabase-js'
 
-for (const line of readFileSync('.env.local', 'utf8').split(/\r?\n/)) {
+// O .env.local é a fonte normal das chaves, mas não é obrigatório: rodando de
+// um worktree (ou de um runner) elas podem vir só do ambiente, e exigir o
+// arquivo derrubava o script antes de ele conferir qualquer coisa.
+const envLocal = existsSync('.env.local') ? readFileSync('.env.local', 'utf8') : ''
+
+for (const line of envLocal.split(/\r?\n/)) {
   const m = line.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/)
   if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, '')
 }

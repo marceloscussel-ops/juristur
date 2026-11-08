@@ -224,11 +224,14 @@ CREATE POLICY "contract_acceptances_read_own" ON contract_acceptances
 -- "relation does not exist" — e, quando a tabela já existir, ela entra
 -- junto no modelo novo.
 --
--- A policy original (`auth.uid() = agency_id`) não é derrubada de
--- propósito: policies permissivas se somam (OR), então se as duas
--- migrations rodarem em qualquer ordem o resultado é o mesmo — acesso no
--- nível da agência. Rodar esta migration de novo depois da outra é o que
--- fecha o caso em que a outra foi aplicada por último.
+-- A policy original da outra migration (`defense_requests_read_own`, com
+-- `auth.uid() = agency_id`) é derrubada junto, e no lugar das duas fica uma
+-- só, no nível da agência. Nada se perde: o titular é membro ativo da
+-- própria agência, então continua lendo o que lia.
+--
+-- Rodar esta migration de novo é o que fecha o caso em que a de defesas foi
+-- aplicada por último — e também o que substitui uma policy `FOR ALL` que
+-- tenha sido criada à mão antes desta correção.
 -- ------------------------------------------------------------
 DO $$
 BEGIN

@@ -58,28 +58,61 @@ export interface Vinculo {
   isAtivo:    boolean
   status:     StatusMembro
   membership: AgencyMember | null
+  /**
+   * A consulta falhou e não sabemos de quem é este usuário.
+   *
+   * Existe porque confundir "não tem vínculo" com "não consegui ler o
+   * vínculo" criou uma agência fantasma para um membro em produção: uma
+   * falha momentânea devolvia `membership: null`, o layout concluía que era
+   * um titular sem agência e chamava `ensureAgency`. Quem lê este tipo tem
+   * de decidir o que fazer quando não dá para saber — e nunca criar nada.
+   */
+  erro:       boolean
 }
 
 /** Vínculo completo do usuário com a sua agência. */
 export async function getVinculo(userId: string): Promise<Vinculo> {
-  const { data, error } = await admin()
+  const ler = () => admin()
     .from('agency_members')
     .select(MEMBER_COLS)
     .eq('user_id', userId)
     .maybeSingle()
 
-  // Sem linha (ou tabela ainda não criada): trata como titular da própria
-  // agência, que é exatamente o que o sistema fazia antes desta feature.
-  if (error || !data) {
-    if (error && error.code !== 'PGRST116' && error.code !== '42P01') {
-      console.error('[getVinculo] erro ao ler agency_members:', JSON.stringify(error))
+  // Uma tentativa a mais antes de desistir: a falha típica aqui é de rede
+  // (um soluço entre o servidor e o Supabase), e o custo de repetir uma
+  // leitura por id é muito menor que o de tratar um membro como titular.
+  let { data, error } = await ler()
+  if (error) ({ data, error } = await ler())
+
+  // Tabela ainda não criada (42P01): banco onde a migration não rodou. Aí o
+  // comportamento antigo — todo usuário é a própria agência — é o certo.
+  const tabelaAusente = error?.code === '42P01'
+
+  if (error && !tabelaAusente) {
+    console.error('[getVinculo] erro ao ler agency_members:', JSON.stringify(error))
+    // Não sabemos quem é: devolve o próprio id (as consultas por agência
+    // voltam vazias em vez de vazarem) e NÃO concede poderes de titular —
+    // senão um soluço do banco promoveria um membro a dono da conta.
+    return {
+      agencyId:   userId,
+      isTitular:  false,
+      isAtivo:    true,
+      status:     'ativo',
+      membership: null,
+      erro:       true,
     }
+  }
+
+  // Sem linha: trata como titular da própria agência, que é exatamente o que
+  // o sistema fazia antes desta feature.
+  if (!data) {
     return {
       agencyId:   userId,
       isTitular:  true,
       isAtivo:    true,
       status:     'ativo',
       membership: null,
+      erro:       false,
     }
   }
 
@@ -92,6 +125,7 @@ export async function getVinculo(userId: string): Promise<Vinculo> {
     isAtivo,
     status:     membership.status,
     membership,
+    erro:       false,
   }
 }
 
