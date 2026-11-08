@@ -24,7 +24,14 @@ export async function GET() {
 
     // `isTitular` manda na tela: editar dados, assinatura e exclusão da conta
     // são do titular. O membro vê a agência, não mexe nela.
-    return NextResponse.json({ agency, isTitular: vinculo.isTitular, papel: vinculo.membership?.papel ?? 'titular' })
+    return NextResponse.json({
+      agency,
+      isTitular: vinculo.isTitular,
+      papel:     vinculo.membership?.papel ?? 'titular',
+      // Quem está conectado. Para o membro, o e-mail da agência não é o dele —
+      // sem isto a tela não mostra em lugar nenhum com que conta ele entrou.
+      usuario:   { email: user.email, nome: vinculo.membership?.nome ?? null },
+    })
   } catch {
     return NextResponse.json({ error: 'Erro interno.' }, { status: 500 })
   }

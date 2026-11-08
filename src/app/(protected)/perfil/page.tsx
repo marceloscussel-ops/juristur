@@ -21,6 +21,8 @@ function formatPhone(value: string) {
 interface PerfilResponse {
   agency:    AgencyData
   isTitular: boolean
+  /** Conta de quem está logado — para o membro, não é o e-mail da agência. */
+  usuario?:  { email?: string | null; nome?: string | null }
 }
 
 interface AgencyData {
@@ -171,6 +173,7 @@ export default function PerfilPage() {
   // Assinatura, edição dos dados e LGPD são do titular. O membro vê de qual
   // agência ele faz parte e para.
   const [isTitular, setIsTitular] = useState(true)
+  const [usuario, setUsuario]     = useState<{ email?: string | null; nome?: string | null }>({})
   const [name,   setName]     = useState('')
   const [doc,    setDoc]      = useState('')
   const [phone,  setPhone]    = useState('')
@@ -183,6 +186,7 @@ export default function PerfilPage() {
     const d: PerfilResponse = await fetch('/api/profile', { cache: 'no-store' }).then(r => r.json())
     setAgency(d.agency)
     setIsTitular(d.isTitular !== false)
+    setUsuario(d.usuario ?? {})
     setName(d.agency.name)
     setDoc(d.agency.cnpj ? formatCpfCnpj(d.agency.cnpj) : '')
     setPhone(d.agency.phone ? formatPhone(d.agency.phone) : '')
@@ -247,7 +251,10 @@ export default function PerfilPage() {
           <div className="flex items-center gap-3">
             <Mail className="w-4 h-4 text-ink-40 flex-shrink-0" />
             <div>
-              <p className="j-caption">E-mail</p>
+              {/* Para o membro este e-mail não é o dele, é o da conta da
+                  agência — sem o rótulo, parece que ele entrou com o
+                  endereço errado. */}
+              <p className="j-caption">{isTitular ? 'E-mail' : 'E-mail da agência'}</p>
               <p className="j-body font-medium">{agency?.email}</p>
             </div>
           </div>
@@ -271,10 +278,13 @@ export default function PerfilPage() {
       {!isTitular && (
         <div className="j-card">
           <p className="j-label mb-4">Acesso</p>
+          {/* O cartão acima mostra o e-mail da AGÊNCIA; aqui vai o da conta
+              com que a pessoa entrou, que para o membro é outro. */}
           <p className="j-caption">
-            Você usa o TurisGuard como usuário desta agência. O plano, a
-            cobrança e os dados cadastrais são administrados pelo titular da
-            conta.
+            Você entrou como <strong className="text-ink">{usuario.nome || usuario.email}</strong>
+            {usuario.nome && usuario.email ? <> ({usuario.email})</> : null} e usa o
+            TurisGuard como usuário desta agência. O plano, a cobrança e os dados
+            cadastrais são administrados pelo titular da conta.
           </p>
         </div>
       )}
