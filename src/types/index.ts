@@ -54,6 +54,8 @@ export interface Agency {
   asaas_payment_id?:      string | null
   billing_cycle?:         BillingCycle | null
   access_until?:          string | null
+  /** Primeira ativação do plano pago: âncora do ano de assinatura e da carência. */
+  plan_started_at?:       string | null
 }
 
 export interface CaseMessage {
@@ -263,4 +265,58 @@ export interface ContractAcceptance {
   ip:            string | null
   user_agent:    string | null
   accepted_at:   string
+}
+
+// ─── Defesas (escalonamento para advogado) ────────────────────────────────────
+
+/** De onde partiu a solicitação. `advogado` = lançada pelo próprio advogado. */
+export type DefenseOrigin = 'web' | 'whatsapp' | 'advogado'
+
+/**
+ * Natureza do escalonamento, conforme o Parágrafo Primeiro da Cláusula
+ * Terceira do contrato: contrato, defesa em processo, audiência ou peça.
+ */
+export type DefenseKind = 'contrato' | 'defesa' | 'audiencia' | 'peca' | 'outro'
+
+export const DEFENSE_KIND_LABELS: Record<DefenseKind, string> = {
+  contrato:  'Elaboração de contrato',
+  defesa:    'Defesa em processo',
+  audiencia: 'Acompanhamento em audiência',
+  peca:      'Peça jurídica',
+  outro:     'Outro',
+}
+
+/**
+ * `solicitada` está na fila do advogado; `utilizada` foi confirmada por ele
+ * (e é o que desconta da cota do plano); `descartada` não gerou atendimento.
+ */
+export type DefenseStatus = 'solicitada' | 'utilizada' | 'descartada'
+
+export const DEFENSE_STATUS_LABELS: Record<DefenseStatus, string> = {
+  solicitada: 'Aguardando o advogado',
+  utilizada:  'Defesa utilizada',
+  descartada: 'Não utilizada',
+}
+
+/**
+ * Solicitação de defesa. A agência cria; o advogado decide se foi realmente
+ * utilizada. `consumes_quota` separa a defesa inclusa no plano daquela que foi
+ * atendida mas cobrada à parte.
+ */
+export interface DefenseRequest {
+  id:             string
+  agency_id:      string
+  case_id:        string | null
+  origin:         DefenseOrigin
+  kind:           DefenseKind
+  status:         DefenseStatus
+  consumes_quota: boolean
+  subject:        string | null
+  lawyer_notes:   string | null
+  requested_at:   string
+  used_at:        string | null
+  decided_at:     string | null
+  decided_by:     string | null
+  plan_at_use:    string | null
+  created_at:     string
 }

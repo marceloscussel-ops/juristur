@@ -6,6 +6,11 @@ export type EscalateVariant = 'primary' | 'compact' | 'outline'
 
 interface Props {
   href?: string
+  /**
+   * Legenda do botão grande. O prazo de 2h úteis é compromisso do plano
+   * Enterprise (ver plans.ts), logo quem chama decide se pode prometê-lo.
+   */
+  hint?: string
   onClick?: () => void
   variant?: EscalateVariant
   className?: string
@@ -29,7 +34,7 @@ const HOVER_BG: Record<EscalateVariant, string> = {
   outline: '#FFF1EF',
 }
 
-export default function EscalateButton({ href, onClick, variant = 'primary', className = '' }: Props) {
+export default function EscalateButton({ href, onClick, variant = 'primary', className = '', hint = 'Um advogado assume o caso e responde por aqui' }: Props) {
   const style = VARIANTS[variant]
 
   const label = 'Solicitar defesa'
@@ -40,7 +45,7 @@ export default function EscalateButton({ href, onClick, variant = 'primary', cla
         <Shield size={18} strokeWidth={2} />
         {label}
       </span>
-      <span style={{ fontSize: 11.5, opacity: 0.85, fontWeight: 400 }}>Resposta humana em até 2h úteis</span>
+      <span style={{ fontSize: 11.5, opacity: 0.85, fontWeight: 400 }}>{hint}</span>
     </>
   ) : (
     <>

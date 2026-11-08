@@ -13,7 +13,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { env } from '@/lib/env'
 import { formatDateLong, formatDateTime } from '@/lib/datetime'
-import { PLANS, TRIAL_DAYS } from '@/lib/plans'
+import { PLANS, TRIAL_DAYS, escalonamentosLabel } from '@/lib/plans'
 import { UNAV_PROMO_MESES } from '@/lib/promo'
 import {
   CONTRATO_VERSAO, montarContrato,
@@ -84,6 +84,7 @@ export function planoPago(opts: {
 
   return {
     nome:           plan.nome,
+    escalonamentos: escalonamentosLabel(plan.id),
     modalidade:     anual ? 'Anual' : 'Mensal',
     valor,
     formaPagamento: pagamento,

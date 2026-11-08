@@ -4,7 +4,8 @@
  * Ambiente controlado por ASAAS_API_URL (default: sandbox). Auth via header
  * `access_token`. Reusa env() (protege contra BOM em vars do Vercel/PowerShell).
  *
- * Modelo de cobrança (decidido no plano):
+ * Modelo de cobrança (um checkout por plano escolhido — os valores vivem em
+ * plans.ts; os exemplos abaixo são do Essential):
  *   - Mensal (R$ 99/mês) → assinatura recorrente (/subscriptions, ciclo MONTHLY).
  *   - Anual  (R$ 948/ano) → cobrança avulsa (/payments):
  *       · Cartão → parcelado 12× de R$ 79 (recebível garantido).
@@ -15,7 +16,10 @@ import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { env } from '@/lib/env'
 import { PLANS, type PlanDef } from '@/lib/plans'
 import { appUrl } from '@/lib/urls'
-import type { Agency, PaymentMethod, BillingCycle } from '@/types'
+import type { Agency, AgencyPlan, PaymentMethod, BillingCycle } from '@/types'
+
+/** Plano cobrável: qualquer plano do catálogo, menos o 'free'. */
+export type PlanId = Exclude<AgencyPlan, 'free'>
 
 const DEFAULT_API_URL = 'https://api-sandbox.asaas.com/v3'
 
@@ -34,10 +38,14 @@ export function toBillingType(method: PaymentMethod): 'CREDIT_CARD' | 'PIX' | 'B
   return 'BOLETO'
 }
 
-/** Plano Essential (único ativo). Fonte única dos valores. */
-function essentialPlan(): PlanDef {
-  const p = PLANS.find(p => p.id === 'essencial')
-  if (!p) throw new Error('Plano essencial não configurado em plans.ts')
+/**
+ * Definição do plano a cobrar. Fonte única dos valores (plans.ts).
+ * Recusa plano inexistente ou não liberado para assinatura — o preço da
+ * cobrança nunca pode sair de um id que o front mandou solto.
+ */
+function planoAssinavel(planId: PlanId = 'essencial'): PlanDef {
+  const p = PLANS.find(p => p.id === planId && p.ativo)
+  if (!p) throw new Error(`Plano indisponível para assinatura: ${planId}`)
   return p
 }
 
@@ -141,9 +149,9 @@ export interface AsaasCustomerData {
  */
 export async function createCheckout(
   agencyId: string, cycle: BillingCycle, method: 'card' | 'pix',
-  customerData?: AsaasCustomerData,
+  customerData?: AsaasCustomerData, planId: PlanId = 'essencial',
 ): Promise<CheckoutResult> {
-  const plan = essentialPlan()
+  const plan = planoAssinavel(planId)
   const base = {
     externalReference: agencyId,
     minutesToExpire: 60,

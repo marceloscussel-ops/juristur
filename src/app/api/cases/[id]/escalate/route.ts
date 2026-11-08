@@ -1,10 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getTrialInfo, getEscalationInfo } from '@/lib/plans'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { env } from '@/lib/env'
+import { loadDefenseInfo, registrarSolicitacaoDefesa } from '@/lib/defesas'
 
 /**
- * Registra a solicitação de defesa de um caso (atendimento humano), respeitando a cota
- * de escaladas gratuitas do período de teste. Idempotente por caso.
+ * Registra a solicitação de defesa de um caso (atendimento humano).
+ * Idempotente por caso.
+ *
+ * Duas coisas são gravadas, de propósito:
+ *   · `cases.escalated_at` — o caso foi escalado (é o que a UI do caso mostra);
+ *   · uma linha em `defense_requests` — entra na fila do advogado, que depois
+ *     marca se a defesa foi REALMENTE utilizada. Só essa marcação desconta da
+ *     cota do plano; a solicitação em si não.
+ *
+ * No período gratuito a cota ainda barra o pedido. Assinante nunca é barrado:
+ * sem cota, a defesa fica registrada e o custo é acertado com o advogado.
  */
 export async function POST(
   _req: NextRequest,
@@ -17,7 +28,7 @@ export async function POST(
 
   const { data: caseRow } = await supabase
     .from('cases')
-    .select('id, escalated_at')
+    .select('id, category, escalated_at')
     .eq('id', id)
     .eq('agency_id', user.id)
     .single()
@@ -29,27 +40,13 @@ export async function POST(
     return NextResponse.json({ ok: true, alreadyEscalated: true })
   }
 
-  // Estado do período gratuito + escaladas já usadas em outros casos
-  const { data: agency } = await supabase
-    .from('agencies')
-    .select('subscription_status, trial_ends_at, created_at')
-    .eq('id', user.id)
-    .single()
+  const info = await loadDefenseInfo(supabase, user.id)
 
-  const { count } = await supabase
-    .from('cases')
-    .select('id', { count: 'exact', head: true })
-    .eq('agency_id', user.id)
-    .not('escalated_at', 'is', null)
-
-  const trial = getTrialInfo(agency ?? {})
-  const info  = getEscalationInfo(trial, count ?? 0)
-
-  if (!info.canEscalate) {
-    const error = info.reason === 'trial_expired'
+  if (!info.canRequest) {
+    const error = info.state === 'expirada'
       ? 'Seu período gratuito terminou. Assine um plano para solicitar defesa.'
       : `Você usou suas ${info.total} solicitações de defesa gratuitas. Assine um plano para continuar.`
-    return NextResponse.json({ error, reason: info.reason }, { status: 402 })
+    return NextResponse.json({ error, state: info.state }, { status: 402 })
   }
 
   await supabase
@@ -58,6 +55,21 @@ export async function POST(
     .eq('id', id)
     .eq('agency_id', user.id)
 
-  const remaining = Number.isFinite(info.remaining) ? Math.max(0, info.remaining - 1) : info.remaining
-  return NextResponse.json({ ok: true, remaining })
+  // A fila do advogado é escrita pelo service role: a policy de
+  // `defense_requests` só permite LEITURA à agência, para o registro de
+  // consumo da cota não poder ser forjado no navegador.
+  await registrarSolicitacaoDefesa(
+    createServiceClient(env('NEXT_PUBLIC_SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY')),
+    {
+      agencyId:  user.id,
+      caseId:    id,
+      origin:    'web',
+      kind:      'defesa',
+      subject:   caseRow.category ?? null,
+      planAtUse: info.plan,
+    },
+  )
+
+  const remaining = info.canUseIncluded ? Math.max(0, info.remaining - 1) : info.remaining
+  return NextResponse.json({ ok: true, remaining, coberta: info.canUseIncluded })
 }

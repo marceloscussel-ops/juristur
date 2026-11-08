@@ -1,12 +1,17 @@
 import { notFound } from 'next/navigation'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import Link from 'next/link'
-import { ArrowLeft, Clock, RefreshCw, MessageSquare, Layers } from 'lucide-react'
+import { ArrowLeft, Clock, RefreshCw, MessageSquare, Layers, Shield } from 'lucide-react'
 import MarkdownRenderer from '@/components/MarkdownRenderer'
 import SeverityBadge from '@/components/SeverityBadge'
 import ReviewActions from '@/components/lawyer/ReviewActions'
 import { env } from '@/lib/env'
 import { formatDateTimeLong, formatDayMonthTime } from '@/lib/datetime'
+import DefesaActions from '@/components/lawyer/DefesaActions'
+import NovaDefesa from '@/components/lawyer/NovaDefesa'
+import { defesaResumo } from '@/components/DefesaQuota'
+import { loadDefenseInfo } from '@/lib/defesas'
+import { DEFENSE_STATUS_LABELS, type DefenseStatus } from '@/types'
 
 function getServiceClient() {
   return createServiceClient(env('NEXT_PUBLIC_SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'))
@@ -32,6 +37,17 @@ export default async function LawyerCasoPage({ params }: { params: Promise<{ id:
   ])
 
   if (!caseData || !analysis) notFound()
+
+  // Defesa deste caso. O que o advogado marcar aqui é exatamente o que a
+  // agência vê na tela dela como defesa utilizada do plano — por isso o saldo
+  // dela aparece ao lado da decisão.
+  const [{ data: defesa }, defenseInfo] = await Promise.all([
+    db.from('defense_requests')
+      .select('id, status, consumes_quota, lawyer_notes')
+      .eq('case_id', id)
+      .maybeSingle(),
+    loadDefenseInfo(db, caseData.agency_id),
+  ])
 
   const agency  = caseData.agencies as { name: string } | null
   const isPending = analysis.review_status === 'pending'
@@ -126,7 +142,7 @@ export default async function LawyerCasoPage({ params }: { params: Promise<{ id:
         )}
 
         <MarkdownRenderer content={analysis.ai_response} />
-        <p className="j-caption mt-6 pt-4 border-t border-[rgba(13,13,26,0.07)]">
+        <p className="j-caption mt-6 pt-4 border-t border-line">
           Gerada em {formatDateTimeLong(analysis.created_at)}
         </p>
       </div>
@@ -146,8 +162,8 @@ export default async function LawyerCasoPage({ params }: { params: Promise<{ id:
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`rounded-xl px-4 py-3 max-w-[85%] ${
                   msg.role === 'user'
-                    ? 'bg-indigo text-white'
-                    : 'bg-surface border border-[rgba(13,13,26,0.07)]'
+                    ? 'bg-indigo-solid text-white'
+                    : 'bg-surface border border-line'
                 }`}>
                   <p className={`text-[11px] font-semibold uppercase tracking-wide mb-1 ${
                     msg.role === 'user' ? 'text-white/70' : 'text-ink-40'
@@ -165,6 +181,58 @@ export default async function LawyerCasoPage({ params }: { params: Promise<{ id:
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Defesa (escalonamento para advogado) */}
+      {(defesa || caseData.escalated_at) && (
+        <div className="j-card mb-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="j-overline flex items-center gap-1.5">
+                <Shield className="w-3.5 h-3.5" /> Defesa
+              </p>
+              <p className="j-body font-medium mt-0.5">
+                Plano {defenseInfo.planLabel} · {defesaResumo(defenseInfo)}
+              </p>
+              <p className="j-caption mt-0.5">
+                {defesa
+                  ? 'Marcar como utilizada desconta a defesa inclusa no plano desta agência.'
+                  : 'Este caso foi escalado antes do registro de defesas existir — lance aqui se a defesa foi prestada.'}
+              </p>
+            </div>
+            {defesa && (
+              <span className={`badge ${
+                defesa.status === 'utilizada' ? 'badge-success'
+                : defesa.status === 'descartada' ? 'badge-muted'
+                : 'badge-amber'
+              } shrink-0`}>
+                {DEFENSE_STATUS_LABELS[defesa.status as DefenseStatus] ?? defesa.status}
+                {defesa.status === 'utilizada' && !defesa.consumes_quota ? ' · à parte' : ''}
+              </span>
+            )}
+          </div>
+
+          <div className="mt-4">
+            {defesa ? (
+              <DefesaActions
+                id={defesa.id}
+                status={defesa.status as DefenseStatus}
+                notes={defesa.lawyer_notes}
+                temCotaDisponivel={defenseInfo.canUseIncluded}
+              />
+            ) : (
+              <NovaDefesa
+                caseId={id}
+                label="Registrar defesa utilizada"
+                agencias={[{
+                  id:    caseData.agency_id,
+                  name:  agency?.name ?? 'Agência',
+                  saldo: defesaResumo(defenseInfo),
+                }]}
+              />
+            )}
           </div>
         </div>
       )}

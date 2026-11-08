@@ -9,8 +9,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createCheckout, serviceClient, type AsaasCustomerData } from '@/lib/asaas'
-import { hasActiveAccess } from '@/lib/plans'
+import { createCheckout, serviceClient, type AsaasCustomerData, type PlanId } from '@/lib/asaas'
+import { hasActiveAccess, planById } from '@/lib/plans'
 import { isValidCpfCnpj } from '@/lib/document'
 import { isUnavPromoEligible } from '@/lib/promo'
 import {
@@ -24,6 +24,9 @@ const CYCLES:  BillingCycle[] = ['mensal', 'anual']
 // Boleto saiu: o Asaas Checkout suporta só cartão e PIX. Mensal só no cartão
 // (recorrência no checkout exige cartão); PIX fica no anual à vista.
 const METHODS = ['card', 'pix'] as const
+// O plano vem do front, mas quem decide o que pode ser cobrado e por quanto
+// é o catálogo (plans.ts): id desconhecido ou plano não liberado = 400.
+const PLAN_IDS: PlanId[] = ['essencial', 'profissional', 'enterprise']
 type Method = (typeof METHODS)[number]
 
 /** Documento válido = CPF ou CNPJ com dígitos verificadores corretos. */
@@ -44,9 +47,14 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
-    const { cycle, method, cnpj, address, aceiteContrato } = await request.json()
+    const { cycle, method, cnpj, address, aceiteContrato, plan } = await request.json()
     if (!CYCLES.includes(cycle) || !METHODS.includes(method)) {
       return NextResponse.json({ error: 'Plano ou forma de pagamento inválidos.' }, { status: 400 })
+    }
+
+    const planId: PlanId = PLAN_IDS.includes(plan) ? plan : 'essencial'
+    if (!planById(planId)?.ativo) {
+      return NextResponse.json({ error: 'Plano indisponível para assinatura.' }, { status: 400 })
     }
 
     // Aceite do contrato com o Anexo I desta contratação (plano, modalidade,
@@ -141,14 +149,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const result = await createCheckout(agency.id, cycle, method as Method, customerData)
+    const result = await createCheckout(agency.id, cycle, method as Method, customerData, planId)
 
     // Guarda o checkoutId + ciclo para reconciliar no webhook (CHECKOUT_PAID).
     // Status segue 'trial' até o pagamento ser confirmado.
     await serviceClient()
       .from('agencies')
       .update({
-        plan: 'essencial',
+        plan: planId,
         billing_cycle: cycle,
         asaas_checkout_id: result.checkoutId,
       })
@@ -170,6 +178,7 @@ export async function POST(request: NextRequest) {
         endereco:  enderecoDaAgencia({ cep, endereco, endereco_numero: numero, bairro, cidade }),
       },
       plano: planoPago({
+        planId,
         cycle:     cycle as BillingCycle,
         method:    method as Method,
         promoUnav: isUnavPromoEligible(agency),

@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
   // Estado atual da agência (uma leitura só).
   const { data: current } = await supabase
     .from('agencies')
-    .select('access_until, origem_campanha, created_at, billing_cycle')
+    .select('plan, access_until, origem_campanha, created_at, billing_cycle, plan_started_at')
     .eq('id', agencyId)
     .maybeSingle()
 
@@ -143,9 +143,20 @@ export async function POST(request: NextRequest) {
     }
     const currentMs = current?.access_until ? new Date(current.access_until).getTime() : 0
     if (accessUntil.getTime() > currentMs) {
+      // O plano escolhido já foi gravado no checkout; aqui ele é só preservado
+      // (cair para 'essencial' é fallback de dado antigo, não regra).
+      const plano = current?.plan && current.plan !== 'free' ? current.plan : 'essencial'
       await supabase
         .from('agencies')
-        .update({ subscription_status: 'active', plan: 'essencial', access_until: accessUntil.toISOString() })
+        .update({
+          subscription_status: 'active',
+          plan:                plano,
+          access_until:        accessUntil.toISOString(),
+          // Âncora do ano de assinatura e da carência de 60 dias para a defesa
+          // inclusa. Gravada só na PRIMEIRA ativação: renovação não reinicia a
+          // carência nem move o aniversário da cota.
+          ...(current?.plan_started_at ? {} : { plan_started_at: new Date().toISOString() }),
+        })
         .eq('id', agencyId)
     }
   }

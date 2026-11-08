@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Check, X, Sparkles, CreditCard, QrCode, Loader2, AlertCircle, Gift } from 'lucide-react'
-import { PLANS, type PlanDef } from '@/lib/plans'
+import { PLANS, escalonamentosLabel, type PlanDef } from '@/lib/plans'
 import AceiteContrato from '@/components/AceiteContrato'
 import { UNAV_PROMO_MESES } from '@/lib/promo'
 import { formatCpfCnpj, isValidCpfCnpj } from '@/lib/document'
@@ -34,6 +34,8 @@ export default function PlansClient({
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
         {PLANS.map(plan => {
           const preco = billing === 'anual' ? plan.anual : plan.mensal
+          // Professional é o plano recomendado (primeiro com defesa inclusa).
+          const destaque = plan.id === 'profissional'
           const nota  = billing === 'anual'
             ? promoUnav
               ? `cobrado anualmente · ${UNAV_PROMO_MESES} meses de acesso`
@@ -42,21 +44,25 @@ export default function PlansClient({
           return (
             <div
               key={plan.id}
-              className={`relative rounded-xl bg-white p-6 flex flex-col ${
-                plan.ativo
+              className={`relative rounded-xl bg-card p-6 flex flex-col ${
+                destaque
                   ? 'border-2 border-indigo shadow-card'
-                  : 'border border-[rgba(13,13,26,0.07)] opacity-70'
+                  : plan.ativo
+                    ? 'border border-line-strong'
+                    : 'border border-line opacity-70'
               }`}
             >
-              <span
-                className={`absolute -top-3 left-1/2 -translate-x-1/2 rounded-pill px-3 py-1 text-[11px] font-semibold uppercase tracking-wide font-mono whitespace-nowrap ${
-                  plan.ativo
-                    ? 'bg-indigo text-white'
-                    : 'bg-amber-50 text-amber-700 border border-amber-200'
-                }`}
-              >
-                {plan.ativo ? 'Disponível agora' : 'Em breve'}
-              </span>
+              {(destaque || !plan.ativo) && (
+                <span
+                  className={`absolute -top-3 left-1/2 -translate-x-1/2 rounded-pill px-3 py-1 text-[11px] font-semibold uppercase tracking-wide font-mono whitespace-nowrap ${
+                    plan.ativo
+                      ? 'bg-indigo-solid text-white'
+                      : 'bg-amber-50 text-amber-700 border border-amber-200'
+                  }`}
+                >
+                  {plan.ativo ? 'Mais escolhido' : 'Em breve'}
+                </span>
+              )}
 
               <h3 className="j-h3 mt-2">{plan.nome}</h3>
               <p className="j-caption min-h-[38px] mt-1">{plan.tagline}</p>
@@ -118,7 +124,7 @@ function Toggle({ active, onClick, children }: { active: boolean; onClick: () =>
       type="button"
       onClick={onClick}
       className={`rounded-pill px-4 py-1.5 text-[13px] font-medium transition-colors ${
-        active ? 'bg-white text-ink shadow-sm' : 'text-ink-40 hover:text-ink'
+        active ? 'bg-card text-ink shadow-sm' : 'text-ink-40 hover:text-ink'
       }`}
     >
       {children}
@@ -244,6 +250,7 @@ function SubscribeModal({
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
+          plan:   plan.id,
           cycle:  billing,
           method,
           aceiteContrato: true,
@@ -286,7 +293,7 @@ function SubscribeModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-4 animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-overlay px-4 animate-fade-in"
       onClick={onClose}
     >
       <div
@@ -418,7 +425,7 @@ function SubscribeModal({
                 className={`w-full flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${
                   active
                     ? 'border-indigo bg-indigo-50 text-ink'
-                    : 'border-[rgba(13,13,26,0.1)] hover:border-indigo/50'
+                    : 'border-line-strong hover:border-indigo/50'
                 }`}
               >
                 <span className={active ? 'text-indigo' : 'text-ink-40'}>{opt.icon}</span>
@@ -437,7 +444,7 @@ function SubscribeModal({
         </div>
 
         {/* Anexo I em resumo: é exatamente o que vai registrado no aceite. */}
-        <div className="mt-5 rounded-xl border border-[rgba(13,13,26,0.1)] bg-white px-4 py-3">
+        <div className="mt-5 rounded-xl border border-line-strong bg-card px-4 py-3">
           <p className="j-overline mb-2">Anexo I — o que você está contratando</p>
           <dl className="space-y-1 text-[13px] m-0">
             <AnexoLinha rotulo="Plano"   valor={plan.nome} />
@@ -452,7 +459,7 @@ function SubscribeModal({
               rotulo="Pagamento"
               valor={options.find(o => o.id === method)?.label ?? '—'}
             />
-            <AnexoLinha rotulo="Escalonamento para advogado" valor="1x por ano" />
+            <AnexoLinha rotulo="Escalonamento para advogado" valor={escalonamentosLabel(plan.id)} />
           </dl>
         </div>
 

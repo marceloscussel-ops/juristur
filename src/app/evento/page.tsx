@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Zap, ShieldCheck, Scale, Check, ArrowRight, Gift } from 'lucide-react'
+import { Zap, ShieldCheck, Scale, Check, ArrowRight, Gift, FileSignature } from 'lucide-react'
 import TGLogo from '@/components/TGLogo'
 import SignupForm from '@/components/SignupForm'
 import { UNAV_PROMO, UNAV_PROMO_MESES, isUnavPromoAberta } from '@/lib/promo'
@@ -28,6 +28,11 @@ const BENEFICIOS = [
     icon:   ShieldCheck,
     titulo: 'O risco medido',
     texto:  'Cada caso classificado de leve a elevadíssimo — você sabe o que é urgente.',
+  },
+  {
+    icon:   FileSignature,
+    titulo: 'Contratos e documentos',
+    texto:  'Gere o contrato de turismo, e-mails e notificações a partir dos seus dados.',
   },
   {
     icon:   Scale,
@@ -189,7 +194,7 @@ export default function EventoPage() {
           <ol className="space-y-2.5 mb-8 list-none p-0 m-0">
             {PASSOS.map((p, i) => (
               <li key={i} className="flex items-start gap-3">
-                <span className="w-6 h-6 rounded-full bg-indigo text-white flex items-center justify-center text-[12px] font-bold flex-shrink-0">
+                <span className="w-6 h-6 rounded-full bg-indigo-solid text-white flex items-center justify-center text-[12px] font-bold flex-shrink-0">
                   {i + 1}
                 </span>
                 <span className="j-body text-ink-80">{p}</span>

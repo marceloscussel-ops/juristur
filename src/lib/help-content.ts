@@ -1,6 +1,6 @@
 import {
   PlusCircle, ShieldAlert, MessageSquare, Layers, Paperclip, Scale, CreditCard, UserCircle,
-  ShieldCheck, MessageCircle,
+  ShieldCheck, MessageCircle, FileSignature, FileText,
   type LucideIcon,
 } from 'lucide-react'
 import { MAX_FOLLOWUP_QUESTIONS } from '@/types'
@@ -59,6 +59,16 @@ export const funcionalidades: HelpFeature[] = [
     icon:      PlusCircle,
     titulo:    'Novo caso',
     descricao: 'Registre uma situação para receber orientação jurídica. Informe a categoria, o relato e anexos opcionais.',
+  },
+  {
+    icon:      FileSignature,
+    titulo:    'Gerar contrato',
+    descricao: 'Contrato de prestação de serviço entre a agência e o consumidor, a partir do modelo padrão do turismo. Envie os documentos do cliente ou digite os dados: o que faltar fica como lacuna para preencher depois.',
+  },
+  {
+    icon:      FileText,
+    titulo:    'Gerar outros documentos',
+    descricao: 'E-mail ao cliente ou ao fornecedor, termo de ciência, formalização financeira, notificação extrajudicial, declaração. Você descreve o que precisa e a IA redige — dá para baixar em PDF ou Word.',
   },
   {
     icon:      ShieldAlert,
@@ -157,6 +167,16 @@ export const faq: HelpFaq[] = [
     grupo:    'Advogado & Suporte',
     pergunta: 'Como falo com um advogado sobre o caso?',
     resposta: 'Use "Solicitar defesa" — na tela de ações ou dentro do caso. A conversa segue pelo WhatsApp. No período gratuito há uma cota de solicitações.',
+  },
+  {
+    grupo:    'Advogado & Suporte',
+    pergunta: 'Quantas defesas o meu plano inclui?',
+    resposta: 'O Professional inclui 1 defesa com advogado por ano de assinatura e o Enterprise inclui 3, ambas disponíveis após a carência de 60 dias prevista em contrato. O Essential não inclui defesa: você pode solicitar assim mesmo e o advogado passa um orçamento. A tela "Solicitar defesa" mostra quantas estão inclusas e quantas já foram utilizadas.',
+  },
+  {
+    grupo:    'Advogado & Suporte',
+    pergunta: 'Quando uma defesa conta como utilizada?',
+    resposta: 'Só quando o advogado confirma que atendeu — pedir não consome a defesa do plano. Muitas solicitações terminam numa orientação pelo WhatsApp, e nesse caso nada é descontado. Você acompanha a situação de cada pedido na tela "Solicitar defesa".',
   },
   {
     grupo:    'Advogado & Suporte',

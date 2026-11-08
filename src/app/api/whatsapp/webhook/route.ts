@@ -20,7 +20,7 @@ import { extractTextFromFile } from '@/lib/extract-text'
 import { analyzeCase, analyzeCaseRevision, followUpCase, ConversationMessage } from '@/lib/claude'
 import { findSimilarCases, formatSimilarCases } from '@/lib/ai/rag'
 import { notifyAgencyCaseReady } from '@/lib/notify'
-import { getTrialInfo, getEscalationInfo } from '@/lib/plans'
+import { loadDefenseInfo, registrarSolicitacaoDefesa } from '@/lib/defesas'
 import { appUrl, caseUrl } from '@/lib/urls'
 import { env } from '@/lib/env'
 import { normalizePhone } from '@/lib/phone'
@@ -309,22 +309,12 @@ async function handleEscalation(
     return
   }
 
-  const { data: agencyRow } = await db
-    .from('agencies')
-    .select('subscription_status, trial_ends_at, created_at')
-    .eq('id', agency.id)
-    .single()
+  const info = await loadDefenseInfo(db, agency.id)
 
-  const { count } = await db
-    .from('cases')
-    .select('id', { count: 'exact', head: true })
-    .eq('agency_id', agency.id)
-    .not('escalated_at', 'is', null)
-
-  const info = getEscalationInfo(getTrialInfo(agencyRow ?? {}), count ?? 0)
-
-  if (!info.canEscalate) {
-    const motivo = info.reason === 'trial_expired'
+  // No período gratuito a cota ainda barra; assinante nunca é barrado (sem cota,
+  // a defesa é registrada e o custo é acertado direto com o advogado).
+  if (!info.canRequest) {
+    const motivo = info.state === 'expirada'
       ? 'Seu período gratuito terminou.'
       : `Você já usou suas ${info.total} solicitações de defesa gratuitas.`
     await sendText(phone,
@@ -334,6 +324,19 @@ async function handleEscalation(
   }
 
   await db.from('cases').update({ escalated_at: new Date().toISOString() }).eq('id', caseId)
+
+  // Entra na fila do advogado em /lawyer/defesas, que depois marca se a defesa
+  // foi realmente utilizada — é essa marcação, e não o pedido, que desconta
+  // da cota do plano.
+  await registrarSolicitacaoDefesa(db, {
+    agencyId:  agency.id,
+    caseId,
+    origin:    'whatsapp',
+    kind:      'defesa',
+    subject:   caseRow.category ?? null,
+    planAtUse: info.plan,
+  })
+
 
   await sendText(phone,
     '✅ Defesa solicitada! Encaminhei seu caso para um advogado.\n\n' +

@@ -8,7 +8,7 @@ import CaseRefresh from '@/components/CaseRefresh'
 import CaseFollowUp from '@/components/CaseFollowUp'
 import CaseComplement from '@/components/CaseComplement'
 import CaseEscalate from '@/components/CaseEscalate'
-import { getTrialInfo, getEscalationInfo } from '@/lib/plans'
+import { loadDefenseInfo } from '@/lib/defesas'
 import { formatDateTimeLong } from '@/lib/datetime'
 import { Case } from '@/types'
 import { ArrowLeft, Paperclip, Clock, Plus } from 'lucide-react'
@@ -36,21 +36,11 @@ export default async function CasoPage({ params }: { params: Promise<{ id: strin
     `Olá! Preciso de assistência jurídica. Tenho um caso sobre: ${caseData.title} (categoria: ${caseData.category})`
   )
 
-  // Cota de escaladas gratuitas (período de teste)
-  const { data: agency } = await supabase
-    .from('agencies')
-    .select('subscription_status, trial_ends_at, created_at')
-    .eq('id', user!.id)
-    .single()
-
-  const { count: escalationsUsed } = await supabase
-    .from('cases')
-    .select('id', { count: 'exact', head: true })
-    .eq('agency_id', user!.id)
-    .not('escalated_at', 'is', null)
-
-  const escalationInfo = getEscalationInfo(getTrialInfo(agency ?? {}), escalationsUsed ?? 0)
+  // Cota de defesa: período gratuito (por solicitação) ou defesas inclusas no
+  // plano (contadas pelo que o advogado marcou como utilizado).
+  const defenseInfo = await loadDefenseInfo(supabase, user!.id)
   const alreadyEscalated = !!caseData.escalated_at
+
 
   return (
     <div className={`max-w-3xl mx-auto animate-fade-in ${analysis ? 'pb-40 print:pb-0' : ''}`}>
@@ -151,7 +141,7 @@ export default async function CasoPage({ params }: { params: Promise<{ id: strin
             caseId={caseData.id}
             whatsappUrl={whatsappUrl}
             alreadyEscalated={alreadyEscalated}
-            info={escalationInfo}
+            info={defenseInfo}
             severity={analysis.severity}
             variant="primary"
           />
@@ -170,14 +160,14 @@ export default async function CasoPage({ params }: { params: Promise<{ id: strin
           <div className="flex justify-center">
             <CaseRefresh awaiting={true} />
           </div>
-          <div className="mt-6 pt-5 border-t border-[rgba(13,13,26,0.07)]">
+          <div className="mt-6 pt-5 border-t border-line">
             <p className="j-caption mb-1">Precisa de resposta agora?</p>
             <div className="flex justify-center">
               <CaseEscalate
                 caseId={caseData.id}
                 whatsappUrl={whatsappUrl}
                 alreadyEscalated={alreadyEscalated}
-                info={escalationInfo}
+                info={defenseInfo}
                 variant="outline"
               />
             </div>

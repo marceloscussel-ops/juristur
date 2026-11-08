@@ -6,9 +6,11 @@ import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { LogOut, Menu, X, Settings } from 'lucide-react'
 import TGLogo from '@/components/TGLogo'
+import ThemeToggle from '@/components/ThemeToggle'
 
 const baseNavItems = [
   { href: '/lawyer/dashboard',      label: 'Revisões'       },
+  { href: '/lawyer/defesas',        label: 'Defesas'        },
   { href: '/lawyer/configuracoes',  label: 'Configurações'  },
 ]
 
@@ -49,6 +51,7 @@ export default function LawyerNavbar({ isAdmin = false }: { isAdmin?: boolean })
       </ul>
 
       <div className="hidden sm:flex items-center gap-2">
+        <ThemeToggle />
         <Link href="/lawyer/configuracoes" className="flex items-center gap-1.5 px-3 py-1.5 text-white/40 hover:text-white text-[13px] transition-colors rounded" title="Configurações">
           <Settings className="w-4 h-4" />
         </Link>
@@ -72,6 +75,14 @@ export default function LawyerNavbar({ isAdmin = false }: { isAdmin?: boolean })
           <button onClick={handleLogout} className="j-nav-link flex items-center gap-2 w-full text-left h-auto py-2.5 border-b-0">
             <LogOut className="w-4 h-4" /> Sair
           </button>
+          <div className="mt-1 pt-3 border-t border-white/10">
+            <span className="block px-3.5 mb-2 text-white/40 text-[11px] font-semibold uppercase tracking-[0.12em]">
+              Tema
+            </span>
+            <div className="px-3.5 pb-1">
+              <ThemeToggle variant="segmented" onDark />
+            </div>
+          </div>
         </div>
       )}
     </nav>

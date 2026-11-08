@@ -4,14 +4,15 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { AlertTriangle, CheckCircle2, ShieldAlert } from 'lucide-react'
 import EscalateButton, { type EscalateVariant } from '@/components/EscalateButton'
-import type { EscalationInfo } from '@/lib/plans'
+import { defesaResumo } from '@/components/DefesaQuota'
+import type { DefenseInfo } from '@/lib/plans'
 import type { Severity } from '@/types'
 
 interface Props {
   caseId:           string
   whatsappUrl:      string
   alreadyEscalated: boolean
-  info:             EscalationInfo
+  info:             DefenseInfo
   severity?:        Severity | null
   variant?:         EscalateVariant
 }
@@ -20,9 +21,10 @@ export default function CaseEscalate({ caseId, whatsappUrl, alreadyEscalated, in
   const [escalated, setEscalated] = useState(alreadyEscalated)
   const [remaining, setRemaining] = useState(info.remaining)
 
-  // Bloqueado: sem cota e este caso ainda não foi escalado
-  const blocked = !escalated && !info.canEscalate
-  const limited = info.total !== null  // período gratuito (assinante = ilimitado)
+  // Bloqueado: sem cota do período gratuito e este caso ainda não foi escalado.
+  // Assinante nunca cai aqui — sem defesa inclusa a solicitação segue, só não
+  // vem coberta pelo plano.
+  const blocked = !escalated && !info.canRequest
 
   // Recomenda defesa para risco médio pra cima (enquanto não escalado)
   const recommend = !escalated && (severity === 'medio' || severity === 'elevado' || severity === 'elevadissimo')
@@ -33,12 +35,12 @@ export default function CaseEscalate({ caseId, whatsappUrl, alreadyEscalated, in
   function recordEscalation() {
     if (escalated) return
     setEscalated(true)
-    if (Number.isFinite(remaining)) setRemaining(r => Math.max(0, r - 1))
+    if (info.canUseIncluded) setRemaining(r => Math.max(0, r - 1))
     fetch(`/api/cases/${caseId}/escalate`, { method: 'POST' }).catch(() => {})
   }
 
   if (blocked) {
-    const msg = info.reason === 'trial_expired'
+    const msg = info.state === 'expirada'
       ? 'Seu período gratuito terminou.'
       : `Você usou suas ${info.total} solicitações de defesa gratuitas.`
     return (
@@ -73,18 +75,23 @@ export default function CaseEscalate({ caseId, whatsappUrl, alreadyEscalated, in
         </div>
       )}
 
-      <EscalateButton href={whatsappUrl} onClick={recordEscalation} variant={variant} />
+      <EscalateButton
+        href={whatsappUrl}
+        onClick={recordEscalation}
+        variant={variant}
+        hint={info.plan === 'enterprise' ? 'Resposta humana em até 2h úteis' : undefined}
+      />
 
       {escalated ? (
         <p className="j-caption mt-2 flex items-center justify-center gap-1.5">
           <CheckCircle2 className="w-3.5 h-3.5 text-teal" />
           Defesa solicitada — um advogado vai assumir o caso
         </p>
-      ) : limited ? (
+      ) : (
         <p className="j-caption mt-2 text-center">
-          {remaining} de {info.total} solicitações de defesa gratuitas restantes
+          {defesaResumo({ ...info, remaining })}
         </p>
-      ) : null}
+      )}
     </div>
   )
 }

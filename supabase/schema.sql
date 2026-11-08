@@ -438,3 +438,68 @@ ALTER TABLE contract_acceptances ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "contract_acceptances_read_own" ON contract_acceptances;
 CREATE POLICY "contract_acceptances_read_own" ON contract_acceptances
   FOR SELECT USING (auth.uid() = agency_id);
+
+-- ============================================================
+-- Defesas inclusas no plano
+--
+-- Professional inclui 1 defesa por ano de assinatura e Enterprise 3;
+-- Essential não inclui nenhuma (pode escalonar, com custo). As
+-- quantidades vivem em src/lib/plans.ts — aqui ficam só os dados.
+--
+-- Quem decide que uma defesa foi REALMENTE utilizada é o advogado,
+-- em /lawyer/defesas: a agência cria a solicitação ('solicitada') e
+-- só a marcação do advogado ('utilizada') desconta da cota. Pedir
+-- não é consumir — a maior parte dos pedidos morre numa orientação
+-- por WhatsApp.
+--
+-- `consumes_quota` separa a defesa inclusa da defesa atendida mas
+-- cobrada à parte (Cláusula Terceira, Parágrafo Terceiro).
+-- ============================================================
+
+-- Âncora do ano de assinatura (janela da cota) e da carência de 60 dias.
+-- Gravada pelo webhook de cobrança na PRIMEIRA ativação; a renovação não
+-- a sobrescreve, para o aniversário da cota não andar.
+ALTER TABLE agencies ADD COLUMN IF NOT EXISTS plan_started_at TIMESTAMPTZ;
+
+CREATE TABLE IF NOT EXISTS defense_requests (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  agency_id  UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+  -- Defesa pode nascer de um caso aberto ou de um pedido solto.
+  -- SET NULL: apagar o caso não apaga o histórico de consumo da cota.
+  case_id    UUID REFERENCES cases(id) ON DELETE SET NULL,
+  origin     TEXT NOT NULL DEFAULT 'web'
+               CHECK (origin IN ('web', 'whatsapp', 'advogado')),
+  kind       TEXT NOT NULL DEFAULT 'defesa'
+               CHECK (kind IN ('contrato', 'defesa', 'audiencia', 'peca', 'outro')),
+  status     TEXT NOT NULL DEFAULT 'solicitada'
+               CHECK (status IN ('solicitada', 'utilizada', 'descartada')),
+  consumes_quota BOOLEAN NOT NULL DEFAULT true,
+  subject      TEXT,
+  lawyer_notes TEXT,
+  requested_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  used_at      TIMESTAMPTZ,   -- define em qual ano de assinatura a defesa entra
+  decided_at   TIMESTAMPTZ,
+  decided_by   UUID,          -- auth.users.id do advogado
+  plan_at_use  TEXT,          -- plano vigente na marcação (auditoria)
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS defense_requests_agency_idx
+  ON defense_requests(agency_id, status, used_at DESC);
+CREATE INDEX IF NOT EXISTS defense_requests_status_idx
+  ON defense_requests(status, requested_at DESC);
+CREATE INDEX IF NOT EXISTS defense_requests_case_idx
+  ON defense_requests(case_id);
+
+-- Um caso gera uma única solicitação (o botão é idempotente).
+CREATE UNIQUE INDEX IF NOT EXISTS defense_requests_case_unique_idx
+  ON defense_requests(case_id) WHERE case_id IS NOT NULL;
+
+ALTER TABLE defense_requests ENABLE ROW LEVEL SECURITY;
+
+-- A agência lê as próprias solicitações (a tela de defesa mostra o saldo).
+-- Escrita só pelo service role: quem marca "utilizada" é o advogado, pelas
+-- rotas de API — não pode ser forjado no navegador da agência.
+DROP POLICY IF EXISTS "defense_requests_read_own" ON defense_requests;
+CREATE POLICY "defense_requests_read_own" ON defense_requests
+  FOR SELECT USING (auth.uid() = agency_id);

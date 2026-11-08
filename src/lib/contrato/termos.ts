@@ -19,8 +19,14 @@
 /**
  * Versão do corpo genérico. **Suba ao alterar o texto das cláusulas.**
  * Aceites antigos guardam a versão que foi aceita — não reescreva histórico.
+ *
+ * Histórico:
+ *   1.0 — texto inicial (a Cláusula Terceira fixava 1 escalonamento/ano).
+ *   1.1 — a Cláusula Terceira passa a remeter a quantidade de escalonamentos
+ *         ao Anexo I, porque ela varia por plano (Essential 0, Professional 1,
+ *         Enterprise 3).
  */
-export const CONTRATO_VERSAO = '1.0'
+export const CONTRATO_VERSAO = '1.1'
 
 /** Data de entrada em vigor desta versão (ISO, só a data). */
 export const CONTRATO_VIGENTE_DESDE = '2026-11-08'
@@ -65,7 +71,7 @@ O **Anexo I — Identificação da Contratante e do Plano** é parte integrante 
 
 ## DO PLANO E DO ESCALONAMENTO PARA ADVOGADO
 
-**CLÁUSULA TERCEIRA:** Todos os serviços da plataforma possuem conferência de advogado, contudo, em virtude do plano contratado, identificado no Anexo I, a AGÊNCIA poderá solicitar 1 (um) escalonamento para advogado por ano, enquanto vigorar sua assinatura.
+**CLÁUSULA TERCEIRA:** Todos os serviços da plataforma possuem conferência de advogado. Além disso, em virtude do plano contratado, identificado no **Anexo I**, a AGÊNCIA poderá solicitar, sem custo adicional, a quantidade de escalonamentos para advogado por ano ali indicada, enquanto vigorar sua assinatura. O plano cujo Anexo I não indique escalonamento incluso não confere direito a escalonamento sem custo adicional.
 
 **PARÁGRAFO PRIMEIRO:** Corresponde a 1 (um) escalonamento para advogado, qualquer uma das seguintes atividades:
 
@@ -76,7 +82,7 @@ O **Anexo I — Identificação da Contratante e do Plano** é parte integrante 
 
 **PARÁGRAFO SEGUNDO:** O escalonamento previsto pelo plano e sem cobrança adicional poderá ser utilizado, tão somente, após o vencimento do período de carência de 60 (sessenta) dias, no qual a CONTRATANTE poderá utilizar normalmente as funcionalidades tecnológicas e demais orientações automatizadas.
 
-**PARÁGRAFO TERCEIRO:** Os escalonamentos posteriores ao primeiro, bem como serviços jurídicos adicionais antes do prazo de 60 dias, não estão incluídos na assinatura e dependerão de contratação específica, com definição direta dos honorários entre a AGÊNCIA e o advogado responsável, considerando a natureza, complexidade, urgência, extensão e responsabilidade envolvidas na demanda.
+**PARÁGRAFO TERCEIRO:** Os escalonamentos que excederem a quantidade inclusa no plano contratado — bem como qualquer escalonamento, quando o Anexo I não indicar escalonamento incluso — e os serviços jurídicos adicionais prestados antes do prazo de 60 dias não estão incluídos na assinatura e dependerão de contratação específica, com definição direta dos honorários entre a AGÊNCIA e o advogado responsável, considerando a natureza, complexidade, urgência, extensão e responsabilidade envolvidas na demanda.
 
 ## REGRAS PARA O USO DA PLATAFORMA
 
@@ -163,7 +169,7 @@ export interface AnexoPlano {
   valor:           string   // 'R$ 99,00 por mês'
   formaPagamento:  string   // 'Cartão de crédito' | 'PIX' | 'Não aplicável'
   ativacao:        string   // texto já formatado (ex.: '08 de novembro de 2026')
-  escalonamentos?: string   // padrão: '1x por ano'
+  escalonamentos?: string   // ex.: '1 (um) escalonamento por ano...'
   observacao?:     string | null
 }
 
@@ -225,7 +231,7 @@ export function montarAnexoI(anexo: AnexoI): string {
     `- **Valor:** ${plano.valor}`,
     `- **Forma de pagamento:** ${plano.formaPagamento}`,
     `- **Data de ativação:** ${plano.ativacao}`,
-    `- **Direito ao escalonamento para advogado:** ${plano.escalonamentos ?? '1x por ano'}`,
+    `- **Direito ao escalonamento para advogado:** ${plano.escalonamentos ?? 'Conforme o plano contratado'}`,
   ]
 
   if (plano.observacao) linhas.push(`- **Observações:** ${plano.observacao}`)
