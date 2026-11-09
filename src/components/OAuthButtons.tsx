@@ -27,9 +27,9 @@ export default function OAuthButtons({
   return (
     <div className="space-y-3">
       <div className="relative flex items-center">
-        <div className="flex-grow border-t border-border" />
+        <div className="flex-grow border-t border-line" />
         <span className="mx-3 j-caption">ou</span>
-        <div className="flex-grow border-t border-border" />
+        <div className="flex-grow border-t border-line" />
       </div>
 
       <button

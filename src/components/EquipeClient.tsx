@@ -165,7 +165,7 @@ export default function EquipeClient() {
 
           {/* Sem assento: o caminho é trocar de plano, não suspender às cegas */}
           {!assentos.canInvite && (
-            <div className="mt-4 pt-4 border-t border-[rgba(13,13,26,0.07)]">
+            <div className="mt-4 pt-4 border-t border-line">
               <p className="j-caption mb-3">
                 {assentos.reason === 'trial_expired'
                   ? 'Seu período gratuito terminou. Assine um plano para incluir usuários.'
@@ -191,7 +191,7 @@ export default function EquipeClient() {
             return (
               <div
                 key={m.user_id}
-                className="flex flex-wrap items-start justify-between gap-3 pb-3 border-b border-[rgba(13,13,26,0.07)] last:border-b-0 last:pb-0"
+                className="flex flex-wrap items-start justify-between gap-3 pb-3 border-b border-line last:border-b-0 last:pb-0"
               >
                 <div className="min-w-0">
                   <p className="j-body font-medium flex items-center gap-1.5">
