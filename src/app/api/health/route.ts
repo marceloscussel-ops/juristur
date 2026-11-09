@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdmin, type SupabaseClient } from '@supabase/supabase-js'
 import { env } from '@/lib/env'
-import { normalizePhone } from '@/lib/phone'
+import { isValidBrazilianMobile, normalizePhone } from '@/lib/phone'
 
 export const dynamic = 'force-dynamic'
 // `dynamic` torna a ROTA dinâmica, mas não impede o cache de `fetch` que o
@@ -51,6 +51,14 @@ function dangerousCharsDetail(name: string): string | null {
  *   WhatsApp gravado em formatos diferentes (`5551998344269` e `555198344269`)
  *   passa pela constraint e deixa o webhook ambíguo: quem recebe a resposta
  *   depende do formato que a Z-API mandar.
+ * - telefone fora do padrão: o webhook procura a agência com
+ *   `.eq(coluna, normalizePhone(entrada))`, e `normalizePhone` devolve sempre
+ *   12 dígitos. Quem está gravado em qualquer outro formato nunca é encontrado:
+ *   a conta funciona na plataforma e o canal de WhatsApp fica mudo, sem erro
+ *   em lugar nenhum. O check de duplicata não pega isso — `5551995505587`
+ *   (13 dígitos) é um celular válido e normaliza bem, mas o literal gravado
+ *   não é o que a consulta procura. Por isso são duas perguntas diferentes:
+ *   o literal está na forma canônica, e o número é um celular brasileiro.
  */
 async function dataChecks(admin: SupabaseClient): Promise<Check[]> {
   const out: Check[] = []
@@ -100,7 +108,63 @@ async function dataChecks(admin: SupabaseClient): Promise<Check[]> {
     detail: dups.length ? dups.map(([n, ids]) => `${n} -> ${ids.join(' e ')}`).join('; ') : undefined,
   })
 
+  out.push(await telefonesForaDoPadrao(admin, ags))
+
   return out
+}
+
+/** Por que este telefone é inalcançável, ou null se estiver em ordem. */
+function motivoInalcancavel(gravado: string): string | null {
+  const canonico = normalizePhone(gravado)
+  if (canonico !== gravado) return `gravado "${gravado}", o webhook procura "${canonico}"`
+  if (!isValidBrazilianMobile(gravado)) return `"${gravado}" não é um celular brasileiro válido`
+  return null
+}
+
+/**
+ * Telefones que o webhook nunca vai encontrar.
+ *
+ * Varre as duas colunas que resolvem quem está escrevendo: `agencies.phone` e
+ * `agency_members.telefone` — desde o multiusuário o webhook consulta a
+ * segunda antes da primeira, então um membro mal gravado some do mesmo jeito.
+ * Tolerante à tabela ausente (banco sem a migration): nesse caso só as
+ * agências entram na conta.
+ */
+async function telefonesForaDoPadrao(
+  admin: SupabaseClient,
+  ags: { id: string; phone: string | null }[],
+): Promise<Check> {
+  const alvos: { id: string; numero: string }[] = ags
+    .filter((a): a is { id: string; phone: string } => !!a.phone)
+    .map(a => ({ id: a.id, numero: a.phone }))
+
+  const { data: membros } = await admin
+    .from('agency_members')
+    .select('user_id, telefone')
+    .eq('status', 'ativo')
+    .not('telefone', 'is', null)
+
+  for (const m of membros ?? []) {
+    if (m.telefone) alvos.push({ id: `membro ${m.user_id}`, numero: m.telefone as string })
+  }
+
+  const ruins = alvos
+    .map(({ id, numero }) => {
+      const motivo = motivoInalcancavel(numero)
+      return motivo ? `${id}: ${motivo}` : null
+    })
+    .filter((x): x is string => x !== null)
+
+  // O detail vai inteiro para o log do smoke test; corta a lista para não
+  // despejar a base num alerta que ninguém lê até o fim.
+  const amostra = ruins.slice(0, 5).join('; ')
+  const resto   = ruins.length > 5 ? ` (+${ruins.length - 5})` : ''
+
+  return {
+    name:   'data:telefones-formato',
+    ok:     ruins.length === 0,
+    detail: ruins.length ? `${ruins.length} inalcançáveis por WhatsApp — ${amostra}${resto}` : undefined,
+  }
 }
 
 export async function GET(req: NextRequest) {
