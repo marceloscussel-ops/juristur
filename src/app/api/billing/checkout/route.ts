@@ -12,7 +12,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createCheckout, serviceClient, type AsaasCustomerData, type PlanId } from '@/lib/asaas'
 import { hasActiveAccess, planById } from '@/lib/plans'
 import { isValidCpfCnpj } from '@/lib/document'
-import { isUnavPromoEligible } from '@/lib/promo'
+import { isPromoEventoEligible } from '@/lib/promo'
 import {
   dadosDoCliente, enderecoDaAgencia, jaAssinouAntes, planoPago, registrarAceite,
 } from '@/lib/contrato/aceite'
@@ -189,7 +189,7 @@ export async function POST(request: NextRequest) {
         planId,
         cycle:     cycle as BillingCycle,
         method:    method as Method,
-        promoUnav: isUnavPromoEligible(agency),
+        promoEvento: isPromoEventoEligible(agency),
       }),
       email: agency.email,
       ip, userAgent,

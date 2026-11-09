@@ -4,15 +4,15 @@ import { useState, useEffect } from 'react'
 import { Check, X, Sparkles, CreditCard, QrCode, Loader2, AlertCircle, Gift } from 'lucide-react'
 import { PLANS, escalonamentosLabel, type PlanDef } from '@/lib/plans'
 import AceiteContrato from '@/components/AceiteContrato'
-import { UNAV_PROMO_MESES } from '@/lib/promo'
+import { PROMO_EVENTO_MESES } from '@/lib/promo'
 import { formatCpfCnpj, isValidCpfCnpj } from '@/lib/document'
 import type { PaymentMethod } from '@/types'
 
 type Billing = 'mensal' | 'anual'
 
 export default function PlansClient({
-  whatsapp, promoUnav = false, documentoPendente = false, enderecoPendente = false,
-}: { whatsapp: string; promoUnav?: boolean; documentoPendente?: boolean; enderecoPendente?: boolean }) {
+  whatsapp, promoEvento = false, documentoPendente = false, enderecoPendente = false,
+}: { whatsapp: string; promoEvento?: boolean; documentoPendente?: boolean; enderecoPendente?: boolean }) {
   const [billing, setBilling] = useState<Billing>('anual')
   const [modalPlan, setModalPlan] = useState<PlanDef | null>(null)
 
@@ -37,8 +37,8 @@ export default function PlansClient({
           // Professional é o plano recomendado (primeiro com defesa inclusa).
           const destaque = plan.id === 'profissional'
           const nota  = billing === 'anual'
-            ? promoUnav
-              ? `cobrado anualmente · ${UNAV_PROMO_MESES} meses de acesso`
+            ? promoEvento
+              ? `cobrado anualmente · ${PROMO_EVENTO_MESES} meses de acesso`
               : 'cobrado anualmente · economize 20%'
             : 'no plano mensal'
           return (
@@ -108,7 +108,7 @@ export default function PlansClient({
           plan={modalPlan}
           billing={billing}
           whatsapp={whatsapp}
-          promoUnav={promoUnav}
+          promoEvento={promoEvento}
           documentoPendente={documentoPendente}
           enderecoPendente={enderecoPendente}
           onClose={() => setModalPlan(null)}
@@ -140,10 +140,10 @@ interface MethodOption {
 }
 
 function SubscribeModal({
-  plan, billing, whatsapp, promoUnav, documentoPendente, enderecoPendente, onClose,
+  plan, billing, whatsapp, promoEvento, documentoPendente, enderecoPendente, onClose,
 }: {
   plan: PlanDef; billing: Billing; whatsapp: string
-  promoUnav: boolean; documentoPendente: boolean; enderecoPendente: boolean; onClose: () => void
+  promoEvento: boolean; documentoPendente: boolean; enderecoPendente: boolean; onClose: () => void
 }) {
   const [method, setMethod]   = useState<PaymentMethod>('card')
   const [loading, setLoading] = useState(false)
@@ -320,11 +320,11 @@ function SubscribeModal({
             : 'Plano mensal — cobrança recorrente no cartão.'}
         </p>
 
-        {billing === 'anual' && promoUnav && (
+        {billing === 'anual' && promoEvento && (
           <div className="mt-3 rounded-lg border border-indigo/30 bg-indigo-50/60 px-3 py-2 flex items-center gap-2">
             <Gift className="w-4 h-4 text-indigo shrink-0" />
             <span className="text-[13px] text-ink-80">
-              Promoção UNAV: <strong>{UNAV_PROMO_MESES} meses de acesso</strong> pelo preço de 12.
+              Promoção do evento: <strong>{PROMO_EVENTO_MESES} meses de acesso</strong> pelo preço de 12.
             </span>
           </div>
         )}

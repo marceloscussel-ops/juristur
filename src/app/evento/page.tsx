@@ -3,14 +3,14 @@ import Link from 'next/link'
 import { Zap, ShieldCheck, Scale, Check, ArrowRight, Gift, FileSignature } from 'lucide-react'
 import TGLogo from '@/components/TGLogo'
 import SignupForm from '@/components/SignupForm'
-import { UNAV_PROMO, UNAV_PROMO_MESES, isUnavPromoAberta } from '@/lib/promo'
+import { PROMO_EVENTO, PROMO_EVENTO_MESES, isPromoEventoAberta } from '@/lib/promo'
 import { formatDate } from '@/lib/datetime'
 
 // A promoção tem prazo: a página é regerada de hora em hora para parar de
 // anunciá-la assim que o prazo de cadastro terminar.
 export const revalidate = 3600
 
-const PRAZO_TEXTO = formatDate(UNAV_PROMO.cadastroAte)
+const PRAZO_TEXTO = formatDate(PROMO_EVENTO.cadastroAte)
 
 export const metadata: Metadata = {
   title:       'TurisGuard — 7 dias grátis para sua agência',
@@ -48,7 +48,7 @@ const PASSOS = [
 ]
 
 export default function EventoPage() {
-  const promoAberta = isUnavPromoAberta()
+  const promoAberta = isPromoEventoAberta()
 
   return (
     <div className="min-h-screen bg-surface">
@@ -93,9 +93,9 @@ export default function EventoPage() {
             >
               <Gift className="w-4 h-4 shrink-0 mt-0.5" style={{ color: '#4ED8AE' }} />
               <p className="text-[13px] leading-relaxed" style={{ color: 'rgba(255,255,255,.86)' }}>
-                <strong style={{ color: '#4ED8AE' }}>Exclusivo UNAV 2026:</strong>{' '}
+                <strong style={{ color: '#4ED8AE' }}>Exclusivo {PROMO_EVENTO.evento}:</strong>{' '}
                 cadastre-se por aqui até {PRAZO_TEXTO} e leve{' '}
-                <strong>{UNAV_PROMO_MESES} meses pelo preço de 12</strong> no plano anual.
+                <strong>{PROMO_EVENTO_MESES} meses pelo preço de 12</strong> no plano anual.
               </p>
             </div>
           )}
@@ -209,7 +209,7 @@ export default function EventoPage() {
               <p className="j-caption">7 dias para testar · sem cartão de crédito</p>
               {promoAberta && (
                 <p className="j-caption mt-2 text-teal font-semibold">
-                  Cadastrando por aqui, você garante os {UNAV_PROMO.mesesBonus} meses extras no plano anual
+                  Cadastrando por aqui, você garante os {PROMO_EVENTO.mesesBonus} meses extras no plano anual
                 </p>
               )}
             </div>
@@ -221,7 +221,7 @@ export default function EventoPage() {
             <SignupForm
               submitLabel="Começar teste grátis"
               origem="evento"
-              campanhaPadrao={promoAberta ? UNAV_PROMO.campanha : undefined}
+              campanhaPadrao={promoAberta ? PROMO_EVENTO.campanha : undefined}
             />
           </div>
 

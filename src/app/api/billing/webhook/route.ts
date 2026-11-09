@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
       accessUntil = new Date(base.getTime() + 35 * 86_400_000) // vencimento + folga
     } else {
       // Anual: 12 meses da confirmação — ou 14 para cadastro pelo link do evento
-      // dentro do prazo (promoção UNAV 2026).
+      // dentro do prazo (promoção de evento).
       accessUntil = new Date()
       accessUntil.setMonth(accessUntil.getMonth() + mesesPlanoAnual(current))
     }

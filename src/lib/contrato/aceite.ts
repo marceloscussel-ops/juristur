@@ -14,7 +14,7 @@ import { createClient } from '@supabase/supabase-js'
 import { env } from '@/lib/env'
 import { formatDateLong, formatDateTime } from '@/lib/datetime'
 import { PLANS, TRIAL_DAYS, escalonamentosLabel } from '@/lib/plans'
-import { UNAV_PROMO_MESES } from '@/lib/promo'
+import { PROMO_EVENTO_MESES } from '@/lib/promo'
 import {
   CONTRATO_VERSAO, montarContrato,
   type AceiteEvento, type AnexoAgencia, type AnexoI, type AnexoPlano,
@@ -56,7 +56,7 @@ export function enderecoDaAgencia(a: {
 export function planoPago(opts: {
   cycle:     BillingCycle
   method:    PaymentMethod
-  promoUnav?: boolean
+  promoEvento?: boolean
   planId?:   string
 }): AnexoPlano {
   const plan = PLANS.find(p => p.id === (opts.planId ?? 'essencial')) ?? PLANS[0]
@@ -76,8 +76,8 @@ export function planoPago(opts: {
         ? 'Cartão de crédito — renovação automática mensal'
         : 'PIX — pagamento mensal'
 
-  const observacao = anual && opts.promoUnav
-    ? `Promoção UNAV 2026: ${UNAV_PROMO_MESES} meses de acesso pelo valor de 12.`
+  const observacao = anual && opts.promoEvento
+    ? `Promoção de evento: ${PROMO_EVENTO_MESES} meses de acesso pelo valor de 12.`
     : anual
       ? 'Vigência de 12 meses, com renovação automática salvo cancelamento expresso.'
       : 'Vigência mínima de 3 meses, renovada a cada mensalidade paga.'
