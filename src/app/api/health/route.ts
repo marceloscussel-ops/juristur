@@ -42,9 +42,11 @@ function dangerousCharsDetail(name: string): string | null {
  * Consistência dos dados que o produto assume verdadeira e que nenhuma
  * constraint garante. Ambos os checks nasceram de incidente real:
  *
- * - agência órfã: usuário no Auth sem linha em `agencies`. A pessoa navega
- *   normalmente e só descobre ao abrir o primeiro caso, quando o insert bate na
- *   foreign key e a tela mostra um erro genérico.
+ * - agência órfã: usuário no Auth sem linha em `agencies` E sem vínculo ativo
+ *   em `agency_members`. A pessoa navega normalmente e só descobre ao abrir o
+ *   primeiro caso, quando o insert bate na foreign key e a tela mostra um erro
+ *   genérico. O vínculo entra na conta desde os planos com vários usuários:
+ *   membro convidado não tem agência própria, e isso é o certo.
  * - telefone duplicado: `agencies.phone` é UNIQUE, mas só como string — o mesmo
  *   WhatsApp gravado em formatos diferentes (`5551998344269` e `555198344269`)
  *   passa pela constraint e deixa o webhook ambíguo: quem recebe a resposta
@@ -58,13 +60,24 @@ async function dataChecks(admin: SupabaseClient): Promise<Check[]> {
     return [{ name: 'data:consistencia', ok: false, detail: agsErr.message }]
   }
 
+  // Membro convidado NÃO tem linha em `agencies` — ele existe em
+  // `agency_members`, apontando para a agência do titular. Sem esta leitura o
+  // check acusaria toda pessoa convidada como órfã e o health viveria
+  // "degraded". Tolerante à tabela ausente (banco sem a migration do
+  // multiusuário): aí a lista fica vazia e vale a regra antiga.
+  const { data: vinculos } = await admin
+    .from('agency_members')
+    .select('user_id')
+    .eq('status', 'ativo')
+
   const { data: authData, error: authErr } = await admin.auth.admin.listUsers({ perPage: 1000 })
   if (authErr) {
     out.push({ name: 'data:agencias-orfas', ok: false, detail: authErr.message })
   } else {
     const withAgency = new Set(ags.map(a => a.id))
+    const membros    = new Set((vinculos ?? []).map(v => v.user_id as string))
     const orphans = authData.users.filter(
-      u => !withAgency.has(u.id) && u.app_metadata?.role !== 'lawyer'
+      u => !withAgency.has(u.id) && !membros.has(u.id) && u.app_metadata?.role !== 'lawyer'
     )
     out.push({
       name:   'data:agencias-orfas',
