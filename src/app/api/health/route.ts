@@ -19,6 +19,9 @@ export const fetchCache = 'force-no-store'
 
 type Check = { name: string; ok: boolean; detail?: string }
 
+/** Vínculo ativo de usuário com agência, como os checks de dados precisam. */
+type Membro = { user_id: string; agency_id: string; telefone: string | null }
+
 /**
  * Retorna os caracteres perigosos (BOM / não-ASCII / controle) de uma env var
  * como "U+XXXX@índice", ou null se estiver limpa. Ignora espaço/quebra de linha
@@ -50,7 +53,10 @@ function dangerousCharsDetail(name: string): string | null {
  * - telefone duplicado: `agencies.phone` é UNIQUE, mas só como string — o mesmo
  *   WhatsApp gravado em formatos diferentes (`5551998344269` e `555198344269`)
  *   passa pela constraint e deixa o webhook ambíguo: quem recebe a resposta
- *   depende do formato que a Z-API mandar.
+ *   depende do formato que a Z-API mandar. Desde o multiusuário o número de um
+ *   membro também decide roteamento, e os índices únicos são um por tabela:
+ *   nada impede que o telefone de um membro seja igual ao de OUTRA agência — e
+ *   aí o membro ganha, porque o webhook consulta `agency_members` primeiro.
  * - telefone fora do padrão: o webhook procura a agência com
  *   `.eq(coluna, normalizePhone(entrada))`, e `normalizePhone` devolve sempre
  *   12 dígitos. Quem está gravado em qualquer outro formato nunca é encontrado:
@@ -73,19 +79,24 @@ async function dataChecks(admin: SupabaseClient): Promise<Check[]> {
   // check acusaria toda pessoa convidada como órfã e o health viveria
   // "degraded". Tolerante à tabela ausente (banco sem a migration do
   // multiusuário): aí a lista fica vazia e vale a regra antiga.
+  //
+  // Uma leitura só serve os três checks abaixo (órfã, duplicado, formato).
+  // Apenas `ativo`: é a única condição em que o webhook aceita o vínculo.
   const { data: vinculos } = await admin
     .from('agency_members')
-    .select('user_id')
+    .select('user_id, agency_id, telefone')
     .eq('status', 'ativo')
+
+  const membrosAtivos = (vinculos ?? []) as Membro[]
 
   const { data: authData, error: authErr } = await admin.auth.admin.listUsers({ perPage: 1000 })
   if (authErr) {
     out.push({ name: 'data:agencias-orfas', ok: false, detail: authErr.message })
   } else {
     const withAgency = new Set(ags.map(a => a.id))
-    const membros    = new Set((vinculos ?? []).map(v => v.user_id as string))
+    const comVinculo = new Set(membrosAtivos.map(m => m.user_id))
     const orphans = authData.users.filter(
-      u => !withAgency.has(u.id) && !membros.has(u.id) && u.app_metadata?.role !== 'lawyer'
+      u => !withAgency.has(u.id) && !comVinculo.has(u.id) && u.app_metadata?.role !== 'lawyer'
     )
     out.push({
       name:   'data:agencias-orfas',
@@ -94,21 +105,42 @@ async function dataChecks(admin: SupabaseClient): Promise<Check[]> {
     })
   }
 
-  const byNumber = new Map<string, string[]>()
-  for (const a of ags) {
-    if (!a.phone) continue
-    const key = normalizePhone(a.phone)
-    if (!key) continue
-    byNumber.set(key, [...(byNumber.get(key) ?? []), a.id])
+  // Ambiguidade de ROTEAMENTO: o critério é a agência para onde a mensagem
+  // iria, não a linha gravada. O telefone do titular aparece nas duas tabelas
+  // por construção (o backfill da migration copiou o de `agencies` para
+  // `agency_members`), e isso não é conflito nenhum — as duas pistas levam ao
+  // mesmo lugar. Conflito é quando o mesmo número leva a agências diferentes.
+  const byNumber = new Map<string, { agencyId: string; rotulo: string }[]>()
+  const registra = (numero: string | null, agencyId: string, rotulo: string) => {
+    if (!numero) return
+    const key = normalizePhone(numero)
+    if (!key) return
+    byNumber.set(key, [...(byNumber.get(key) ?? []), { agencyId, rotulo }])
   }
-  const dups = Array.from(byNumber.entries()).filter(([, ids]) => ids.length > 1)
+  for (const a of ags) registra(a.phone, a.id, a.id)
+  for (const m of membrosAtivos) registra(m.telefone, m.agency_id, `membro ${m.user_id}`)
+
+  // Uma pista por agência no alerta: quando o número está no próprio
+  // `agencies.phone`, é a agência que aparece — citar também o vínculo do
+  // titular só repetiria a mesma informação. Um membro é nomeado quando é ele
+  // que traz a agência para o conflito, e é justamente o caso novo.
+  const dups = Array.from(byNumber.entries())
+    .map(([numero, linhas]) => {
+      const porAgencia = new Map<string, string>()
+      for (const l of linhas) if (!porAgencia.has(l.agencyId)) porAgencia.set(l.agencyId, l.rotulo)
+      return { numero, rotulos: Array.from(porAgencia.values()) }
+    })
+    .filter(d => d.rotulos.length > 1)
+
   out.push({
     name:   'data:telefones-duplicados',
     ok:     dups.length === 0,
-    detail: dups.length ? dups.map(([n, ids]) => `${n} -> ${ids.join(' e ')}`).join('; ') : undefined,
+    detail: dups.length
+      ? dups.map(d => `${d.numero} -> ${d.rotulos.join(' e ')}`).join('; ')
+      : undefined,
   })
 
-  out.push(await telefonesForaDoPadrao(admin, ags))
+  out.push(telefonesForaDoPadrao(ags, membrosAtivos))
 
   return out
 }
@@ -127,25 +159,19 @@ function motivoInalcancavel(gravado: string): string | null {
  * Varre as duas colunas que resolvem quem está escrevendo: `agencies.phone` e
  * `agency_members.telefone` — desde o multiusuário o webhook consulta a
  * segunda antes da primeira, então um membro mal gravado some do mesmo jeito.
- * Tolerante à tabela ausente (banco sem a migration): nesse caso só as
- * agências entram na conta.
+ * Tolerante à tabela ausente (banco sem a migration): nesse caso a lista de
+ * membros chega vazia e só as agências entram na conta.
  */
-async function telefonesForaDoPadrao(
-  admin: SupabaseClient,
+function telefonesForaDoPadrao(
   ags: { id: string; phone: string | null }[],
-): Promise<Check> {
+  membros: Membro[],
+): Check {
   const alvos: { id: string; numero: string }[] = ags
     .filter((a): a is { id: string; phone: string } => !!a.phone)
     .map(a => ({ id: a.id, numero: a.phone }))
 
-  const { data: membros } = await admin
-    .from('agency_members')
-    .select('user_id, telefone')
-    .eq('status', 'ativo')
-    .not('telefone', 'is', null)
-
-  for (const m of membros ?? []) {
-    if (m.telefone) alvos.push({ id: `membro ${m.user_id}`, numero: m.telefone as string })
+  for (const m of membros) {
+    if (m.telefone) alvos.push({ id: `membro ${m.user_id}`, numero: m.telefone })
   }
 
   const ruins = alvos
