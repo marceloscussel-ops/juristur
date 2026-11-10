@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { extractTextFromFile } from '@/lib/extract-text'
 import { generateContract, generateDocument, agencyProfileFromRow } from '@/lib/ai/documents'
 import { getContractTemplate, DEFAULT_CONTRACT_TEMPLATE_ID } from '@/lib/templates/contrato-turismo'
+import { getDocumentType, MAX_FREE_TYPE_LENGTH } from '@/lib/templates/documentos'
+import { getDocumentGuia } from '@/lib/templates/documentos-guias'
 import { getAgencyId } from '@/lib/agencia-do-usuario'
 
 // Claude redigindo um contrato inteiro leva mais que o default do Vercel.
@@ -32,8 +34,15 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData()
     const kind     = (formData.get('kind') as string) === 'outro' ? 'outro' : 'contrato'
     const prompt   = ((formData.get('prompt') as string) ?? '').trim()
-    const docType  = ((formData.get('doc_type') as string) ?? '').trim()
     const files    = (formData.getAll('files') as File[]).filter(f => f.size > 0)
+
+    // O tipo do documento vem do catálogo (`doc_type_id`) ou, no "Outro", do
+    // rótulo que a agência digitou. O catálogo é a fonte do rótulo guardado e
+    // do guia de redação — nada disso vem do cliente, que só manda o id.
+    const catalogType = getDocumentType(formData.get('doc_type_id') as string)
+    const docType = catalogType
+      ? catalogType.label
+      : ((formData.get('doc_type') as string) ?? '').trim().slice(0, MAX_FREE_TYPE_LENGTH)
 
     if (kind === 'outro' && !docType) {
       return NextResponse.json({ error: 'Informe o tipo do documento.' }, { status: 400 })
@@ -140,7 +149,9 @@ export async function POST(request: NextRequest) {
     try {
       const result = kind === 'contrato'
         ? await generateContract({ template, agency, filesContent: joined, prompt })
-        : await generateDocument({ agency, docType, filesContent: joined, prompt })
+        : await generateDocument({
+            agency, docType, guia: getDocumentGuia(catalogType?.id), filesContent: joined, prompt,
+          })
 
       await supabase
         .from('documents')

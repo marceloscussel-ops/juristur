@@ -195,15 +195,22 @@ Sua tarefa agora é redigir um documento do zero, a partir do pedido da agência
 COMO TRABALHAR:
 - Use o formato adequado ao tipo pedido: um e-mail tem assunto, saudação, corpo e assinatura; um termo de ciência tem qualificação das partes, declaração e campo de assinatura; uma notificação tem destinatário, fundamentação, pedido e prazo.
 - Seja completo mas enxuto. Nada de enrolação para alongar o texto.
-- Quando o documento envolver direitos do consumidor, respeite o CDC e a Lei 11.771/2008. Não redija cláusula abusiva mesmo se pedirem — nesse caso, redija a versão válida mais próxima do que foi pedido.
-- Feche com campo de assinatura quando o documento for assinado (termo, declaração, notificação). E-mail não leva campo de assinatura.
+- Quando o documento envolver direitos do consumidor, respeite o CDC e a Lei 11.771/2008. Não redija cláusula abusiva mesmo se pedirem — nesse caso, redija a versão válida mais próxima do que foi pedido, sem explicar a mudança fora do documento.
+- Feche com campo de assinatura quando o documento for assinado (termo, declaração, notificação, procuração). E-mail e proposta comercial não levam campo de assinatura.
+- Quando vier um GUIA DE REDAÇÃO abaixo, ele manda sobre estas instruções gerais: siga a estrutura, a base legal e as advertências dele.
 
 ${TITLE_RULE}`
 
 export interface OtherDocumentInput {
   agency:       AgencyProfile
-  /** Tipo escolhido na UI (e-mail, termo de ciência...). */
+  /** Rótulo do tipo escolhido na UI (e-mail, termo de ciência...). */
   docType:      string
+  /**
+   * Conhecimento do catálogo para este tipo: estrutura esperada, base legal e
+   * armadilha a evitar (ver `lib/templates/documentos.ts`). Vem nulo quando a
+   * agência escolheu "Outro" e digitou o tipo à mão.
+   */
+  guia?:        string | null
   filesContent: string
   prompt:       string
 }
@@ -214,6 +221,9 @@ ${agencyBlock(input.agency)}
 
 TIPO DE DOCUMENTO PEDIDO: ${input.docType}
 
+${input.guia
+  ? `GUIA DE REDAÇÃO PARA ESTE TIPO (vem do nosso jurídico — tem prioridade sobre as regras gerais):\n${input.guia}\n`
+  : 'Não há guia de redação para este tipo: a agência descreveu o documento com as próprias palavras. Deduza a estrutura adequada pelo pedido.\n'}
 ${input.filesContent
   ? `DOCUMENTOS ANEXADOS PELA AGÊNCIA (texto extraído — pode vir com ruído de OCR; use só o que estiver claro):\n${input.filesContent}\n`
   : 'A agência não anexou documentos.\n'}

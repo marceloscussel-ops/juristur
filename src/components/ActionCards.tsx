@@ -42,13 +42,12 @@ export const ACTIONS: Action[] = [
   {
     href:  '/documentos/novo',
     title: 'Gerar documento',
-    desc:  'E-mail ao cliente ou fornecedor, termo de ciência, formalização financeira, notificação — descreva o que precisa e a IA redige.',
+    desc:  'E-mail ao cliente ou fornecedor, termo de ciência, formalização financeira, notificação, termo de renúncia — escolha o tipo, descreva o caso e a IA redige.',
     short: 'E-mail, termo de ciência, formalização financeira.',
     cta:   'Criar documento',
     icon:  FilePlus2,
     bg:    'bg-teal-50',
     fg:    'text-teal',
-    soon:  true,
   },
   {
     href:  '/casos/novo',
