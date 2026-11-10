@@ -33,7 +33,11 @@ export async function updateSession(request: NextRequest) {
   const isLawyerPath = pathname.startsWith('/lawyer')
   // /contrato é público: a pessoa precisa poder ler o contrato ANTES de ter conta.
   const publicPaths  = ['/login', '/cadastro', '/evento', '/', '/contrato', '/esqueci-senha', '/resetar-senha', '/auth/callback']
+  // /i/<slug> é o link de indicação: ele só grava o cookie e manda para o
+  // cadastro, então tem de abrir para quem ainda não tem conta — que é
+  // justamente quem chega por ele.
   const isPublicPath = publicPaths.some(p => pathname === p || pathname.startsWith('/api/'))
+    || pathname.startsWith('/i/')
 
   // Papel do usuário vem diretamente do JWT (app_metadata) — sem query ao banco
   const isLawyer = user?.app_metadata?.role === 'lawyer'

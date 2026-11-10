@@ -156,7 +156,10 @@ export default async function AdminDashboard({ searchParams }: Props) {
   ]
 
   // ── Aquisição: de onde vieram as agências ──
-  const ORIGEM_LABEL: Record<string, string> = { evento: 'Evento (QR code)' }
+  const ORIGEM_LABEL: Record<string, string> = {
+    evento:    'Evento (QR code)',
+    indicacao: 'Indicação',
+  }
   const origemOf = (o?: string | null) => (o ? ORIGEM_LABEL[o] ?? o : 'Orgânico / direto')
 
   const origemData = Array.from(countBy(agsP, a => origemOf(a.origem)).entries())

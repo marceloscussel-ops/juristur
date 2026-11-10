@@ -29,6 +29,12 @@ interface Props {
    * sempre tem prioridade sobre este valor.
    */
   campanhaPadrao?: string
+  /**
+   * Slug do indicador que trouxe este cadastro (ex.: 'unav'). Quem manda é o
+   * cookie gravado em /i/<slug>, lido no servidor; isto aqui só o repassa para
+   * o retorno do OAuth, onde o cookie é o único caminho que sobrevive.
+   */
+  indicador?: string
 }
 
 export default function SignupForm({
@@ -36,6 +42,7 @@ export default function SignupForm({
   submitLabel = 'Criar conta grátis',
   origem,
   campanhaPadrao,
+  indicador,
 }: Props) {
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '' })
   const [showPassword, setShowPassword] = useState(false)
@@ -66,6 +73,7 @@ export default function SignupForm({
       if (campanha) params.set('campanha', campanha)
     }
     if (aceite) params.set('aceite', '1')
+    if (indicador) params.set('ind', indicador)
     const qs = params.toString()
     if (!qs) return redirectTo
     return `${redirectTo}${redirectTo.includes('?') ? '&' : '?'}${qs}`
@@ -105,6 +113,7 @@ export default function SignupForm({
           password: form.password,
           origem:   origem ?? null,
           origemCampanha: campanha,
+          indicador:      indicador ?? null,
           aceiteContrato: true,
         }),
       })

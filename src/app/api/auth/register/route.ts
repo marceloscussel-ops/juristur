@@ -6,10 +6,11 @@ import { isValidCpfCnpj } from '@/lib/document'
 import { isPhoneTaken } from '@/lib/agency'
 import { notifyWelcome } from '@/lib/notify'
 import { dadosDoCliente, planoAvaliacao, registrarAceite } from '@/lib/contrato/aceite'
+import { INDICADOR_COOKIE, marcarIndicacao } from '@/lib/partners'
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, cnpj, email, phone, password, origem, origemCampanha, aceiteContrato } =
+    const { name, cnpj, email, phone, password, origem, origemCampanha, indicador, aceiteContrato } =
       await request.json()
 
     if (!name || !email || !phone || !password) {
@@ -110,6 +111,11 @@ export async function POST(request: NextRequest) {
       origem_campanha: clean(origemCampanha),
     }
 
+    // Indicador que trouxe o cadastro. O cookie (gravado em /i/<slug>) tem
+    // prioridade sobre o que o formulário manda: ele foi escrito pelo servidor
+    // quando o link foi aberto, e é o que resiste ao caminho do OAuth.
+    const slugIndicacao = request.cookies.get(INDICADOR_COOKIE)?.value ?? indicador
+
     // Registro do aceite do contrato (Anexo I = dados do cadastro + período
     // gratuito). Roda depois de a agência existir, por causa da foreign key.
     const { ip, userAgent } = dadosDoCliente(request)
@@ -141,6 +147,7 @@ export async function POST(request: NextRequest) {
 
         if (!retryError) {
           await gravarAceite()
+          if (slugIndicacao) await marcarIndicacao(authData.user!.id, slugIndicacao)
           return NextResponse.json({ success: true })
         }
         console.error('[register] agencyError (retry sem telefone):', JSON.stringify(retryError))
@@ -153,6 +160,10 @@ export async function POST(request: NextRequest) {
     }
 
     await gravarAceite()
+
+    // Atribuição ao indicador. Depois da agência existir (foreign key) e nunca
+    // bloqueante: comissão é assunto nosso, não motivo para um cadastro falhar.
+    if (slugIndicacao) await marcarIndicacao(authData.user.id, slugIndicacao)
 
     // Abre o canal: revela o WhatsApp do TurisGuard e confirma que o número
     // informado recebe as nossas mensagens. Silencioso se falhar.

@@ -1,10 +1,11 @@
 import { redirect } from 'next/navigation'
-import { headers } from 'next/headers'
+import { headers, cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import TGLogo from '@/components/TGLogo'
 import WhatsappStep from '@/components/WhatsappStep'
 import { dadosDoCliente, planoAvaliacao, registrarAceite, temAceite } from '@/lib/contrato/aceite'
 import { getVinculo } from '@/lib/agencia-do-usuario'
+import { INDICADOR_COOKIE, marcarIndicacao } from '@/lib/partners'
 
 /**
  * Passo de boas-vindas após o cadastro.
@@ -14,11 +15,11 @@ import { getVinculo } from '@/lib/agencia-do-usuario'
  * pronta —, então pedimos só esse campo antes de seguir.
  */
 interface Props {
-  searchParams: Promise<{ origem?: string; campanha?: string; aceite?: string }>
+  searchParams: Promise<{ origem?: string; campanha?: string; aceite?: string; ind?: string }>
 }
 
 export default async function BemVindoPage({ searchParams }: Props) {
-  const { origem, campanha, aceite } = await searchParams
+  const { origem, campanha, aceite, ind } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -68,6 +69,15 @@ export default async function BemVindoPage({ searchParams }: Props) {
         origem_campanha: campanha ? campanha.slice(0, 60) : null,
       })
       .eq('id', vinculo.agencyId)
+  }
+
+  // Indicador: o cadastro por Google também não passa pelo /api/auth/register,
+  // então a atribuição é feita aqui. O cookie é a fonte (gravado em /i/<slug>)
+  // e `?ind=` é o reforço. `marcarIndicacao` é write-once no banco — chamar de
+  // novo numa segunda visita a esta tela não troca o indicador.
+  const slugIndicacao = (await cookies()).get(INDICADOR_COOKIE)?.value ?? ind
+  if (slugIndicacao && agency) {
+    await marcarIndicacao(vinculo.agencyId, slugIndicacao)
   }
 
   if (agency?.phone) {

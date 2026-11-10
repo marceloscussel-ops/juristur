@@ -56,6 +56,9 @@ export interface Agency {
   access_until?:          string | null
   /** Primeira ativação do plano pago: âncora do ano de assinatura e da carência. */
   plan_started_at?:       string | null
+  /** Indicador comissionado que trouxe a agência (partners.id). Write-once. */
+  partner_id?:            string | null
+  partner_attributed_at?: string | null
 }
 
 export interface CaseMessage {
