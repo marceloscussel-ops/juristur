@@ -88,11 +88,20 @@ if (eView) {
 }
 
 // RLS: partners e o extrato são dados comerciais — a chave anônima não entra.
+//
+// Atenção à leitura do resultado: tabela com RLS ligada e SEM policy não
+// devolve erro ao anônimo, devolve lista vazia. Então o que condena é vir
+// linha, não vir erro — e só faz sentido conferir isto quando o service role
+// enxerga ao menos uma linha, senão "vazio" não prova nada.
 const { data: pAnon, error: ePartners } = await anon.from('partners').select('id').limit(1)
-console.log(`leitura anônima de partners: ${ePartners
-  ? `bloqueada (${ePartners.code ?? ePartners.message})`
-  : `${(pAnon ?? []).length} linha(s) visível(is) - revisar a RLS!`}`)
-if (!ePartners && (pAnon ?? []).length) process.exitCode = 1
+const visiveis = (pAnon ?? []).length
+console.log(`leitura anônima de partners: ${
+  ePartners                 ? `bloqueada (${ePartners.code ?? ePartners.message})`
+  : visiveis                ? `${visiveis} linha(s) visível(is) - revisar a RLS!`
+  : parceiros.length        ? 'bloqueada pela RLS (service role vê linha, anônimo não)'
+  :                           'vazia dos dois lados - sem indicador cadastrado, nada a provar'
+}`)
+if (visiveis) process.exitCode = 1
 
 const { data: cAnon, error: eComissoes } = await anon.from('partner_commissions').select('event_id').limit(1)
 console.log(`leitura anônima do extrato: ${eComissoes
