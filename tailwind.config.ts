@@ -161,6 +161,35 @@ const config: Config = {
         'hero-gradient':  'linear-gradient(135deg, #0B121C 0%, #16202F 100%)',
       },
 
+      /* O plugin `typography` pinta o conteúdo markdown com uma escala de
+         cinzas própria (`--tw-prose-*`), que ele define uma vez e nunca mais
+         olha para o tema — no escuro o documento saía com título e negrito
+         quase invisíveis. Aqui essas variáveis passam a apontar para os
+         mesmos tokens do resto do app, então o texto gerado troca de tema
+         junto com a interface e ninguém precisa escrever cor em markdown. */
+      typography: {
+        DEFAULT: {
+          css: {
+            '--tw-prose-body':          'var(--j-ink-80)',
+            '--tw-prose-headings':      'var(--j-ink)',
+            '--tw-prose-lead':          'var(--j-ink-80)',
+            '--tw-prose-links':         'var(--j-indigo)',
+            '--tw-prose-bold':          'var(--j-ink)',
+            '--tw-prose-counters':      'var(--j-ink-40)',
+            '--tw-prose-bullets':       'var(--j-border-strong)',
+            '--tw-prose-hr':            'var(--j-border)',
+            '--tw-prose-quotes':        'var(--j-ink)',
+            '--tw-prose-quote-borders': 'var(--j-border-strong)',
+            '--tw-prose-captions':      'var(--j-ink-40)',
+            '--tw-prose-code':          'var(--j-teal)',
+            '--tw-prose-pre-code':      'var(--j-ink)',
+            '--tw-prose-pre-bg':        'var(--j-surface)',
+            '--tw-prose-th-borders':    'var(--j-border-strong)',
+            '--tw-prose-td-borders':    'var(--j-border)',
+          },
+        },
+      },
+
       keyframes: {
         'fade-up': {
           from: { opacity: '0', transform: 'translateY(6px)' },
