@@ -244,7 +244,17 @@ export async function GET(req: NextRequest) {
     // Sem `count: 'exact'`: combinado com `head` ele devolve 206 e a lib
     // reportava erro de mensagem vazia mesmo com o banco respondendo — o health
     // acusava 503 justamente quando alguém vinha diagnosticar um incidente.
-    const { error: reachErr } = await admin.from('agencies').select('id', { head: true }).limit(1)
+    //
+    // E sem `head` nenhum, por um motivo pior: numa requisição HEAD não vem
+    // corpo, então o supabase-js não enxerga o erro do PostgREST e uma TABELA
+    // inexistente volta como `error: null` — o check passa como se ela
+    // existisse. Medido contra o banco: tabela ausente com `head` devolve
+    // `error: null`, sem `head` devolve PGRST205. Coluna ausente é pega dos
+    // dois jeitos (42703). Como os checks abaixo existem exatamente para
+    // denunciar migração não rodada — e migração nova costuma CRIAR tabela —,
+    // o `head` os tornava decorativos justo no caso que mais importa. O custo
+    // de trocar é uma linha de uma coluna por check.
+    const { error: reachErr } = await admin.from('agencies').select('id').limit(1)
     checks.push({ name: 'db:reachable', ok: !reachErr, detail: reachErr?.message })
 
     // Colunas/tabelas cuja ausência = migração não rodada
@@ -258,9 +268,15 @@ export async function GET(req: NextRequest) {
       ['case_analyses', 'review_status'],
       ['case_analyses', 'severity'],
       ['whatsapp_processed_messages', 'message_id'],
+      // Indicadores comissionados. A tabela, a marca na agência e a view do
+      // extrato: as três partes da migration 2026-11-10-indicadores.sql, e sem
+      // qualquer uma delas o /admin/indicadores abre vazio sem dizer por quê.
+      ['partners',            'slug'],
+      ['agencies',            'partner_id'],
+      ['partner_commissions', 'commission'],
     ]
     for (const [table, col] of schema) {
-      const { error } = await admin.from(table).select(col, { head: true }).limit(1)
+      const { error } = await admin.from(table).select(col).limit(1)
       checks.push({ name: `schema:${table}.${col}`, ok: !error, detail: error?.message })
     }
 

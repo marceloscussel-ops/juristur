@@ -785,8 +785,11 @@ WHERE be.event IN ('PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED', 'PAYMENT_REFUNDED')
 REVOKE ALL ON partner_commissions FROM anon, authenticated;
 GRANT SELECT ON partner_commissions TO service_role;
 
--- Primeiro indicador. O percentual fica em 0 até a combinação comercial
--- existir — o painel já funciona, só mostra comissão zerada.
+-- Primeiro indicador: 10% sobre o que as agências indicadas pagarem, em toda
+-- renovação enquanto pagarem (não só na primeira venda).
+--
+-- ON CONFLICT DO NOTHING: num banco que já tem a linha, rodar isto de novo não
+-- desfaz um percentual renegociado depois.
 INSERT INTO partners (slug, name, commission_pct, recurring)
-VALUES ('unav', 'UNAV', 0, true)
+VALUES ('unav', 'UNAV', 10, true)
 ON CONFLICT (slug) DO NOTHING;
