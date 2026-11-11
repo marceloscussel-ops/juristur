@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, Plus, X } from 'lucide-react'
 import { DEFENSE_KIND_LABELS, type DefenseKind } from '@/types'
+import { DitadoTextarea } from '@/components/Ditado'
 
 export interface AgenciaOpcao {
   id:    string
@@ -142,10 +143,10 @@ export default function NovaDefesa({ agencias, caseId, label }: {
 
         <div>
           <label className="j-label mb-1 block" htmlFor="defesa-obs">Observação (opcional)</label>
-          <textarea
+          <DitadoTextarea
             id="defesa-obs"
             value={notes}
-            onChange={e => setNotes(e.target.value)}
+            onValueChange={setNotes}
             disabled={loading}
             rows={3}
             className="j-input j-textarea"

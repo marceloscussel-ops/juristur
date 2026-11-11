@@ -6,6 +6,7 @@ import Link from 'next/link'
 import {
   Upload, X, FileText, Loader2, AlertCircle, ArrowLeft, FileSignature, Info,
 } from 'lucide-react'
+import { DitadoTextarea } from '@/components/Ditado'
 
 const MAX_FILES = 5
 const MAX_FILE_SIZE = 10 * 1024 * 1024
@@ -158,8 +159,8 @@ export default function ContratoForm() {
             Escreva do jeito que for mais fácil. Quanto mais detalhe, menos lacuna
             sobra no contrato — e aqui você também pede ajustes de cláusula.
           </p>
-          <textarea
-            id="prompt" value={prompt} onChange={e => setPrompt(e.target.value)}
+          <DitadoTextarea
+            id="prompt" value={prompt} onValueChange={setPrompt}
             rows={10} className="j-input j-textarea" disabled={loading}
             placeholder={'Dados do cliente, destino, datas, o que está incluso, valor e forma de pagamento, política de cancelamento...\n\nEx.: "acrescente uma cláusula de multa de 10% por desistência depois de emitida a passagem".'}
           />

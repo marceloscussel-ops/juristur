@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CheckCircle, Loader2, X } from 'lucide-react'
 import type { DefenseStatus } from '@/types'
+import { DitadoTextarea } from '@/components/Ditado'
 
 type Escolha = 'inclusa' | 'avulsa' | 'descartada' | 'fila'
 
@@ -124,10 +125,10 @@ export default function DefesaActions({
               <label className="j-label mb-1 block" htmlFor={`obs-${id}`}>
                 Observação (opcional)
               </label>
-              <textarea
+              <DitadoTextarea
                 id={`obs-${id}`}
                 value={obs}
-                onChange={e => setObs(e.target.value)}
+                onValueChange={setObs}
                 rows={3}
                 className="j-input j-textarea"
                 placeholder="Ex.: defesa protocolada no processo 0001234-56.2026.8.21.0001"

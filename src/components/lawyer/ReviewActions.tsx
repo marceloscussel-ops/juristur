@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CheckCircle, RefreshCw, Loader2 } from 'lucide-react'
+import { DitadoTextarea } from '@/components/Ditado'
 
 export default function ReviewActions({ caseId }: { caseId: string }) {
   const [mode, setMode]       = useState<'idle' | 'revision'>('idle')
@@ -41,9 +42,9 @@ export default function ReviewActions({ caseId }: { caseId: string }) {
       <div className="space-y-3">
         <div>
           <label className="j-label mb-1 block">Comentários para a IA</label>
-          <textarea
+          <DitadoTextarea
             value={notes}
-            onChange={e => setNotes(e.target.value)}
+            onValueChange={setNotes}
             className="j-input j-textarea"
             rows={4}
             placeholder="Ex: Mencionar também o artigo 14 do CDC. Enfatizar que o cliente tem 90 dias para reclamar..."

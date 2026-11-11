@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Loader2, Info, X } from 'lucide-react'
 import { MAX_COMPLEMENT_LENGTH } from '@/types'
+import { DitadoTextarea } from '@/components/Ditado'
 
 interface Props {
   caseId: string
@@ -76,13 +77,13 @@ export default function CaseComplement({ caseId }: Props) {
       </p>
 
       <form onSubmit={handleSubmit}>
-        <textarea
+        <DitadoTextarea
           value={text}
-          onChange={e => setText(e.target.value.slice(0, MAX_COMPLEMENT_LENGTH))}
+          onValueChange={v => setText(v.slice(0, MAX_COMPLEMENT_LENGTH))}
           placeholder="Descreva a informação que faltou..."
           rows={4}
           disabled={loading}
-          className="j-input w-full resize-y"
+          className="j-input j-textarea w-full"
           autoFocus
         />
         <div className="flex items-center justify-between gap-3 mt-2">

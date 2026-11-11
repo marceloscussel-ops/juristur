@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { CASE_CATEGORIES } from '@/types'
 import { CASE_EXAMPLES, getCaseExample, type CaseExample } from '@/lib/case-examples'
 import { Upload, X, FileText, Loader2, AlertCircle, Sparkles, PartyPopper } from 'lucide-react'
+import { DitadoTextarea } from '@/components/Ditado'
 
 const MAX_FILES = 5
 const MAX_FILE_SIZE = 10 * 1024 * 1024
@@ -160,7 +161,7 @@ export default function NovoCasoForm() {
           {/* Descrição */}
           <div>
             <label className="j-label" htmlFor="description">Descrição do problema <span className="text-danger">*</span></label>
-            <textarea id="description" required value={description} onChange={e => setDescription(e.target.value)}
+            <DitadoTextarea id="description" required value={description} onValueChange={setDescription}
               rows={7} className="j-input j-textarea"
               placeholder="Descreva detalhadamente a situação: o que aconteceu, quando, quem está envolvido, qual o valor em disputa..." />
             <p className="j-hint text-right">{description.length} caracteres</p>

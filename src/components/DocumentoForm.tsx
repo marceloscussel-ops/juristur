@@ -14,6 +14,7 @@ import {
   documentTypesByGroup,
   getDocumentType,
 } from '@/lib/templates/documentos'
+import { DitadoTextarea } from '@/components/Ditado'
 
 const MAX_FILES = 5
 const MAX_FILE_SIZE = 10 * 1024 * 1024
@@ -213,8 +214,8 @@ export default function DocumentoForm() {
             Escreva do jeito que for mais fácil — nomes, documentos, valores, datas e
             o que você quer que fique registrado.
           </p>
-          <textarea
-            id="prompt" value={prompt} onChange={e => setPrompt(e.target.value)}
+          <DitadoTextarea
+            id="prompt" value={prompt} onValueChange={setPrompt}
             rows={10} className="j-input j-textarea" disabled={loading}
             placeholder={selected?.placeholder ?? PLACEHOLDER_GENERICO}
           />

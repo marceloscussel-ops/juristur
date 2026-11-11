@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Send, Loader2, MessageSquare, Lock } from 'lucide-react'
 import { CaseMessage, MAX_FOLLOWUP_QUESTIONS } from '@/types'
 import { formatTime } from '@/lib/datetime'
+import { BotaoDitado, useDitado, insereNoCursor } from '@/components/Ditado'
 
 interface Props {
   caseId: string
@@ -34,6 +35,22 @@ export default function CaseFollowUp({ caseId }: Props) {
     el.style.height = 'auto'
     el.style.height = Math.min(el.scrollHeight, 140) + 'px'
   }
+
+  // A pergunta ditada entra no cursor, como se tivesse sido digitada.
+  const ditado = useDitado(texto => {
+    const el     = textareaRef.current
+    const inicio = el?.selectionStart ?? question.length
+    const fim    = el?.selectionEnd   ?? question.length
+    const r = insereNoCursor(question, texto, inicio, fim)
+    setQuestion(r.valor)
+    requestAnimationFrame(() => {
+      const atual = textareaRef.current
+      if (!atual) return
+      atual.focus()
+      atual.setSelectionRange(r.cursor, r.cursor)
+      autoResize()
+    })
+  })
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -162,7 +179,7 @@ export default function CaseFollowUp({ caseId }: Props) {
               </p>
             )}
 
-            {error && <p className="text-xs text-coral mb-2">{error}</p>}
+            {(error || ditado.erro) && <p className="text-xs text-coral mb-2">{error ?? ditado.erro}</p>}
 
             <form onSubmit={handleSubmit} className="flex gap-2 items-end">
               <textarea
@@ -172,13 +189,20 @@ export default function CaseFollowUp({ caseId }: Props) {
                 onKeyDown={handleKeyDown}
                 placeholder="Escreva sua dúvida... (Enter para enviar)"
                 rows={1}
-                disabled={loading}
+                disabled={loading || ditado.estado !== 'parado'}
                 className="j-input flex-1 resize-none overflow-hidden"
                 style={{ minHeight: 42 }}
               />
+              <BotaoDitado
+                ditado={ditado}
+                disabled={loading}
+                variante="icone"
+                tamanho="md"
+                className="flex-shrink-0"
+              />
               <button
                 type="submit"
-                disabled={!question.trim() || loading}
+                disabled={!question.trim() || loading || ditado.estado !== 'parado'}
                 className="btn btn-primary flex-shrink-0"
                 style={{ height: 42, width: 42, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
