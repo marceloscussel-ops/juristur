@@ -24,9 +24,11 @@
     "react": "^18",
     "react-dom": "^18",
     "react-markdown": "^10.1.0",
-    "remark-gfm": "^4.0.1"
+    "remark-gfm": "^4.0.1",
+    "serwist": "^9.5.13"
   },
   "devDependencies": {
+    "@serwist/next": "^9.5.13",
     "@tailwindcss/typography": "^0.5.19",
     "@types/node": "^20",
     "@types/pdf-parse": "^1.1.5",

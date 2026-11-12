@@ -7,6 +7,13 @@
       "runtimeArgs": ["/c", "set PATH=C:\\Program Files\\nodejs;%PATH% && npm run dev"],
       "port": 3000,
       "autoPort": true
+    },
+    {
+      "name": "juristur-prod",
+      "runtimeExecutable": "C:\\Windows\\System32\\cmd.exe",
+      "runtimeArgs": ["/c", "set PATH=C:\\Program Files\\nodejs;%PATH% && npm run start"],
+      "port": 3000,
+      "autoPort": true
     }
   ]
 }

@@ -26,8 +26,27 @@ const jetbrains = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://www.turisguard.com'),
   title: 'TurisGuard — Assessoria Jurídica para Agências de Turismo',
   description: 'Plataforma de assessoria jurídica especializada para agências de turismo brasileiras',
+  applicationName: 'TurisGuard',
+  manifest: '/manifest.webmanifest',
+  // O iPhone não lê o manifest: quem abre o app em tela cheia na tela de
+  // início, com o nome e o ícone certos, são estas metas.
+  appleWebApp: {
+    capable: true,
+    title: 'TurisGuard',
+    statusBarStyle: 'default',
+  },
+  icons: {
+    // /icon.svg vem de src/app/icon.svg (convenção do Next); o PNG é para o
+    // iPhone, que ignora ícone em SVG.
+    icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+  },
+  // Sem isto o Safari transforma CNPJ, protocolo e número de caso em link de
+  // telefone e pinta tudo de azul.
+  formatDetection: { telephone: false, address: false, date: false },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

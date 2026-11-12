@@ -32,7 +32,10 @@ export async function updateSession(request: NextRequest) {
 
   const isLawyerPath = pathname.startsWith('/lawyer')
   // /contrato é público: a pessoa precisa poder ler o contrato ANTES de ter conta.
-  const publicPaths  = ['/login', '/cadastro', '/evento', '/', '/contrato', '/esqueci-senha', '/resetar-senha', '/auth/callback']
+  // /offline é a tela que o service worker mostra sem rede: ela é pré-cacheada
+  // no build e tem de responder 200 para qualquer um, com ou sem sessão —
+  // senão o que entraria no cache seria o redirecionamento para /login.
+  const publicPaths  = ['/login', '/cadastro', '/evento', '/', '/contrato', '/esqueci-senha', '/resetar-senha', '/auth/callback', '/offline']
   // /i/<slug> é o link de indicação: ele só grava o cookie e manda para o
   // cadastro, então tem de abrir para quem ainda não tem conta — que é
   // justamente quem chega por ele.

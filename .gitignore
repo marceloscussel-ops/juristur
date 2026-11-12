@@ -42,3 +42,8 @@ next-env.d.ts
 
 # estado local do CLI do Supabase
 supabase/.temp/
+
+# serwist (service worker gerado no build)
+/public/sw.js
+/public/sw.js.map
+/public/swe-worker-*.js
