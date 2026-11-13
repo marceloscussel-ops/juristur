@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { loadDefenseInfo } from '@/lib/defesas'
-import { whatsappLink } from '@/lib/whatsapp/public-number'
+import { lawyerWhatsappLink } from '@/lib/whatsapp/public-number'
 import { formatDate } from '@/lib/datetime'
 import DefesaCaseList, { type DefesaCase } from '@/components/DefesaCaseList'
 import DefesaQuota from '@/components/DefesaQuota'
@@ -72,12 +72,12 @@ export default async function DefesaPage() {
     category:    c.category,
     created_at:  c.created_at,
     escalated:   !!c.escalated_at,
-    whatsappUrl: whatsappLink(
+    whatsappUrl: lawyerWhatsappLink(
       `Olá! Quero solicitar defesa para um caso: ${c.title ?? c.category} (categoria: ${c.category})`
     ),
   }))
 
-  const genericUrl = whatsappLink(
+  const genericUrl = lawyerWhatsappLink(
     'Olá! Quero solicitar defesa para uma situação da minha agência.'
   )
 

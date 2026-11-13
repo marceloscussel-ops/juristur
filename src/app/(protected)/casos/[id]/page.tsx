@@ -12,7 +12,7 @@ import { loadDefenseInfo } from '@/lib/defesas'
 import { formatDateTimeLong } from '@/lib/datetime'
 import { Case } from '@/types'
 import { ArrowLeft, Paperclip, Clock, Plus } from 'lucide-react'
-import { whatsappLink } from '@/lib/whatsapp/public-number'
+import { lawyerWhatsappLink } from '@/lib/whatsapp/public-number'
 import { getAgencyId, getNomesDaEquipe } from '@/lib/agencia-do-usuario'
 
 export default async function CasoPage({ params }: { params: Promise<{ id: string }> }) {
@@ -37,7 +37,7 @@ export default async function CasoPage({ params }: { params: Promise<{ id: strin
   const analysis = (caseData.case_analyses ?? []).find(a => a.review_status === 'approved') ?? null
   const files = caseData.case_files ?? []
 
-  const whatsappUrl = whatsappLink(
+  const whatsappUrl = lawyerWhatsappLink(
     `Olá! Preciso de assistência jurídica. Tenho um caso sobre: ${caseData.title} (categoria: ${caseData.category})`
   )
 

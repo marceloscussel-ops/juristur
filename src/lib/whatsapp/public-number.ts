@@ -29,3 +29,19 @@ export function formatWhatsappNumber(digits: string = WHATSAPP_NUMBER): string {
   const m = digits.match(/^(\d{2})(\d{2})(\d{4,5})(\d{4})$/)
   return m ? `+${m[1]} (${m[2]}) ${m[3]}-${m[4]}` : digits
 }
+
+/**
+ * WhatsApp do advogado — destino dos botões "Solicitar defesa".
+ *
+ * É outro número que o do bot: aqui a conversa é humana, com quem assume o
+ * caso. Troque por `NEXT_PUBLIC_WHATSAPP_ADVOGADO` (só dígitos, com DDI); o
+ * valor abaixo é o padrão. Mantenha em sincronia com `lawyer_settings`.
+ */
+export const LAWYER_WHATSAPP_NUMBER =
+  (process.env.NEXT_PUBLIC_WHATSAPP_ADVOGADO ?? '').replace(/\D/g, '') || '5551995505587'
+
+/** Link wa.me direto para o advogado, com mensagem pré-preenchida. */
+export function lawyerWhatsappLink(text?: string): string {
+  const base = `https://wa.me/${LAWYER_WHATSAPP_NUMBER}`
+  return text ? `${base}?text=${encodeURIComponent(text)}` : base
+}
