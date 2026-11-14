@@ -9,6 +9,14 @@ export async function GET(request: NextRequest) {
   const origin = request.nextUrl.origin
 
   if (!code) {
+    // O Supabase devolve o motivo na query (ex.: error_code=otp_expired quando
+    // um antivírus de e-mail já abriu o link). Sem este log, toda falha vira
+    // o mesmo "link expirado" e não dá para saber qual foi.
+    console.error('[auth/callback] sem code', {
+      error: searchParams.get('error'),
+      error_code: searchParams.get('error_code'),
+      error_description: searchParams.get('error_description'),
+    })
     return NextResponse.redirect(`${origin}/esqueci-senha?erro=1`)
   }
 
@@ -34,6 +42,12 @@ export async function GET(request: NextRequest) {
   const { error } = await supabase.auth.exchangeCodeForSession(code)
 
   if (error) {
+    // "code verifier" no erro = link aberto em outro navegador/dispositivo.
+    console.error('[auth/callback] exchangeCodeForSession falhou', {
+      code: error.code,
+      status: error.status,
+      message: error.message,
+    })
     return NextResponse.redirect(`${origin}/esqueci-senha?erro=1`)
   }
 

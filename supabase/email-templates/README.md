@@ -10,10 +10,15 @@ Onde colar: **Authentication → Emails**, aba do template correspondente.
 | Arquivo        | Template no painel | Assunto                                |
 | -------------- | ------------------ | -------------------------------------- |
 | `convite.html` | *Invite user*      | `Você foi convidado para o TurisGuard` |
+| `recuperar-senha.html` | *Reset password* | `Redefina sua senha do TurisGuard` |
 
-Os templates que ainda estão no padrão do Supabase (em inglês) são os de
-recuperação de senha (*Reset password*) e confirmação de cadastro (*Confirm
-signup*). Valem a mesma tradução quando sobrar um tempo.
+O de recuperação não usa `{{ .ConfirmationURL }}`: aponta para
+`/auth/confirmar?token_hash=...`, que só gasta o token quando a pessoa clica no
+botão. Com o link padrão, antivírus de e-mail (Outlook Safe Links) abriam o
+link antes da pessoa e ela recebia "link expirado" logo depois de pedir.
+
+O que ainda está no padrão do Supabase (em inglês) é a confirmação de cadastro
+(*Confirm signup*). Vale a mesma tradução quando sobrar um tempo.
 
 ## Redirect URLs
 
