@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { Building2, Mail, Phone, Shield, Save, CheckCircle, AlertCircle, Loader2, Sparkles, XCircle, Scale, Users, ChevronRight } from 'lucide-react'
-import { getTrialInfo, PLAN_LABELS } from '@/lib/plans'
+import { Building2, Mail, Phone, Shield, Save, CheckCircle, AlertCircle, Loader2, Sparkles, XCircle, Scale, Users, ChevronRight, Clock3 } from 'lucide-react'
+import { CARENCIA_DEFESA_DIAS, getTrialInfo, PLAN_LABELS } from '@/lib/plans'
 import { formatCpfCnpj, isValidCpfCnpj } from '@/lib/document'
 import { formatDateLong } from '@/lib/datetime'
 import PrivacySection from '@/components/PrivacySection'
@@ -72,7 +72,17 @@ function UsoDoPlanoBloco({ uso }: { uso?: UsoDoPlano | null }) {
                 </span>
               )}
             </p>
-            <p className="j-caption mt-0.5">{defesas.resumo}</p>
+            {defesas.state === 'carencia' ? (
+              <p className="mt-1 inline-flex items-start gap-1.5 rounded-md bg-amber-50 px-2 py-1 text-[12.5px] text-amber-800">
+                <Clock3 className="w-3.5 h-3.5 shrink-0 mt-0.5" strokeWidth={2} />
+                <span>
+                  Em carência: {defesas.resumo.charAt(0).toLowerCase() + defesas.resumo.slice(1)}.
+                  {' '}O contrato prevê {CARENCIA_DEFESA_DIAS} dias a partir da assinatura.
+                </span>
+              </p>
+            ) : (
+              <p className="j-caption mt-0.5">{defesas.resumo}</p>
+            )}
           </div>
           <ChevronRight className="w-4 h-4 text-ink-40 shrink-0" />
         </Link>

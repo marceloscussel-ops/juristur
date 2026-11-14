@@ -82,7 +82,7 @@ export const PLANS: PlanDef[] = [
     usuarios: 3,
     features: [
       'Tudo do Essential',
-      '1 defesa com advogado inclusa por ano',
+      `1 defesa com advogado inclusa por ano, após ${CARENCIA_DEFESA_DIAS} dias de carência`,
       'Até 3 usuários',
       'Exportação de orientações',
     ],
@@ -98,7 +98,7 @@ export const PLANS: PlanDef[] = [
     usuarios: 5,
     features: [
       'Tudo do Professional',
-      '3 defesas com advogado inclusas por ano',
+      `3 defesas com advogado inclusas por ano, após ${CARENCIA_DEFESA_DIAS} dias de carência`,
       'Até 5 usuários',
       'Resposta humana em até 2h úteis',
     ],

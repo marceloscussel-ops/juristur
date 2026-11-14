@@ -69,6 +69,9 @@ const row = {
   plan,
   subscription_status: 'active',
   access_until: accessUntil.toISOString(),
+  // Início do plano recuado além da carência de 60 dias: numa demonstração a
+  // defesa inclusa precisa aparecer disponível, não "a partir de" uma data.
+  plan_started_at: new Date(Date.now() - 61 * 86_400_000).toISOString(),
   billing_cycle: 'anual',
   origem: 'demo',
   origem_campanha: 'conta-demo',
