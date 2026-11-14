@@ -180,6 +180,28 @@ export default async function AdminDashboard({ searchParams }: Props) {
     ? Math.round((eventoAtivas / eventoTotal.length) * 100)
     : 0
 
+  // ── Lista das agências cadastradas no período (mais recentes primeiro) ──
+  const casosPorAgencia = countBy(cs, c => c.agency_id ?? 'unknown')
+  const fmtDataHora = (iso: string) => {
+    const s = new Date(new Date(iso).getTime() - BR)
+    const p = (n: number) => String(n).padStart(2, '0')
+    return `${p(s.getUTCDate())}/${p(s.getUTCMonth() + 1)}/${s.getUTCFullYear()} ${p(s.getUTCHours())}:${p(s.getUTCMinutes())}`
+  }
+  const agenciasLista = [...agsP]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .map(a => {
+      const t = getTrialInfo(a)
+      return {
+        id: a.id,
+        nome: a.name ?? 'Sem nome',
+        criada: fmtDataHora(a.created_at),
+        origem: origemOf(a.origem),
+        campanha: a.origem_campanha as string | null,
+        status: t.isActive ? 'Assinante' : t.isExpired ? 'Teste expirado' : 'Em teste',
+        casos: casosPorAgencia.get(a.id) ?? 0,
+      }
+    })
+
   return (
     <div className="animate-fade-in space-y-5">
       <div>
@@ -244,6 +266,38 @@ export default async function AdminDashboard({ searchParams }: Props) {
       {/* Casos por agência */}
       <ChartCard title={`Casos por agência · ${plabel}`}>
         <HBars data={agencyData} color="var(--j-indigo)" />
+      </ChartCard>
+
+      {/* Agências cadastradas no período */}
+      <ChartCard title={`Agências cadastradas · ${plabel} (${fmt(agenciasLista.length)})`}>
+        {agenciasLista.length === 0 ? (
+          <p className="j-caption">Nenhuma agência cadastrada neste período.</p>
+        ) : (
+          <div className="overflow-x-auto -mx-1">
+            <table className="w-full text-[13px]">
+              <thead>
+                <tr className="text-left text-ink-40 border-b">
+                  <th className="py-2 px-1 font-medium">Agência</th>
+                  <th className="py-2 px-1 font-medium whitespace-nowrap">Cadastro</th>
+                  <th className="py-2 px-1 font-medium">Origem</th>
+                  <th className="py-2 px-1 font-medium">Status</th>
+                  <th className="py-2 px-1 font-medium text-right">Casos</th>
+                </tr>
+              </thead>
+              <tbody>
+                {agenciasLista.map(a => (
+                  <tr key={a.id} className="border-b last:border-0 text-ink-80">
+                    <td className="py-2 px-1 font-medium">{a.nome}</td>
+                    <td className="py-2 px-1 whitespace-nowrap">{a.criada}</td>
+                    <td className="py-2 px-1">{a.origem}{a.campanha ? ` · ${a.campanha}` : ''}</td>
+                    <td className="py-2 px-1 whitespace-nowrap">{a.status}</td>
+                    <td className="py-2 px-1 text-right tabular-nums">{fmt(a.casos)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </ChartCard>
 
       {/* Status (base atual) + Funil */}
