@@ -8,6 +8,37 @@ import { exigirTitular } from '@/lib/titular'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { env } from '@/lib/env'
 import { isPhoneTaken } from '@/lib/agency'
+import { loadDefenseInfo } from '@/lib/defesas'
+import { getEquipe } from '@/lib/equipe'
+import { defesaResumo } from '@/components/DefesaQuota'
+import type { DefenseAgency } from '@/lib/plans'
+
+/**
+ * Quanto do plano a agência já usou: defesas do ano e usuários cadastrados.
+ * Mesmas funções das telas /defesa e /equipe, para o número bater nas três.
+ * Cada parte falha sozinha — o perfil abre mesmo se uma contagem der erro.
+ */
+async function usoDoPlano(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  agencyId: string,
+  agency:   DefenseAgency,
+) {
+  const [defesas, usuarios] = await Promise.all([
+    loadDefenseInfo(supabase, agencyId, agency)
+      .then(info => ({
+        state:     info.state,
+        total:     info.total,
+        used:      info.used,
+        remaining: info.remaining,
+        resumo:    defesaResumo(info),
+      }))
+      .catch(() => null),
+    getEquipe(agencyId)
+      .then(({ seats }) => ({ total: seats.total, used: seats.used, remaining: seats.remaining }))
+      .catch(() => null),
+  ])
+  return { defesas, usuarios }
+}
 
 export async function GET() {
   try {
@@ -26,6 +57,7 @@ export async function GET() {
     // são do titular. O membro vê a agência, não mexe nela.
     return NextResponse.json({
       agency,
+      uso:       vinculo.isTitular ? await usoDoPlano(supabase, vinculo.agencyId, agency) : null,
       isTitular: vinculo.isTitular,
       papel:     vinculo.membership?.papel ?? 'titular',
       // Quem está conectado. Para o membro, o e-mail da agência não é o dele —

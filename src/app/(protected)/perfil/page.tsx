@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { Building2, Mail, Phone, Shield, Save, CheckCircle, AlertCircle, Loader2, Sparkles, XCircle } from 'lucide-react'
+import { Building2, Mail, Phone, Shield, Save, CheckCircle, AlertCircle, Loader2, Sparkles, XCircle, Scale, Users, ChevronRight } from 'lucide-react'
 import { getTrialInfo, PLAN_LABELS } from '@/lib/plans'
 import { formatCpfCnpj, isValidCpfCnpj } from '@/lib/document'
 import { formatDateLong } from '@/lib/datetime'
@@ -20,6 +20,8 @@ function formatPhone(value: string) {
 
 interface PerfilResponse {
   agency:    AgencyData
+  /** Uso do plano — só vem para o titular. Cada parte pode faltar se a contagem falhar. */
+  uso?:      UsoDoPlano | null
   isTitular: boolean
   /** Conta de quem está logado — para o membro, não é o e-mail da agência. */
   usuario?:  { email?: string | null; nome?: string | null }
@@ -38,7 +40,71 @@ interface AgencyData {
   access_until?:       string | null
 }
 
-function SubscriptionCard({ agency, onChange }: { agency: AgencyData; onChange: () => void }) {
+interface UsoDoPlano {
+  defesas:  { state: string; total: number; used: number; remaining: number; resumo: string } | null
+  usuarios: { total: number; used: number; remaining: number } | null
+}
+
+/**
+ * Saldo do plano dentro do cartão Assinatura: defesas do ano e usuários.
+ * Os números vêm das mesmas funções de /defesa e /equipe; aqui é só o resumo,
+ * com link para a tela que tem o detalhe.
+ */
+function UsoDoPlanoBloco({ uso }: { uso?: UsoDoPlano | null }) {
+  if (!uso || (!uso.defesas && !uso.usuarios)) return null
+  const { defesas, usuarios } = uso
+  const semCota = defesas?.state === 'nao_incluida'
+  const gratuito = defesas?.state === 'trial' || defesas?.state === 'expirada'
+
+  return (
+    <div className="mt-4 pt-4 border-t border-line">
+      <p className="j-label mb-2">Uso do plano</p>
+
+      {defesas && (
+        <Link href="/defesa" className="flex items-center gap-3 rounded-lg -mx-2 px-2 py-2 hover:bg-surface no-underline">
+          <Scale className="w-4 h-4 text-ink-40 shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="j-body font-medium">
+              Defesas
+              {!semCota && (
+                <span className="text-ink-40 font-normal">
+                  {' · '}{defesas.used} de {defesas.total} {gratuito ? 'solicitações usadas' : 'usadas neste ano'}
+                </span>
+              )}
+            </p>
+            <p className="j-caption mt-0.5">{defesas.resumo}</p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-ink-40 shrink-0" />
+        </Link>
+      )}
+
+      {usuarios && (
+        <Link href="/equipe" className="flex items-center gap-3 rounded-lg -mx-2 px-2 py-2 hover:bg-surface no-underline">
+          <Users className="w-4 h-4 text-ink-40 shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="j-body font-medium">
+              Usuários
+              <span className="text-ink-40 font-normal">
+                {' · '}{usuarios.used} de {usuarios.total} cadastrados
+              </span>
+            </p>
+            <p className="j-caption mt-0.5">
+              {usuarios.remaining === 0
+                ? 'Todos os acessos do plano estão em uso'
+                : usuarios.remaining === 1
+                  ? '1 acesso disponível para convidar'
+                  : `${usuarios.remaining} acessos disponíveis para convidar`}
+              {' · convites pendentes contam como acesso'}
+            </p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-ink-40 shrink-0" />
+        </Link>
+      )}
+    </div>
+  )
+}
+
+function SubscriptionCard({ agency, uso, onChange }: { agency: AgencyData; uso?: UsoDoPlano | null; onChange: () => void }) {
   const trial = getTrialInfo(agency)
   const [confirming, setConfirming] = useState(false)
   const [canceling, setCanceling]   = useState(false)
@@ -91,6 +157,8 @@ function SubscriptionCard({ agency, onChange }: { agency: AgencyData; onChange: 
             )}
           </div>
         </div>
+
+        <UsoDoPlanoBloco uso={uso} />
 
         {/* Cancelamento — só faz sentido para assinatura mensal ativa */}
         {!canceled && isMonthly && (
@@ -164,6 +232,8 @@ function SubscriptionCard({ agency, onChange }: { agency: AgencyData; onChange: 
         <Sparkles className="w-4 h-4" />
         {trial.isExpired ? 'Assinar agora' : 'Ver planos'}
       </Link>
+
+      {!trial.isExpired && <UsoDoPlanoBloco uso={uso} />}
     </div>
   )
 }
@@ -173,6 +243,7 @@ export default function PerfilPage() {
   // Assinatura, edição dos dados e LGPD são do titular. O membro vê de qual
   // agência ele faz parte e para.
   const [isTitular, setIsTitular] = useState(true)
+  const [uso, setUso]             = useState<UsoDoPlano | null>(null)
   const [usuario, setUsuario]     = useState<{ email?: string | null; nome?: string | null }>({})
   const [name,   setName]     = useState('')
   const [doc,    setDoc]      = useState('')
@@ -186,6 +257,7 @@ export default function PerfilPage() {
     const d: PerfilResponse = await fetch('/api/profile', { cache: 'no-store' }).then(r => r.json())
     setAgency(d.agency)
     setIsTitular(d.isTitular !== false)
+    setUso(d.uso ?? null)
     setUsuario(d.usuario ?? {})
     setName(d.agency.name)
     setDoc(d.agency.cnpj ? formatCpfCnpj(d.agency.cnpj) : '')
@@ -273,7 +345,7 @@ export default function PerfilPage() {
       </div>
 
       {/* Assinatura / período gratuito — só o titular contrata e cancela */}
-      {agency && isTitular && <SubscriptionCard agency={agency} onChange={loadAgency} />}
+      {agency && isTitular && <SubscriptionCard agency={agency} uso={uso} onChange={loadAgency} />}
 
       {!isTitular && (
         <div className="j-card">
