@@ -104,8 +104,12 @@ export default async function AdminDashboard({ searchParams }: Props) {
     supabase.from('cases').select('created_at, origin, category, agency_id'),
     supabase.from('case_analyses').select('review_status, tokens_used, created_at'),
   ])
-  const ags = agencies ?? []
-  const cs  = cases ?? []
+  // Contas demo (scripts/demo-user.mjs) não são clientes: ficam fora de todas as métricas,
+  // junto com os casos delas. As análises não têm agency_id e seguem como estão.
+  const todasAgs = agencies ?? []
+  const demoIds  = new Set(todasAgs.filter(a => a.origem === 'demo').map(a => a.id))
+  const ags = todasAgs.filter(a => !demoIds.has(a.id))
+  const cs  = (cases ?? []).filter(c => !demoIds.has(c.agency_id))
   const ans = analyses ?? []
 
   const inPeriod = (iso: string) => { const t = new Date(iso).getTime(); return t >= start && t < end }
@@ -206,7 +210,10 @@ export default async function AdminDashboard({ searchParams }: Props) {
     <div className="animate-fade-in space-y-5">
       <div>
         <h1 className="j-h1">Visão geral</h1>
-        <p className="j-caption mt-1">Acompanhamento do sistema · horário de Brasília</p>
+        <p className="j-caption mt-1">
+          Acompanhamento do sistema · horário de Brasília
+          {demoIds.size > 0 && ` · ${demoIds.size} contas demo fora das contagens`}
+        </p>
       </div>
 
       <PeriodSelector period={period} from={sp.from} to={sp.to} />
