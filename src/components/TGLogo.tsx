@@ -36,7 +36,9 @@ export default function TGLogo({ size = 40, variant = 'color', withWordmark = fa
       case 'mono-dark':
         return tg('#16202F', '#FFFFFF')
       default:
-        return tg('#16202F', '#FFFFFF', (
+        // Cores por token: no tema escuro o escudo clareia e o "TG" escurece,
+        // senão o logo some no fundo (ver juristur.css, --j-inverse).
+        return tg('var(--j-inverse, #16202F)', 'var(--j-on-inverse, #FFFFFF)', (
           <>
             <defs>
               <clipPath id="tg-shield-clip">
@@ -58,8 +60,8 @@ export default function TGLogo({ size = 40, variant = 'color', withWordmark = fa
       {mark}
       {variant === 'color' ? (
         <span style={{ fontFamily: 'Sora,sans-serif', fontWeight: 700, fontSize: 17, letterSpacing: '-0.8px' }}>
-          <span style={{ color: '#16202F' }}>Turis</span>
-          <span style={{ color: '#5B57E8' }}>Guard</span>
+          <span style={{ color: 'var(--j-ink, #16202F)' }}>Turis</span>
+          <span style={{ color: 'var(--j-indigo, #5B57E8)' }}>Guard</span>
         </span>
       ) : (
         <span style={{ fontFamily: 'Sora,sans-serif', fontWeight: 700, fontSize: 17, letterSpacing: '-0.8px', color: wordmarkColor }}>
