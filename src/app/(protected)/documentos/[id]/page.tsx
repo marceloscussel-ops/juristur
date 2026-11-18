@@ -5,6 +5,8 @@ import StatusBadge from '@/components/StatusBadge'
 import KindBadge from '@/components/KindBadge'
 import MarkdownRenderer from '@/components/MarkdownRenderer'
 import DocumentActions from '@/components/DocumentActions'
+import FeedbackRapido from '@/components/FeedbackRapido'
+import { getMeuFeedback } from '@/lib/feedback'
 import { formatDateTimeLong } from '@/lib/datetime'
 import { LACUNA } from '@/lib/templates/contrato-turismo'
 import type { AgencyDocument } from '@/types'
@@ -31,7 +33,10 @@ export default async function DocumentoPage({ params }: { params: Promise<{ id: 
   const doc   = data as AgencyDocument
   const files = doc.document_files ?? []
 
-  const autores = await getNomesDaEquipe(agencyId)
+  const [autores, meuFeedback] = await Promise.all([
+    getNomesDaEquipe(agencyId),
+    getMeuFeedback(user!.id, 'document', id),
+  ])
   const autor   = Object.keys(autores).length > 1 && doc.created_by
     ? autores[doc.created_by] ?? null
     : null
@@ -136,6 +141,11 @@ export default async function DocumentoPage({ params }: { params: Promise<{ id: 
         confirmed={doc.status === 'confirmado'}
         hasContent={!!doc.content}
       />
+
+      {/* Só pergunta quando há um documento de fato para avaliar. */}
+      {doc.content && (
+        <FeedbackRapido targetType="document" targetId={doc.id} inicial={meuFeedback} />
+      )}
     </div>
   )
 }

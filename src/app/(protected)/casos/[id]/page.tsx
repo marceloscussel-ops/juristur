@@ -8,6 +8,8 @@ import CaseRefresh from '@/components/CaseRefresh'
 import CaseFollowUp from '@/components/CaseFollowUp'
 import CaseComplement from '@/components/CaseComplement'
 import CaseEscalate from '@/components/CaseEscalate'
+import FeedbackRapido from '@/components/FeedbackRapido'
+import { getMeuFeedback } from '@/lib/feedback'
 import { loadDefenseInfo } from '@/lib/defesas'
 import { formatDateTimeLong } from '@/lib/datetime'
 import { Case } from '@/types'
@@ -44,9 +46,10 @@ export default async function CasoPage({ params }: { params: Promise<{ id: strin
   // Cota de defesa: período gratuito (contado por solicitação) ou defesas
   // inclusas no plano (contadas pelo que o advogado marcou como utilizado).
   // A cota é da agência, não do usuário — daí `agencyId` e não `user.id`.
-  const [defenseInfo, autores] = await Promise.all([
+  const [defenseInfo, autores, meuFeedback] = await Promise.all([
     loadDefenseInfo(supabase, agencyId),
     getNomesDaEquipe(agencyId),
+    getMeuFeedback(user!.id, 'case', caseData.id),
   ])
 
   // Autoria: só aparece quando a agência tem mais de um usuário — com um só,
@@ -147,6 +150,7 @@ export default async function CasoPage({ params }: { params: Promise<{ id: strin
               severity={analysis.severity}
               generatedAt={analysis.created_at}
             />
+            <FeedbackRapido targetType="case" targetId={caseData.id} inicial={meuFeedback} />
           </div>
 
           {/* Perguntas de acompanhamento logo abaixo da análise —

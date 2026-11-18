@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/admin'
 import TGLogo from '@/components/TGLogo'
-import { LayoutDashboard, Handshake } from 'lucide-react'
+import { LayoutDashboard, Handshake, MessageSquareHeart } from 'lucide-react'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -29,6 +29,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               <Link href="/admin/indicadores"
                     className="flex items-center gap-1.5 text-[13px] text-white/70 hover:text-white transition-colors no-underline">
                 <Handshake className="w-4 h-4" /> Indicadores
+              </Link>
+              <Link href="/admin/feedback"
+                    className="flex items-center gap-1.5 text-[13px] text-white/70 hover:text-white transition-colors no-underline">
+                <MessageSquareHeart className="w-4 h-4" /> Feedback
               </Link>
             </nav>
           </div>
