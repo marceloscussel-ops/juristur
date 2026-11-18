@@ -6,6 +6,7 @@ import { formatDate } from '@/lib/datetime'
 import DefesaCaseList, { type DefesaCase } from '@/components/DefesaCaseList'
 import DefesaQuota from '@/components/DefesaQuota'
 import DefesaSolicitar from '@/components/DefesaSolicitar'
+import ParceriaCfleck from '@/components/ParceriaCfleck'
 import {
   DEFENSE_KIND_LABELS, DEFENSE_STATUS_LABELS,
   type DefenseKind, type DefenseStatus,
@@ -97,6 +98,7 @@ export default async function DefesaPage() {
         <p className="j-caption mt-1">
           Um advogado assume o caso e a conversa segue pelo WhatsApp.
         </p>
+        <ParceriaCfleck size="md" className="j-caption mt-2.5" />
       </div>
 
       {/* Saldo do plano: inclusas no ano, utilizadas e em andamento */}

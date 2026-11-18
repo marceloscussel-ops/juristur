@@ -1,8 +1,9 @@
 'use client'
 
 import { Shield } from 'lucide-react'
+import ParceriaCfleck from '@/components/ParceriaCfleck'
 
-export type EscalateVariant = 'primary' | 'compact' | 'outline'
+export type EscalateVariant = 'primary' | 'compact' | 'outline' | 'side'
 
 interface Props {
   href?: string
@@ -24,14 +25,17 @@ const BASE: React.CSSProperties = {
 
 const VARIANTS: Record<EscalateVariant, React.CSSProperties> = {
   primary: { ...BASE, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', gap: 4, padding: '15px 22px', borderRadius: 13, background: 'var(--j-coral-solid)', color: '#FFFFFF', boxShadow: '0 8px 20px -8px rgba(211,52,32,.55)' },
-  compact: { ...BASE, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '13px 20px', borderRadius: 13, background: 'var(--j-coral-solid)', color: '#FFFFFF', boxShadow: '0 8px 20px -8px rgba(211,52,32,.55)' },
-  outline: { ...BASE, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '13px 20px', borderRadius: 13, background: 'var(--j-card)', color: 'var(--j-tone-coral-text)', border: '1.5px solid var(--j-tone-coral-border)' },
+  compact: { ...BASE, display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 5, padding: '11px 20px', borderRadius: 13, background: 'var(--j-coral-solid)', color: '#FFFFFF', boxShadow: '0 8px 20px -8px rgba(211,52,32,.55)' },
+  outline: { ...BASE, display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 5, padding: '11px 20px', borderRadius: 13, background: 'var(--j-card)', color: 'var(--j-tone-coral-text)', border: '1.5px solid var(--j-tone-coral-border)' },
+  // Coluna lateral do caso: contorno, sem sombra e texto menor — menos destaque
+  side:    { ...BASE, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', gap: 5, padding: '11px 12px', borderRadius: 11, fontSize: 14, textAlign: 'center', background: 'var(--j-card)', color: 'var(--j-tone-coral-text)', border: '1.5px solid var(--j-tone-coral-border)' },
 }
 
 const HOVER_BG: Record<EscalateVariant, string> = {
   primary: 'var(--j-tone-crit-dot)',
   compact: 'var(--j-tone-crit-dot)',
   outline: 'var(--j-tone-coral-bg)',
+  side:    'var(--j-tone-coral-bg)',
 }
 
 export default function EscalateButton({ href, onClick, variant = 'primary', className = '', hint = 'Um advogado assume o caso e responde por aqui' }: Props) {
@@ -39,18 +43,27 @@ export default function EscalateButton({ href, onClick, variant = 'primary', cla
 
   const label = 'Solicitar defesa'
 
-  const inner = variant === 'primary' ? (
+  const side = variant === 'side'
+  // A defesa é prestada pela CFleck, parceira: o botão sempre informa isso.
+  const parceria = <ParceriaCfleck size={variant === 'primary' ? 'md' : 'sm'} />
+  const inner = variant === 'primary' || side ? (
+    <>
+      <span style={{ display: 'flex', alignItems: 'center', gap: side ? 6 : 8 }}>
+        <Shield size={side ? 16 : 18} strokeWidth={2} />
+        {label}
+      </span>
+      {parceria}
+      {hint && (
+        <span style={{ fontSize: side ? 11 : 11.5, opacity: 0.85, fontWeight: 400, lineHeight: 1.3 }}>{hint}</span>
+      )}
+    </>
+  ) : (
     <>
       <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <Shield size={18} strokeWidth={2} />
         {label}
       </span>
-      <span style={{ fontSize: 11.5, opacity: 0.85, fontWeight: 400 }}>{hint}</span>
-    </>
-  ) : (
-    <>
-      <Shield size={18} strokeWidth={2} />
-      {label}
+      {parceria}
     </>
   )
 

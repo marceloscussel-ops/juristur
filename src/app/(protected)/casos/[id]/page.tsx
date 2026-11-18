@@ -150,17 +150,19 @@ export default async function CasoPage({ params }: { params: Promise<{ id: strin
           </div>
 
           {/* Perguntas de acompanhamento logo abaixo da análise —
-              antes o campo ficava no fim da página e passava despercebido. */}
-          <CaseFollowUp caseId={caseData.id} />
-
+              antes o campo ficava no fim da página e passava despercebido.
+              O "Solicitar defesa" fica numa coluna de 1/4 à direita delas
+              (e do aviso de risco), com menos destaque. */}
           <CaseEscalate
             caseId={caseData.id}
             whatsappUrl={whatsappUrl}
             alreadyEscalated={alreadyEscalated}
             info={defenseInfo}
             severity={analysis.severity}
-            variant="primary"
-          />
+            variant="side"
+          >
+            <CaseFollowUp caseId={caseData.id} />
+          </CaseEscalate>
         </>
       ) : (
         <div className="j-card mt-4 text-center py-10">

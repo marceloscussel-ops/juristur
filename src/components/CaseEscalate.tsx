@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { AlertTriangle, CheckCircle2, ShieldAlert } from 'lucide-react'
 import EscalateButton, { type EscalateVariant } from '@/components/EscalateButton'
@@ -15,9 +15,15 @@ interface Props {
   info:             DefenseInfo
   severity?:        Severity | null
   variant?:         EscalateVariant
+  /**
+   * Conteúdo da coluna principal (as perguntas de acompanhamento). Quando
+   * vem, o botão vai para uma coluna de 1/4 à direita, ao lado dele e do
+   * aviso de risco; no celular tudo empilha.
+   */
+  children?:        ReactNode
 }
 
-export default function CaseEscalate({ caseId, whatsappUrl, alreadyEscalated, info, severity, variant = 'primary' }: Props) {
+export default function CaseEscalate({ caseId, whatsappUrl, alreadyEscalated, info, severity, variant = 'primary', children }: Props) {
   const [escalated, setEscalated] = useState(alreadyEscalated)
   const [remaining, setRemaining] = useState(info.remaining)
 
@@ -29,6 +35,7 @@ export default function CaseEscalate({ caseId, whatsappUrl, alreadyEscalated, in
   // Recomenda defesa para risco médio pra cima (enquanto não escalado)
   const recommend = !escalated && (severity === 'medio' || severity === 'elevado' || severity === 'elevadissimo')
   const high = severity === 'elevado' || severity === 'elevadissimo'
+  const side = !!children
 
   // Registra a escalada em segundo plano (o link abre o WhatsApp diretamente,
   // evitando bloqueio de popup). O servidor valida a cota de forma idempotente.
@@ -39,12 +46,27 @@ export default function CaseEscalate({ caseId, whatsappUrl, alreadyEscalated, in
     fetch(`/api/cases/${caseId}/escalate`, { method: 'POST' }).catch(() => {})
   }
 
+  const aviso = recommend && !blocked && (
+    <div className={`rounded-xl border p-3.5 flex items-start gap-2.5 ${side ? 'mt-4' : 'mb-3'} ${
+      high ? 'border-coral-200 bg-coral-50' : 'border-amber-200 bg-amber-50'
+    }`}>
+      <ShieldAlert className={`w-4 h-4 shrink-0 mt-0.5 ${high ? 'text-coral' : 'text-amber-700'}`} />
+      <p className={`text-[13px] ${high ? 'text-coral-700' : 'text-amber-800'}`}>
+        <strong className="font-semibold">
+          {high ? 'Caso de risco elevado.' : 'Caso de risco médio.'}
+        </strong>{' '}
+        Recomendamos solicitar defesa antes de agir — um advogado assume o caso.
+      </p>
+    </div>
+  )
+
+  let acao: ReactNode
   if (blocked) {
     const msg = info.state === 'expirada'
       ? 'Seu período gratuito terminou.'
       : `Você usou suas ${info.total} solicitações de defesa gratuitas.`
-    return (
-      <div className="mt-5 rounded-xl border border-coral-200 bg-coral-50 p-4">
+    acao = (
+      <div className="rounded-xl border border-coral-200 bg-coral-50 p-4">
         <div className="flex items-start gap-2.5">
           <AlertTriangle className="w-4 h-4 text-coral shrink-0 mt-0.5" />
           <div>
@@ -57,41 +79,48 @@ export default function CaseEscalate({ caseId, whatsappUrl, alreadyEscalated, in
         </div>
       </div>
     )
+  } else {
+    acao = (
+      <>
+        <EscalateButton
+          href={whatsappUrl}
+          onClick={recordEscalation}
+          variant={variant}
+          hint={info.plan === 'enterprise' ? 'Resposta humana em até 2h úteis' : side ? '' : undefined}
+        />
+
+        {escalated ? (
+          <p className="j-caption mt-2 flex items-center justify-center gap-1.5 text-center">
+            <CheckCircle2 className="w-3.5 h-3.5 text-teal shrink-0" />
+            Defesa solicitada — um advogado vai assumir o caso
+          </p>
+        ) : (
+          <p className="j-caption mt-2 text-center">
+            {defesaResumo({ ...info, remaining })}
+          </p>
+        )}
+      </>
+    )
+  }
+
+  if (side) {
+    return (
+      <div className="grid gap-x-4 md:grid-cols-4 items-start">
+        <div className="md:col-span-3 min-w-0">
+          {children}
+          {aviso}
+        </div>
+        <div className="mt-4 md:col-span-1 min-w-0">
+          {acao}
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="mt-5">
-      {recommend && (
-        <div className={`mb-3 rounded-xl border p-3.5 flex items-start gap-2.5 ${
-          high ? 'border-coral-200 bg-coral-50' : 'border-amber-200 bg-amber-50'
-        }`}>
-          <ShieldAlert className={`w-4 h-4 shrink-0 mt-0.5 ${high ? 'text-coral' : 'text-amber-700'}`} />
-          <p className={`text-[13px] ${high ? 'text-coral-700' : 'text-amber-800'}`}>
-            <strong className="font-semibold">
-              {high ? 'Caso de risco elevado.' : 'Caso de risco médio.'}
-            </strong>{' '}
-            Recomendamos solicitar defesa antes de agir — um advogado assume o caso.
-          </p>
-        </div>
-      )}
-
-      <EscalateButton
-        href={whatsappUrl}
-        onClick={recordEscalation}
-        variant={variant}
-        hint={info.plan === 'enterprise' ? 'Resposta humana em até 2h úteis' : undefined}
-      />
-
-      {escalated ? (
-        <p className="j-caption mt-2 flex items-center justify-center gap-1.5">
-          <CheckCircle2 className="w-3.5 h-3.5 text-teal" />
-          Defesa solicitada — um advogado vai assumir o caso
-        </p>
-      ) : (
-        <p className="j-caption mt-2 text-center">
-          {defesaResumo({ ...info, remaining })}
-        </p>
-      )}
+      {aviso}
+      {acao}
     </div>
   )
 }
