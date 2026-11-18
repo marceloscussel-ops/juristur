@@ -12,12 +12,19 @@
 import { PDFDocument, StandardFonts } from 'pdf-lib'
 import { Doc, writeMarkdown, sanitize, INK, type Fonts } from '@/lib/pdf/doc-builder'
 import { formatDateTimeLong } from '@/lib/datetime'
+import { encaixar, type AgencyLogo } from '@/lib/agency-logo'
+
+/** Caixa máxima da logo no cabeçalho, em pontos (~6,3 × 1,9 cm). */
+const LOGO_MAX_W = 180
+const LOGO_MAX_H = 54
 
 export interface DocumentPdfInput {
   title:      string
   content:    string
   createdAt:  string
   agencyName?: string | null
+  /** Logomarca da agência; sem ela o layout é o de sempre. */
+  logo?:      AgencyLogo | null
 }
 
 export async function buildDocumentPdf(input: DocumentPdfInput): Promise<Uint8Array> {
@@ -33,6 +40,16 @@ export async function buildDocumentPdf(input: DocumentPdfInput): Promise<Uint8Ar
   pdf.setCreator('TurisGuard')
 
   const doc = new Doc(pdf, fonts)
+
+  // Logomarca da agência no topo da primeira página, quando houver. Sem logo
+  // o documento começa direto no título, como sempre foi.
+  if (input.logo) {
+    const img = input.logo.format === 'png'
+      ? await pdf.embedPng(input.logo.bytes)
+      : await pdf.embedJpg(input.logo.bytes)
+    const { width, height } = encaixar(img.width, img.height, LOGO_MAX_W, LOGO_MAX_H)
+    doc.image(img, width, height, { after: 18 })
+  }
 
   // O `# Título` de abertura é o cabeçalho do documento, não mais uma seção:
   // writeMarkdown o trataria como heading comum, do tamanho das cláusulas.

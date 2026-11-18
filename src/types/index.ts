@@ -59,6 +59,8 @@ export interface Agency {
   /** Indicador comissionado que trouxe a agência (partners.id). Write-once. */
   partner_id?:            string | null
   partner_attributed_at?: string | null
+  /** Logomarca no bucket privado `agency-logos`; null = sem logo. */
+  logo_path?:             string | null
 }
 
 export interface CaseMessage {

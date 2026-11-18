@@ -8,6 +8,7 @@ import { formatCpfCnpj, isValidCpfCnpj } from '@/lib/document'
 import { formatDateLong } from '@/lib/datetime'
 import PrivacySection from '@/components/PrivacySection'
 import ContratoSection from '@/components/ContratoSection'
+import LogoAgencia from '@/components/LogoAgencia'
 import type { AgencyPlan } from '@/types'
 
 function formatPhone(value: string) {
@@ -38,6 +39,7 @@ interface AgencyData {
   created_at:          string
   billing_cycle?:      string | null
   access_until?:       string | null
+  logo_path?:          string | null
 }
 
 interface UsoDoPlano {
@@ -369,6 +371,16 @@ export default function PerfilPage() {
             cadastrais são administrados pelo titular da conta.
           </p>
         </div>
+      )}
+
+      {/* Logomarca: vai no cabeçalho dos documentos gerados. O membro vê,
+          só o titular troca. */}
+      {agency && (
+        <LogoAgencia
+          logoPath={agency.logo_path}
+          podeEditar={isTitular}
+          onChange={path => setAgency(a => (a ? { ...a, logo_path: path } : a))}
+        />
       )}
 
       {/* Formulário editável */}

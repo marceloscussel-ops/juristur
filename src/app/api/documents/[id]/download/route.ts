@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAgencyId } from '@/lib/agencia-do-usuario'
 import { buildDocumentPdf, documentFilename } from '@/lib/pdf/document-pdf'
 import { buildDocumentDocx } from '@/lib/docx/document-docx'
+import { carregarLogoDaAgencia } from '@/lib/agency-logo'
 import type { AgencyDocument } from '@/types'
 
 export const runtime = 'nodejs'
@@ -50,14 +51,18 @@ export async function GET(
     }
 
     const { data: agency } = await supabase
-      .from('agencies').select('name').eq('id', agencyId).maybeSingle()
+      .from('agencies').select('name, logo_path').eq('id', agencyId).maybeSingle()
+
+    // Logomarca no cabeçalho, quando a agência enviou uma no Perfil. Falha de
+    // leitura devolve null e o documento sai sem ela.
+    const logo = await carregarLogoDaAgencia(supabase, agency?.logo_path)
 
     const title = doc.title?.trim() || doc.doc_type?.trim() || 'Documento'
 
     const built = formato === 'docx'
-      ? await buildDocumentDocx({ title, content: doc.content, agencyName: agency?.name })
+      ? await buildDocumentDocx({ title, content: doc.content, agencyName: agency?.name, logo })
       : await buildDocumentPdf({
-          title, content: doc.content, createdAt: doc.created_at, agencyName: agency?.name,
+          title, content: doc.content, createdAt: doc.created_at, agencyName: agency?.name, logo,
         })
 
     const file = new Uint8Array(built)

@@ -11,8 +11,26 @@
 
 import {
   Document, Packer, Paragraph, TextRun, HeadingLevel,
-  AlignmentType, BorderStyle, convertInchesToTwip,
+  AlignmentType, BorderStyle, convertInchesToTwip, ImageRun,
 } from 'docx'
+import { encaixar, type AgencyLogo } from '@/lib/agency-logo'
+
+/** Caixa máxima da logo, em pixels a 96 dpi — o mesmo tamanho do PDF (180 × 54 pt). */
+const LOGO_MAX_W = 240
+const LOGO_MAX_H = 72
+
+/** Logomarca da agência no topo do documento, alinhada à esquerda como no PDF. */
+function logoParagraph(logo: AgencyLogo): Paragraph {
+  const { width, height } = encaixar(logo.width, logo.height, LOGO_MAX_W, LOGO_MAX_H)
+  return new Paragraph({
+    spacing:  { after: 240 },
+    children: [new ImageRun({
+      type: logo.format,
+      data: logo.bytes,
+      transformation: { width: Math.round(width), height: Math.round(height) },
+    })],
+  })
+}
 
 interface Run { text: string; bold: boolean }
 
@@ -100,6 +118,8 @@ export interface DocumentDocxInput {
   title:   string
   content: string
   agencyName?: string | null
+  /** Logomarca da agência; sem ela o layout é o de sempre. */
+  logo?:   AgencyLogo | null
 }
 
 export async function buildDocumentDocx(input: DocumentDocxInput): Promise<Buffer> {
@@ -126,7 +146,10 @@ export async function buildDocumentDocx(input: DocumentDocxInput): Promise<Buffe
           },
         },
       },
-      children: markdownToParagraphs(input.content),
+      children: [
+        ...(input.logo ? [logoParagraph(input.logo)] : []),
+        ...markdownToParagraphs(input.content),
+      ],
     }],
   })
 

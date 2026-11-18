@@ -5,7 +5,7 @@
 // medição de fonte, paginação, markdown básico e sanitização para WinAnsi.
 // Quem monta um PDF novo compõe a classe Doc; o layout fica no chamador.
 
-import { rgb, type PDFDocument, type PDFFont, type PDFPage } from 'pdf-lib'
+import { rgb, type PDFDocument, type PDFFont, type PDFImage, type PDFPage } from 'pdf-lib'
 
 export const PAGE_W = 595.28   // A4 em pontos
 export const PAGE_H = 841.89
@@ -199,6 +199,14 @@ export class Doc {
     })
     this.text(runs, { size, lineHeight: lh, indent: pad, width: CONTENT_W - pad, color: AMBER_INK })
     this.space(pad)
+  }
+
+  /** Imagem na posição atual (ex.: logomarca da agência no topo do documento). */
+  image(img: PDFImage, width: number, height: number, opts: { after?: number } = {}) {
+    this.ensure(height)
+    this.page.drawImage(img, { x: MARGIN, y: this.y - height, width, height })
+    this.y -= height
+    if (opts.after) this.y -= opts.after
   }
 
   /** Faixa escura com a marca, no topo da primeira página. */

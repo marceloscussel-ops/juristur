@@ -793,3 +793,52 @@ GRANT SELECT ON partner_commissions TO service_role;
 INSERT INTO partners (slug, name, commission_pct, recurring)
 VALUES ('unav', 'UNAV', 10, true)
 ON CONFLICT (slug) DO NOTHING;
+
+-- ============================================================
+-- Logomarca da agência (ver migrations/2026-11-18-logo-agencia.sql)
+-- ============================================================
+-- Caminho no bucket, não URL: o bucket é privado, então URL pública não
+-- existe. NULL = agência sem logo (documentos saem no layout de sempre).
+ALTER TABLE agencies ADD COLUMN IF NOT EXISTS logo_path TEXT;
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('agency-logos', 'agency-logos', false, 2097152, ARRAY['image/png', 'image/jpeg'])
+ON CONFLICT (id) DO UPDATE
+  SET public             = EXCLUDED.public,
+      file_size_limit    = EXCLUDED.file_size_limit,
+      allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+-- Leitura: qualquer usuário ativo da agência (o membro também gera
+-- documentos, e o documento dele sai com a logo).
+DROP POLICY IF EXISTS "agency_logos_read" ON storage.objects;
+CREATE POLICY "agency_logos_read" ON storage.objects
+  FOR SELECT USING (
+    bucket_id = 'agency-logos'
+    AND (storage.foldername(name))[1] = public.agency_do_usuario()::text
+  );
+
+-- Escrita: só o titular, e só dentro da pasta da própria agência. Mesma
+-- regra de `agencies_update` — membro não mexe em dado cadastral.
+DROP POLICY IF EXISTS "agency_logos_insert" ON storage.objects;
+CREATE POLICY "agency_logos_insert" ON storage.objects
+  FOR INSERT WITH CHECK (
+    bucket_id = 'agency-logos'
+    AND (storage.foldername(name))[1] = public.agency_do_usuario()::text
+    AND public.e_titular_da_agencia()
+  );
+
+DROP POLICY IF EXISTS "agency_logos_update" ON storage.objects;
+CREATE POLICY "agency_logos_update" ON storage.objects
+  FOR UPDATE USING (
+    bucket_id = 'agency-logos'
+    AND (storage.foldername(name))[1] = public.agency_do_usuario()::text
+    AND public.e_titular_da_agencia()
+  );
+
+DROP POLICY IF EXISTS "agency_logos_delete" ON storage.objects;
+CREATE POLICY "agency_logos_delete" ON storage.objects
+  FOR DELETE USING (
+    bucket_id = 'agency-logos'
+    AND (storage.foldername(name))[1] = public.agency_do_usuario()::text
+    AND public.e_titular_da_agencia()
+  );

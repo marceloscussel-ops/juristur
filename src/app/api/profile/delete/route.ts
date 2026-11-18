@@ -20,6 +20,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { deleteSubscription, serviceClient } from '@/lib/asaas'
 import { exigirTitular } from '@/lib/titular'
 import { notifyAdminDeletionIssue } from '@/lib/notify'
+import { LOGO_BUCKET } from '@/lib/agency-logo'
 
 export const maxDuration = 60
 
@@ -107,6 +108,19 @@ export async function POST(request: NextRequest) {
       }
     } catch (err) {
       console.error('[profile/delete] erro ao limpar o Storage:', err)
+    }
+
+    // 2b. Logomarca (bucket privado `agency-logos`, pasta da agência). Também
+    //     não cascateia com o banco.
+    try {
+      const { data: logos } = await db.storage.from(LOGO_BUCKET).list(agency.id, { limit: 100 })
+      const caminhos = (logos ?? []).filter(f => f.id).map(f => `${agency.id}/${f.name}`)
+      if (caminhos.length > 0) {
+        const { error } = await db.storage.from(LOGO_BUCKET).remove(caminhos)
+        if (error) console.error('[profile/delete] falha ao remover a logomarca:', error.message)
+      }
+    } catch (err) {
+      console.error('[profile/delete] erro ao remover a logomarca:', err)
     }
 
     // 3. Sessões de WhatsApp saem antes, explicitamente: `whatsapp_sessions.case_id`
